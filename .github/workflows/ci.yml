@@ -149,10 +149,13 @@ jobs:
         run: cargo build --release --package monostyle
 
       - name: score the source
+        # The `tests/fixtures` directory is excluded because it holds the deliberately bad examples the
+        # scoring tests assert against. Measuring them would drag the reported score toward the quality of
+        # code written specifically to be bad, which says nothing about this project's source.
         run: ./target/release/monostyle check crates examples --no-color
 
-      - name: enforce the readability floor
-        run: ./target/release/monostyle check crates --fail-under 70 --quiet
+      - name: enforce the quality floor
+        run: ./target/release/monostyle check crates --fail-under 75 --quiet
 
   npm:
     name: npm packages

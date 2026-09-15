@@ -84,86 +84,20 @@ fn resolve_options(cli: &Cli) -> Result<AnalysisOptions, Box<dyn std::error::Err
 /// Runs the `check` command.
 fn run_check(
 	args: &CheckArgs,
-	mut options: AnalysisOptions,
+	options: AnalysisOptions,
 ) -> Result<ExitCode, Box<dyn std::error::Error>> {
-	// A config file beside the analyzed paths is picked up automatically, so a project does
-	// not have to pass `--config` on every invocation.
-	if options.rules == monostyle_rules::RulesConfig::default()
-		&& let Some(path) = args
-			.paths
-			.first()
-			.and_then(|path| config::find_config(path))
-	{
-		options = options.apply_config(&config::load_config(&path)?)?;
-	}
-
-	// The generated-file exclusion is a rule default, so overriding it means turning it off before
-	// the walk rather than filtering afterwards.
-	if args.include_generated {
-		options.rules.ignore.generated = false;
-	}
-
-	let ignore_config = options.rules.ignore.clone();
-	let mut paths = Vec::new();
-	let mut skipped = Vec::new();
-
-	for path in &args.paths {
-		if path.is_dir() {
-			let mut found = collect_paths(path, !args.no_ignore, &ignore_config);
-
-			paths.append(&mut found);
-		} else if path.is_file() {
-			if analysis::language_for_path(path).is_some() {
-				paths.push(path.clone());
-			} else {
-				skipped.push(path.clone());
-			}
-		} else {
-			return Err(format!("path does not exist: {}", path.display()).into());
-		}
-	}
-
-	// An explicit language filter narrows the set after collection, so directory walks stay
-	// cheap and the filter reads as a postcondition rather than a walk parameter.
-	if !args.language.is_empty() {
-		let wanted: Vec<monostyle_core::Language> = args
-			.language
-			.iter()
-			.filter_map(|name| monostyle_core::Language::from_name(name))
-			.collect();
-
-		paths.retain(|path| {
-			analysis::language_for_path(path).is_some_and(|language| wanted.contains(&language))
-		});
-	}
+	let options = resolve_check_options(args, options)?;
+	let (paths, skipped) = check_paths(args, &options)?;
 
 	if paths.is_empty() {
-		eprintln!("monostyle: no analyzable files found");
-
-		// A caller asking for JSON still gets JSON. Emitting nothing would make a consumer's parse fail
-		// for a reason that has nothing to do with the repository's code, which is the wrong failure to
-		// hand back.
-		if args.format == OutputFormat::Json {
-			let empty = analyze_paths(&paths, &options);
-			let rendered = report::render_project_json(&empty)?;
-
-			write_output(&rendered, args.output.as_deref())?;
-		}
-
-		return Ok(ExitCode::SUCCESS);
+		return report_nothing(args, &options);
 	}
 
 	let mut report = analyze_paths(&paths, &options);
 	report.skipped.extend(skipped);
 	apply_unit_filters(&mut report, args);
 
-	let rendered = match args.format {
-		OutputFormat::Json => report::render_project_json(&report)?,
-		OutputFormat::Text | OutputFormat::Toml => {
-			report::render_project(&report, args.explain, args.units)
-		}
-	};
-
+	let rendered = render_report(&report, args)?;
 	write_output(&rendered, args.output.as_deref())?;
 
 	if !args.quiet {
@@ -176,6 +110,118 @@ fn run_check(
 	}
 
 	Ok(exit_code_for(&report, args))
+}
+
+/// Applies configuration and command-line overrides to the analysis options.
+fn resolve_check_options(
+	args: &CheckArgs,
+	options: AnalysisOptions,
+) -> Result<AnalysisOptions, Box<dyn std::error::Error>> {
+	let mut options = options;
+
+	// A config file beside the analyzed paths is picked up automatically, so a project does not have to
+	// pass `--config` on every invocation.
+	if options.rules == monostyle_rules::RulesConfig::default()
+		&& let Some(path) = args
+			.paths
+			.first()
+			.and_then(|path| config::find_config(path))
+	{
+		options = options.apply_config(&config::load_config(&path)?)?;
+	}
+
+	// The generated-file exclusion is a rule default, so overriding it means turning it off before the
+	// walk rather than filtering afterwards.
+	if args.include_generated {
+		options.rules.ignore.generated = false;
+	}
+
+	Ok(options)
+}
+
+/// Collects the paths to analyze and the ones that were skipped.
+fn check_paths(
+	args: &CheckArgs,
+	options: &AnalysisOptions,
+) -> Result<(Vec<PathBuf>, Vec<PathBuf>), Box<dyn std::error::Error>> {
+	let mut paths = Vec::new();
+	let mut skipped = Vec::new();
+
+	for path in &args.paths {
+		if path.is_dir() {
+			paths.append(&mut collect_paths(
+				path,
+				!args.no_ignore,
+				&options.rules.ignore,
+			));
+		} else if path.is_file() {
+			// A single file with an unrecognized extension is reported as skipped rather than rejected, so
+			// passing a directory of mixed content is not an error.
+			if analysis::language_for_path(path).is_some() {
+				paths.push(path.clone());
+			} else {
+				skipped.push(path.clone());
+			}
+		} else {
+			return Err(format!("path does not exist: {}", path.display()).into());
+		}
+	}
+
+	filter_by_language(args, &mut paths);
+	Ok((paths, skipped))
+}
+
+/// Narrows the collected paths to the requested languages.
+///
+/// Applied after collection so directory walks stay cheap, and so the filter reads as a postcondition
+/// rather than a walk parameter.
+fn filter_by_language(args: &CheckArgs, paths: &mut Vec<PathBuf>) {
+	if args.language.is_empty() {
+		return;
+	}
+
+	let wanted: Vec<monostyle_core::Language> = args
+		.language
+		.iter()
+		.filter_map(|name| monostyle_core::Language::from_name(name))
+		.collect();
+
+	paths.retain(|path| {
+		analysis::language_for_path(path).is_some_and(|language| wanted.contains(&language))
+	});
+}
+
+/// Emits a well-formed empty report when nothing was analyzable.
+///
+/// A caller asking for JSON still gets JSON. Emitting nothing would make a consumer's parse fail for a
+/// reason that has nothing to do with the repository's code, which is the wrong failure to hand back.
+fn report_nothing(
+	args: &CheckArgs,
+	options: &AnalysisOptions,
+) -> Result<ExitCode, Box<dyn std::error::Error>> {
+	eprintln!("monostyle: no analyzable files found");
+
+	if args.format == OutputFormat::Json {
+		let empty = analyze_paths(&[], options);
+		let rendered = report::render_project_json(&empty)?;
+
+		write_output(&rendered, args.output.as_deref())?;
+	}
+
+	Ok(ExitCode::SUCCESS)
+}
+
+/// Renders a report in the requested format.
+fn render_report(
+	report: &analysis::ProjectReport,
+	args: &CheckArgs,
+) -> Result<String, Box<dyn std::error::Error>> {
+	Ok(match args.format {
+		OutputFormat::Json => report::render_project_json(report)?,
+		OutputFormat::Text | OutputFormat::Toml => {
+			report::render_project(report, args.explain, args.units)
+		}
+	})
 }
 
 /// Removes files and units excluded by the reporting filters.
@@ -236,11 +282,196 @@ fn exit_code_for(report: &analysis::ProjectReport, args: &CheckArgs) -> ExitCode
 	}
 }
 
+/// One file's fix outcome, with the findings that explain it.
+struct FixOutcome {
+	/// What the fixer did to the file.
+	outcome: fix::AppliedFixes,
+	/// The findings that produced an edit, shown so the output is a record rather than a count.
+	applied: Vec<monostyle_core::Finding>,
+	/// Findings with no fix, which are the reader's work rather than the tool's.
+	remaining: Vec<monostyle_core::Finding>,
+}
+
+/// Collects the paths a `fix` invocation should act on.
+fn fix_paths(
+	args: &FixArgs,
+	ignore: &monostyle_core::IgnoreConfig,
+) -> Result<Vec<PathBuf>, String> {
+	let mut paths = Vec::new();
+
+	for path in &args.paths {
+		if path.is_dir() {
+			paths.append(&mut collect_paths(path, !args.no_ignore, ignore));
+		} else if path.is_file() {
+			paths.push(path.clone());
+		} else {
+			return Err(format!("path does not exist: {}", path.display()));
+		}
+	}
+
+	Ok(paths)
+}
+
+/// Applies the requested fixes to one file.
+///
+/// Returns `None` when the file has nothing to fix, which is the common case in a large tree and keeps
+/// the caller's output focused on files that changed.
+fn fix_one_file(path: &Path, args: &FixArgs, options: &AnalysisOptions) -> Option<FixOutcome> {
+	let language = analysis::language_for_path(path)?;
+	let source = std::fs::read_to_string(path).ok()?;
+	let report = analysis::analyze_with_language(path, &source, language, options);
+
+	// Only fixes from the requested rules are applied, so a caller can address one class of problem at a
+	// time.
+	let applied: Vec<monostyle_core::Finding> = report
+		.findings
+		.iter()
+		.filter(|finding| finding.fix.is_some())
+		.filter(|finding| args.rules.is_empty() || args.rules.contains(&finding.rule))
+		.cloned()
+		.collect();
+
+	if applied.is_empty() {
+		return None;
+	}
+
+	let fixes: Vec<monostyle_core::Fix> = applied
+		.iter()
+		.filter_map(|finding| finding.fix.clone())
+		.collect();
+
+	let outcome = fix::fix_file(path, &fixes, args.dry_run).ok()?;
+
+	if outcome.applied == 0 {
+		return None;
+	}
+
+	let remaining = report
+		.findings
+		.iter()
+		.filter(|finding| finding.fix.is_none() && finding.penalty() > 0.0)
+		.cloned()
+		.collect();
+
+	Some(FixOutcome {
+		outcome,
+		applied,
+		remaining,
+	})
+}
+
+/// Reports one file's fix outcome.
+fn report_fix(outcome: &FixOutcome, dry_run: bool) {
+	let verb = if dry_run { "would fix" } else { "fixed" };
+	let count = outcome.outcome.applied;
+
+	println!(
+		"\n{} {} {verb} {count} finding{}:",
+		style::cyan(&outcome.outcome.path.display().to_string()),
+		style::dim("—"),
+		plural(count)
+	);
+
+	for finding in &outcome.applied {
+		// Showing the edit beside its finding is what makes the output a record of the change rather than
+		// a count: a reader can see what was wrong and why the edit is correct.
+		println!(
+			"  {} {}:{}  {}",
+			style::dim("+"),
+			outcome.outcome.path.display(),
+			finding.span.start_line,
+			style::magenta(&finding.rule)
+		);
+		println!("      {}", wrap_text(&finding.message, 74, "      "));
+	}
+
+	report_decisions(&outcome.outcome.path, &outcome.remaining);
+}
+
+/// Reports the findings that need a decision rather than an edit.
+fn report_decisions(path: &Path, remaining: &[monostyle_core::Finding]) {
+	/// How many decisions to list before summarizing the rest.
+	const LIMIT: usize = 5;
+
+	if remaining.is_empty() {
+		return;
+	}
+
+	println!(
+		"\n  {} {} finding{} need a decision:",
+		style::yellow("!"),
+		remaining.len(),
+		plural(remaining.len())
+	);
+
+	for finding in remaining.iter().take(LIMIT) {
+		println!(
+			"    {}:{}  {}",
+			path.display(),
+			finding.span.start_line,
+			style::magenta(&finding.rule)
+		);
+		println!("        {}", wrap_text(&finding.message, 70, "        "));
+		println!(
+			"        {} {}",
+			style::dim("->"),
+			style::dim(&wrap_text(&finding.suggestion, 70, "        "))
+		);
+	}
+
+	if remaining.len() > LIMIT {
+		println!(
+			"    {} and {} more",
+			style::dim("…"),
+			remaining.len() - LIMIT
+		);
+	}
+}
+
+/// Reports the totals for a `fix` run.
+fn report_fix_totals(outcomes: &[FixOutcome], args: &FixArgs) {
+	let applied: usize = outcomes.iter().map(|outcome| outcome.outcome.applied).sum();
+	let conflicts: usize = outcomes
+		.iter()
+		.map(|outcome| outcome.outcome.conflicts)
+		.sum();
+	let changed = outcomes
+		.iter()
+		.filter(|outcome| outcome.outcome.written)
+		.count();
+
+	if args.dry_run {
+		println!(
+			"\n{applied} fixable finding{} across {} file{} (dry run; nothing written)",
+			plural(applied),
+			outcomes.len(),
+			plural(outcomes.len())
+		);
+	} else {
+		println!(
+			"\n{applied} finding{} fixed in {changed} file{}",
+			plural(applied),
+			plural(changed)
+		);
+	}
+
+	if conflicts > 0 {
+		eprintln!(
+			"monostyle: {conflicts} fix{} skipped because they overlapped another edit",
+			if conflicts == 1 { "" } else { "es" }
+		);
+	}
+}
+
+/// Returns an `s` for a count other than one.
+fn plural(count: usize) -> &'static str {
+	if count == 1 { "" } else { "s" }
+}
+
 /// Runs the `fix` command.
 ///
-/// Collects every fixable finding, applies the edits back to front, and reports what changed. A dry
-/// run performs every step except the write, so the counts it prints are the ones a real run would
-/// produce.
+/// Collects every fixable finding, applies the edits back to front, and reports what changed. A dry run
+/// performs every step except the write, so the counts it prints are the ones a real run would produce.
 fn run_fix(
 	args: &FixArgs,
 	options: AnalysisOptions,
@@ -253,18 +484,7 @@ fn run_fix(
 		options.rules.ignore.generated = false;
 	}
 
-	let ignore_config = options.rules.ignore.clone();
-	let mut paths = Vec::new();
-
-	for path in &args.paths {
-		if path.is_dir() {
-			paths.append(&mut collect_paths(path, !args.no_ignore, &ignore_config));
-		} else if path.is_file() {
-			paths.push(path.clone());
-		} else {
-			return Err(format!("path does not exist: {}", path.display()).into());
-		}
-	}
+	let paths = fix_paths(args, &options.rules.ignore)?;
 
 	if paths.is_empty() {
 		eprintln!("monostyle: no analyzable files found");
@@ -272,141 +492,18 @@ fn run_fix(
 		return Ok(ExitCode::SUCCESS);
 	}
 
-	let outcomes: Vec<(
-		fix::AppliedFixes,
-		Vec<monostyle_core::Finding>,
-		Vec<monostyle_core::Finding>,
-	)> = paths
+	let outcomes: Vec<FixOutcome> = paths
 		.par_iter()
-		.filter_map(|path| {
-			let language = analysis::language_for_path(path)?;
-			let source = std::fs::read_to_string(path).ok()?;
-			let report = analysis::analyze_with_language(path, &source, language, &options);
-
-			// Only fixes from the requested rules are applied, so a caller can address one class of
-			// problem at a time.
-			let selected: Vec<monostyle_core::Finding> = report
-				.findings
-				.iter()
-				.filter(|finding| finding.fix.is_some())
-				.filter(|finding| args.rules.is_empty() || args.rules.contains(&finding.rule))
-				.cloned()
-				.collect();
-
-			if selected.is_empty() {
-				return None;
-			}
-
-			let fixes: Vec<monostyle_core::Fix> = selected
-				.iter()
-				.filter_map(|finding| finding.fix.clone())
-				.collect();
-
-			match fix::fix_file(path, &fixes, args.dry_run) {
-				Ok(outcome) if outcome.applied > 0 => {
-					Some((outcome, selected, report.findings.clone()))
-				}
-				_ => None,
-			}
-		})
+		.filter_map(|path| fix_one_file(path, args, &options))
 		.collect();
 
-	let mut total_applied = 0;
-	let mut total_conflicts = 0;
-	let mut files_changed = 0;
-
-	for (outcome, applied, all_findings) in &outcomes {
-		total_applied += outcome.applied;
-		total_conflicts += outcome.conflicts;
-
-		if outcome.written {
-			files_changed += 1;
-		}
-
-		if args.quiet {
-			continue;
-		}
-
-		let verb = if args.dry_run { "would fix" } else { "fixed" };
-
-		println!(
-			"\n{} {} {verb} {} finding{}:",
-			style::cyan(&outcome.path.display().to_string()),
-			style::dim("—"),
-			outcome.applied,
-			if outcome.applied == 1 { "" } else { "s" }
-		);
-
-		for finding in applied {
-			// Showing the suggestion beside the edit is what makes the output a record of the change
-			// rather than a count. A reader can see what was wrong and why the edit is correct.
-			println!(
-				"  {} {}:{}  {}",
-				style::dim("+"),
-				outcome.path.display(),
-				finding.span.start_line,
-				style::magenta(&finding.rule)
-			);
-			println!("      {}", wrap_text(&finding.message, 74, "      "));
-		}
-
-		// Findings without a fix are listed separately, because they are the reader's work rather
-		// than the tool's.
-		let remaining: Vec<&monostyle_core::Finding> = all_findings
-			.iter()
-			.filter(|finding| finding.fix.is_none() && finding.penalty() > 0.0)
-			.collect();
-
-		if !remaining.is_empty() {
-			println!(
-				"\n  {} {} finding{} need a decision:",
-				style::yellow("!"),
-				remaining.len(),
-				if remaining.len() == 1 { "" } else { "s" }
-			);
-
-			for finding in remaining.iter().take(5) {
-				println!(
-					"    {}:{}  {}",
-					outcome.path.display(),
-					finding.span.start_line,
-					style::magenta(&finding.rule)
-				);
-				println!("        {}", wrap_text(&finding.message, 70, "        "));
-				println!(
-					"        {} {}",
-					style::dim("->"),
-					style::dim(&wrap_text(&finding.suggestion, 70, "        "))
-				);
-			}
-
-			if remaining.len() > 5 {
-				println!("    {} and {} more", style::dim("…"), remaining.len() - 5);
-			}
+	if !args.quiet {
+		for outcome in &outcomes {
+			report_fix(outcome, args.dry_run);
 		}
 	}
 
-	if args.dry_run {
-		println!(
-			"\n{total_applied} fixable finding{} across {} file{} (dry run; nothing written)",
-			if total_applied == 1 { "" } else { "s" },
-			outcomes.len(),
-			if outcomes.len() == 1 { "" } else { "s" }
-		);
-	} else {
-		println!(
-			"\n{total_applied} finding{} fixed in {files_changed} file{}",
-			if total_applied == 1 { "" } else { "s" },
-			if files_changed == 1 { "" } else { "s" }
-		);
-	}
-
-	if total_conflicts > 0 {
-		eprintln!(
-			"monostyle: {total_conflicts} fix{} skipped because they overlapped another edit",
-			if total_conflicts == 1 { "" } else { "es" }
-		);
-	}
+	report_fix_totals(&outcomes, args);
 
 	Ok(ExitCode::SUCCESS)
 }

@@ -1,0 +1,8 @@
+# monostyle's own configuration.
+#
+# Everything below is the default except the ignore patterns, which are specific to this repository.
+
+[rules.ignore]
+# The fixtures hold the deliberately bad examples that the scoring tests assert against. Measuring them
+# would report the quality of code written specifically to be bad, which says nothing about this project.
+patterns = ["crates/monostyle/tests/fixtures/**"]
