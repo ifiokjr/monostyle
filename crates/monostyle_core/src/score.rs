@@ -2,7 +2,7 @@
 //!
 //! # How a score is derived
 //!
-//! Every rule emits [`Finding`](crate::Finding)s. Each finding carries a `weight`, which
+//! Every rule emits [`Finding`]s. Each finding carries a `weight`, which
 //! [`Severity`](crate::Severity) scales into a penalty. Penalties are summed per
 //! [`Category`] and divided by the amount of code they were found in to produce a
 //! *penalty density* — findings per 100 lines. Density, not raw count, is what the
@@ -25,6 +25,7 @@
 //! being tracked somewhere separate, so a single density number always explains the
 //! final score.
 
+use serde::Deserialize;
 use serde::Serialize;
 
 use crate::Category;
@@ -41,7 +42,11 @@ const MIN_NORMALIZATION_LINES: f64 = 20.0;
 const DEFAULT_HALF_LIFE: f64 = 12.0;
 
 /// Tunable knobs for turning findings into a number.
-#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+///
+/// Serialized with kebab-case keys to match `RulesConfig`, so a configuration file uses one naming
+/// convention throughout.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
 pub struct ScoringConfig {
 	/// Penalty density per 100 lines that yields a score of 50.
 	pub half_life: f64,

@@ -142,6 +142,7 @@ fn overall_impact_uses_one_denominator_across_categories() {
 			message: String::new(),
 			suggestion: String::new(),
 			weight,
+			fix: None,
 		}
 	}
 

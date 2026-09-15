@@ -1,154 +1,131 @@
 //! Configuration file loading.
 //!
-//! # Why the file format has its own type
+//! # Why merging happens at the value level
 //!
-//! A configuration file should only have to state what it changes. That requires
-//! distinguishing "this field was absent" from "this field was set to the default value",
-//! which a struct of plain values cannot do — deserialization fills absent fields with
-//! defaults, so merging a partial file would silently reset every threshold the file did not
-//! mention.
+//! A configuration file should only have to state what it changes. That requires distinguishing "this
+//! field was absent" from "this field was set to its default value", which a struct of plain values
+//! cannot express: deserialization fills absent fields with defaults, so merging a partial file would
+//! silently reset every threshold the file did not mention.
 //!
-//! [`RulesOverlay`] solves this by making every field optional. Its [`RulesOverlay::apply`]
-//! then copies only the fields that were actually present, using a macro so the intent stays
-//! readable instead of becoming a long chain of near-identical comparisons.
+//! The first attempt solved this with a parallel struct of `Option` fields and a macro that copied the
+//! present ones across. It worked, and it was a maintenance trap: every new rule threshold had to be
+//! added in two places, and the four fields added in one session were all missed, which meant a project
+//! setting `max-line-width` had it silently ignored.
+//!
+//! Merging the parsed TOML over the serialized defaults removes the second list entirely. The defaults
+//! are serialized once, the file's values are overlaid onto them, and the result is deserialized back
+//! into the typed config. Adding a field to [`RulesConfig`](monostyle_rules::RulesConfig) needs no change here at all.
 
 use std::path::Path;
 use std::path::PathBuf;
 
-use monostyle_core::ScoringConfig;
-use monostyle_rules::RulesConfig;
-use serde::Deserialize;
-
 use crate::analysis::AnalysisOptions;
 
-/// Applies each named field from `$overlay` onto `$base` when it is present.
+/// The on-disk configuration file, kept as raw values so a partial file can be merged.
+pub type ConfigFile = toml::Value;
+
+/// Reports a key that does not exist in the defaults.
 ///
-/// Written as a macro because the operation is mechanical: every rule threshold merges the
-/// same way, and spelling that out sixteen times would bury the one line that matters — the
-/// `if let` — under repetition.
-macro_rules! apply_overlay {
-	($base:expr, $overlay:expr, $($field:ident),+ $(,)?) => {
-		$(
-			if let Some(value) = $overlay.$field {
-				$base.$field = value;
-			}
-		)+
+/// A typo in a threshold name would otherwise be silently accepted, and the project would score against
+/// settings nobody chose — the same failure the overlay type was written to avoid, arriving by a
+/// different route. Unknown keys are therefore an error rather than a warning.
+fn reject_unknown_keys(
+	base: &toml::Value,
+	overrides: &toml::Value,
+	path: &str,
+) -> Result<(), ConfigError> {
+	let (Some(base_table), Some(override_table)) = (base.as_table(), overrides.as_table()) else {
+		return Ok(());
 	};
+
+	for (key, value) in override_table {
+		let Some(base_value) = base_table.get(key) else {
+			return Err(ConfigError::UnknownKey {
+				section: path.to_string(),
+				key: key.clone(),
+			});
+		};
+
+		// A nested table is checked recursively, so `[rules.ignore]` reports an unknown key under its
+		// full path rather than only at the top level.
+		if value.is_table() {
+			reject_unknown_keys(base_value, value, &format!("{path}.{key}"))?;
+		}
+	}
+
+	Ok(())
 }
 
-/// The on-disk configuration file.
-#[derive(Debug, Default, Deserialize)]
-#[serde(default, rename_all = "kebab-case")]
-pub struct ConfigFile {
-	/// Scoring curve settings.
-	pub scoring: ScoringSection,
-	/// Rule thresholds to override.
-	pub rules: RulesOverlay,
-}
-
-/// The `[scoring]` section.
-#[derive(Debug, Default, Deserialize)]
-#[serde(default, rename_all = "kebab-case")]
-pub struct ScoringSection {
-	/// Penalty density per 100 lines that yields a score of 50.
-	pub half_life: Option<f64>,
-	/// Lines used as the denominator floor.
-	pub min_normalization_lines: Option<f64>,
-}
-
-/// Rule thresholds as written in a configuration file.
+/// Merges `overrides` onto `base`, recursively for tables.
 ///
-/// Every field is optional, and an absent field leaves the corresponding default in place.
-#[derive(Debug, Default, Deserialize)]
-#[serde(default, rename_all = "kebab-case")]
-pub struct RulesOverlay {
-	/// Rules to turn off entirely.
-	pub disabled_rules: Option<Vec<String>>,
-
-	/// Whether sequential control flow must be separated by blank lines.
-	pub require_blank_line_before_control_flow: Option<bool>,
-	/// Minimum gap, in lines, between two consecutive control-flow statements.
-	pub min_blank_lines_between_control_flow: Option<usize>,
-	/// Whether a blank line is required before a trailing `return`.
-	pub require_blank_line_before_return: Option<bool>,
-	/// Whether logical groups of statements must be separated.
-	pub require_group_separation: Option<bool>,
-
-	/// Maximum nesting depth before a finding is raised.
-	pub max_nesting_depth: Option<usize>,
-	/// Maximum parameters before a call must be split across lines.
-	pub max_parameters_inline: Option<usize>,
-	/// Maximum indentation width before a line is over-indented.
-	pub max_indent_width: Option<usize>,
-
-	/// Whether a complex unit must carry an explanatory comment.
-	pub require_comment_on_complex_units: Option<bool>,
-	/// Cognitive complexity above which a unit requires a comment.
-	pub comment_required_above_cognitive: Option<usize>,
-	/// Whether comments that narrate code are penalized.
-	pub penalize_narrating_comments: Option<bool>,
-	/// Maximum comment-to-code ratio before comments are excessive.
-	pub max_comment_ratio: Option<f64>,
-
-	/// Cyclomatic complexity above which a unit is too complex.
-	pub max_cyclomatic_per_unit: Option<usize>,
-	/// Cognitive complexity above which a unit is too complex.
-	pub max_cognitive_per_unit: Option<usize>,
-	/// Lines above which a unit is too long.
-	pub max_unit_lines: Option<usize>,
-	/// Lines above which a file is too large.
-	pub max_file_lines: Option<usize>,
-
-	/// Whether code inside Markdown fences is scored.
-	pub score_markdown_fences: Option<bool>,
-	/// Maximum consecutive prose lines before structure is expected.
-	pub max_prose_run: Option<usize>,
-}
-
-impl RulesOverlay {
-	/// Copies every present field onto `base`.
-	pub fn apply(self, base: &mut RulesConfig) {
-		apply_overlay!(
-			base,
-			self,
-			disabled_rules,
-			require_blank_line_before_control_flow,
-			min_blank_lines_between_control_flow,
-			require_blank_line_before_return,
-			require_group_separation,
-			max_nesting_depth,
-			max_parameters_inline,
-			max_indent_width,
-			require_comment_on_complex_units,
-			comment_required_above_cognitive,
-			penalize_narrating_comments,
-			max_comment_ratio,
-			max_cyclomatic_per_unit,
-			max_cognitive_per_unit,
-			max_unit_lines,
-			max_file_lines,
-			score_markdown_fences,
-			max_prose_run,
-		);
+/// A nested table is merged key by key rather than replaced, so a file that sets one value under
+/// `[rules.ignore]` does not discard the other keys in that table.
+fn merge(base: &mut toml::Value, overrides: &toml::Value) {
+	match (base, overrides) {
+		(toml::Value::Table(base_table), toml::Value::Table(override_table)) => {
+			for (key, value) in override_table {
+				match base_table.get_mut(key) {
+					Some(existing) => merge(existing, value),
+					None => {
+						base_table.insert(key.clone(), value.clone());
+					}
+				}
+			}
+		}
+		(base_value, override_value) => {
+			*base_value = override_value.clone();
+		}
 	}
 }
 
-impl ConfigFile {
-	/// Folds the file's settings into analysis options.
-	#[must_use]
-	pub fn apply(self, base: &AnalysisOptions) -> AnalysisOptions {
-		let mut options = base.clone();
+/// Extension trait that folds a parsed configuration file into analysis options.
+pub trait ConfigExt: Sized {
+	/// Applies the file's settings, leaving every unmentioned value at its default.
+	fn apply_config(self, file: &ConfigFile) -> Result<Self, ConfigError>;
+}
 
-		if let Some(half_life) = self.scoring.half_life {
-			options.scoring.half_life = half_life;
+/// Applies a loaded configuration file to a set of options.
+///
+/// A free function as well as a method, because `ConfigFile` is a `toml::Value` — an alias for a type
+/// this crate does not own, so the method cannot be implemented on it.
+///
+/// # Errors
+///
+/// Returns [`ConfigError::Deserialize`] when a value in the file does not match the type of the field
+/// it targets, such as a string given to a numeric threshold.
+pub fn apply(options: &AnalysisOptions, file: &ConfigFile) -> Result<AnalysisOptions, ConfigError> {
+	options.clone().apply_config(file)
+}
+
+impl ConfigExt for AnalysisOptions {
+	fn apply_config(self, file: &ConfigFile) -> Result<Self, ConfigError> {
+		// The defaults are serialized so the overlay has something total to merge into. A failure here
+		// would mean the config types cannot round-trip, which is a bug rather than a user error.
+		let mut merged = toml::Value::try_from(&self.rules).map_err(ConfigError::Serialize)?;
+
+		if let Some(rules) = file.get("rules") {
+			reject_unknown_keys(&merged, rules, "rules")?;
+			merge(&mut merged, rules);
 		}
 
-		if let Some(minimum) = self.scoring.min_normalization_lines {
-			options.scoring.min_normalization_lines = minimum;
+		// `[scoring]` is a sibling of `[rules]` on the options rather than inside it, so it is applied
+		// separately and keeps its own defaults.
+		let mut options = Self {
+			rules: merged.try_into().map_err(ConfigError::Deserialize)?,
+			..self
+		};
+
+		if let Some(scoring) = file.get("scoring") {
+			let mut serialized =
+				toml::Value::try_from(options.scoring).map_err(ConfigError::Serialize)?;
+
+			reject_unknown_keys(&serialized, scoring, "scoring")?;
+			merge(&mut serialized, scoring);
+
+			options.scoring = serialized.try_into().map_err(ConfigError::Deserialize)?;
 		}
 
-		self.rules.apply(&mut options.rules);
-		options
+		Ok(options)
 	}
 }
 
@@ -177,8 +154,8 @@ pub fn find_config(start: &Path) -> Option<PathBuf> {
 
 /// Loads configuration from `path`.
 ///
-/// A malformed configuration file is a hard error rather than a silent fallback: quietly
-/// ignoring a threshold a project asked for would produce scores nobody can explain.
+/// A malformed configuration file is a hard error rather than a silent fallback: quietly ignoring a
+/// threshold a project asked for would produce scores nobody can explain.
 pub fn load_config(path: &Path) -> Result<ConfigFile, ConfigError> {
 	let contents = std::fs::read_to_string(path).map_err(|source| {
 		ConfigError::Read {
@@ -203,16 +180,18 @@ pub fn apply_tolerance(
 	lenient: bool,
 ) -> AnalysisOptions {
 	if strict {
-		options.scoring = ScoringConfig::strict();
+		options.scoring = monostyle_core::ScoringConfig::strict();
 		options.rules.max_cyclomatic_per_unit /= 2;
 		options.rules.max_cognitive_per_unit /= 2;
 		options.rules.max_nesting_depth = options.rules.max_nesting_depth.saturating_sub(1).max(1);
+		options.rules.max_npath_per_unit /= 2;
 	}
 
 	if lenient {
-		options.scoring = ScoringConfig::lenient();
+		options.scoring = monostyle_core::ScoringConfig::lenient();
 		options.rules.max_cyclomatic_per_unit *= 2;
 		options.rules.max_cognitive_per_unit *= 2;
+		options.rules.max_npath_per_unit *= 2;
 	}
 
 	options
@@ -235,6 +214,17 @@ pub enum ConfigError {
 		/// The underlying parse error.
 		source: toml::de::Error,
 	},
+	/// The defaults could not be serialized for merging.
+	Serialize(toml::ser::Error),
+	/// A merged configuration could not be read back into the typed form.
+	Deserialize(toml::de::Error),
+	/// The file names a key that does not exist.
+	UnknownKey {
+		/// The section the key was found in, as a dotted path.
+		section: String,
+		/// The unrecognized key.
+		key: String,
+	},
 }
 
 impl std::fmt::Display for ConfigError {
@@ -252,6 +242,20 @@ impl std::fmt::Display for ConfigError {
 					formatter,
 					"could not parse config at {}: {source}",
 					path.display()
+				)
+			}
+			Self::Serialize(source) => write!(formatter, "could not serialize defaults: {source}"),
+			Self::Deserialize(source) => {
+				write!(
+					formatter,
+					"could not read the merged configuration: {source}"
+				)
+			}
+			Self::UnknownKey { section, key } => {
+				write!(
+					formatter,
+					"unknown configuration key `{key}` in [{section}]; run `monostyle config` to list the \
+				 available keys"
 				)
 			}
 		}

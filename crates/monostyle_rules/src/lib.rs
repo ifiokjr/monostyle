@@ -18,10 +18,12 @@
 pub mod comments;
 pub mod complexity;
 pub mod config;
+pub mod line_length;
 pub mod markdown;
-pub mod metrics_bridge;
+pub mod quality;
 pub mod registry;
 pub mod structure;
+pub mod unit_measures;
 pub mod whitespace;
 
 pub use config::RulesConfig;

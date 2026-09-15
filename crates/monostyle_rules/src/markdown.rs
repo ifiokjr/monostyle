@@ -22,6 +22,7 @@ use monostyle_lexer::lex;
 use monostyle_markdown::CodeFence;
 
 use crate::config::RulesConfig;
+use crate::line_length;
 use crate::structure;
 use crate::whitespace;
 
@@ -113,7 +114,7 @@ fn nested_layout_findings(lexed: &LexedFile, config: &RulesConfig) -> Vec<Findin
 	findings.extend(whitespace::mixed_indentation(lexed));
 	findings.extend(structure::deep_nesting(lexed, config));
 	findings.extend(structure::long_parameter_list(lexed, config));
-	findings.extend(structure::overlong_lines(lexed));
+	findings.extend(line_length::overlong_lines(lexed, config));
 
 	findings
 }
@@ -138,6 +139,9 @@ fn rebase(finding: Finding, fence: &CodeFence, language: &str) -> Finding {
 		message: format!("in the {language} example: {}", finding.message),
 		suggestion: finding.suggestion,
 		weight: finding.weight,
+		// A fix inside a fence would address offsets in the extracted code, not the document, so
+		// the edit cannot be applied without translating every position back.
+		fix: None,
 	}
 }
 
@@ -159,7 +163,7 @@ pub fn prose_runs(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	let document = monostyle_markdown::analyze(&source);
 
 	document
-		.long_prose_runs
+		.prose_runs
 		.iter()
 		.filter(|run| run.length >= config.max_prose_run)
 		.map(|run| {

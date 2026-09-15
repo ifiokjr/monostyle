@@ -99,7 +99,16 @@ fn find_brace_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
 		// A one-line body opens and closes on the declaration line itself.
 		let one_liner = !body_opened && opens > 0 && closes > 0 && before == declaration_depth;
 
-		if body_opened || one_liner {
+		// An expression-bodied function has no braces at all: `const f = (x) => x + 1`. The unit is
+		// the declaration line, and without this case the `pending` entry is never resolved and the
+		// function is dropped from the report entirely.
+		let expression_body = !body_opened
+			&& opens == 0
+			&& closes == 0
+			&& line.masked_code.contains("=>")
+			&& before == declaration_depth;
+
+		if body_opened || one_liner || expression_body {
 			units.push(CodeUnit {
 				name,
 				start_line: start,
@@ -249,6 +258,19 @@ fn unit_name(code: &str) -> Option<String> {
 		return None;
 	}
 
+	// Shell declares a function as `name()` or `function name`, with no keyword that reads as one. A
+	// leading identifier followed directly by an empty parameter list is the whole signature, so it is
+	// recognized before the general path below rejects it for having no declaration keyword.
+	if let Some(name) = shell_function_name(trimmed) {
+		return Some(name);
+	}
+
+	// An arrow function has no declaration keyword either. `const name = (args) =>` and
+	// `name = (args) =>` both define a callable, and without this the function is invisible.
+	if let Some(name) = arrow_function_name(trimmed) {
+		return Some(name);
+	}
+
 	let parameters = trimmed.find('(')?;
 	let before = trimmed[..parameters].trim();
 	let name = if before.is_empty() {
@@ -270,6 +292,57 @@ fn unit_name(code: &str) -> Option<String> {
 	}
 
 	None
+}
+
+/// Recognizes a shell function declaration.
+///
+/// Matches `name() {` and `function name {`, which are the two forms in POSIX sh, bash, and zsh. The
+/// empty parameter list is what distinguishes a declaration from a subshell.
+fn shell_function_name(code: &str) -> Option<String> {
+	if let Some(rest) = code.strip_prefix("function ") {
+		return first_identifier(rest.trim_start());
+	}
+
+	// `name()` with nothing between the parentheses.
+	let open = code.find('(')?;
+	let close = code.find(')')?;
+
+	if close != open + 1 {
+		return None;
+	}
+
+	let name = code[..open].trim();
+
+	// A bare word followed by `()` is a declaration; anything with punctuation is not.
+	if name.is_empty()
+		|| !name
+			.chars()
+			.all(|character| character.is_alphanumeric() || character == '_')
+	{
+		return None;
+	}
+
+	Some(name.to_string())
+}
+
+/// Recognizes an arrow function bound to a name.
+///
+/// Handles `const name = (..) =>` and `name = (..) =>`, which are how TypeScript and JavaScript
+/// declare a function without the `function` keyword.
+fn arrow_function_name(code: &str) -> Option<String> {
+	// Everything before the arrow and before the parameter list is the binding, which must contain an
+	// assignment or this is not a declaration.
+	let (head, _tail) = code.split_once("=>")?;
+	let before_parameters = head.split('(').next()?;
+
+	// The name is the identifier immediately before the `=`. Splitting on the assignment is what makes
+	// this correct: trimming trailing `=` characters from the whole prefix does not work, because the
+	// space in `const compute = ` sits between the name and the operator.
+	let (target, _value) = before_parameters.split_once('=')?;
+
+	// The target carries trailing whitespace before the operator, and `last_identifier` reads from the
+	// end, so it must be trimmed or it finds nothing.
+	last_identifier(target.trim_end())
 }
 
 /// Returns the leading identifier of `text`, if it starts with one.
@@ -336,6 +409,11 @@ fn last_identifier(text: &str) -> Option<String> {
 
 /// Returns true when the text before a parameter list contains a declaration keyword.
 fn is_declaration_prefix(before: &str) -> bool {
+	/// Words that precede a function's name in at least one supported language.
+	///
+	/// A C-family declaration puts its return type before the name, so the type has to be recognized or
+	/// the declaration looks like a call. `auto` is here because modern C++ uses it almost universally,
+	/// and its absence meant C++ functions were silently absent from the report.
 	const DECLARATION_KEYWORDS: &[&str] = &[
 		"fn",
 		"def",
@@ -348,6 +426,16 @@ fn is_declaration_prefix(before: &str) -> bool {
 		"constructor",
 		"void",
 		"int",
+		"auto",
+		"bool",
+		"char",
+		"double",
+		"float",
+		"long",
+		"short",
+		"string",
+		"size_t",
+		"uint",
 		"pub",
 		"async",
 		"static",

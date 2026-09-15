@@ -252,6 +252,88 @@ The workflows verify builds, tests, and the tool's own quality:
 | `security` | Advisories, licenses, and workflow scanning |
 | `real-world` | Analysis of other repositories, asserting a well-formed report |
 
+## Auto-fix
+
+```console
+monostyle fix .                # apply every fixable finding
+monostyle fix . --dry-run      # show what would change
+monostyle fix . --rule readability/blank-line-before-control-flow
+```
+
+One rule is auto-fixable: inserting a blank line before a control-flow statement. That is the only edit
+guaranteed to survive a formatter — rustfmt, Prettier, Black, and `dart format` all preserve a blank line
+between statements and none of them remove one. A fixer that fights the project's formatter produces a
+diff the next format run reverts, which is worse than the finding itself.
+
+Every other rule explains itself and leaves the change to you. The fix output shows both: what was
+applied, and what still needs a decision, with the suggestion attached.
+
+```console
+$ monostyle fix . --dry-run
+
+src/lib.rs — would fix 2 findings:
+  + src/lib.rs:5  readability/blank-line-before-control-flow
+      `if` follows the previous statement with no blank line between them
+
+  ! 1 finding need a decision:
+    src/lib.rs:8  readability/magic-number
+        the literal `4096` carries meaning without a name
+        -> Name this value as a constant so the reader knows what it represents
+```
+
+## Ignoring files
+
+Generated files are skipped by default, along with dependency caches and build output. Generated code is
+not written for a human, so its findings are not actionable: on one repository measured here they were
+more than half the total penalty, which made the score describe a code generator rather than the code.
+
+```console
+monostyle check . --include-generated    # score generated code too
+```
+
+A `monostyle.toml` names what else to skip, in the same syntax as `.gitignore`:
+
+```toml
+[rules.ignore]
+patterns = ["**/*.spec.ts", "crates/legacy/**"]
+generated = false                    # measure generated code after all
+include = ["lib/hand_edited.g.dart"] # always score this one
+```
+
+```console
+monostyle check . --no-ignore        # read no ignore files at all
+```
+
+Recognized as generated: `.g.dart`, `.freezed.dart`, `.pb.rs`, `.pb.go`, `_pb2.py`, `.designer.cs`,
+`.gen.ts`, `.min.js`, `.bundle.js`, and lock files. Ignored directories include `node_modules`, `target`,
+`dist`, `build`, `vendor`, `.venv`, `.dart_tool`, and `__pycache__`.
+
+## Line length
+
+The limit is configurable, because it is a formatting decision and the formatter is the authority:
+
+```toml
+[rules]
+max-line-width = 100
+severe-line-width-ratio = 1.35   # columns past the limit before a finding is severe
+```
+
+Two exclusions matter in practice. **Markdown prose is never measured** — a paragraph is wrapped by
+whoever wrote it, and a table or a long URL legitimately exceeds any code limit. Only fenced code inside a
+Markdown file is measured. And **a line that cannot be broken is not reported**: a long string literal or
+URL has nowhere to wrap to, so a finding would ask for something the language does not allow.
+
+## Performance
+
+| Repository | Files | Lines of code | Time |
+| --- | --- | --- | --- |
+| mdt | 228 | 35,749 | 0.13s |
+| monochange | 318 | 193,900 | 0.42s |
+| pina | 2,198 | 232,417 | 1.08s |
+
+A 2,198-file repository with 232,000 lines of code completes in about a second. See
+[docs/performance.md](./docs/performance.md) for what made it fast and what the cache does.
+
 ## Design
 
 The architecture, and why a profile-driven lexer was chosen over tree-sitter, is documented in

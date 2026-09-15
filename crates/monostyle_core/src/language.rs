@@ -1,13 +1,14 @@
 //! Language identity.
 
+use serde::Deserialize;
 use serde::Serialize;
 
 /// A programming language monostyle can analyze.
 ///
 /// The set starts from the languages supported by `mozilla/rust-code-analysis`
 /// and adds Dart plus a set of widely used languages that project does not cover.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Language {
 	// Languages inherited from rust-code-analysis.
 	/// C.
@@ -15,10 +16,12 @@ pub enum Language {
 	/// C++.
 	Cpp,
 	/// C#.
+	#[serde(rename = "csharp")]
 	CSharp,
 	/// Java.
 	Java,
 	/// JavaScript.
+	#[serde(rename = "javascript")]
 	JavaScript,
 	/// Kotlin.
 	Kotlin,
@@ -29,6 +32,7 @@ pub enum Language {
 	/// Rust.
 	Rust,
 	/// TypeScript.
+	#[serde(rename = "typescript")]
 	TypeScript,
 	/// TypeScript with JSX.
 	Tsx,
@@ -204,12 +208,16 @@ impl Language {
 			_ => None,
 		};
 
+		// A tag that begins with a language's name and continues with more of it, such as `typescript5`
+		// or `python3`, resolves to that language. The previous containment test matched in both
+		// directions, which made `brainfuck` resolve to C and `typescriptx` to TypeScript: a single-letter
+		// name appears inside almost every word, so the rule was matching noise.
 		aliased.or_else(|| {
-			Self::ALL.iter().copied().find(|language| {
-				let name = language.name();
-
-				name.contains(primary) || primary.contains(name)
-			})
+			Self::ALL
+				.iter()
+				.copied()
+				.filter(|language| primary.starts_with(language.name()))
+				.max_by_key(|language| language.name().len())
 		})
 	}
 

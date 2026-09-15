@@ -16,6 +16,10 @@ rust-version = "1.90.0"
 [workspace.dependencies]
 clap = { version = "4", default-features = false, features = ["derive", "help", "std", "usage"] }
 ignore = { version = "0.4", default-features = false }
+# Snapshot testing. Snapshots make a rule's output reviewable in a diff, which is
+# what keeps an explainability tool honest: a message change is visible rather
+# than silent.
+insta = { version = "1", default-features = false, features = ["filters", "json"] }
 rayon = { version = "1.10", default-features = false }
 # `std` is required: findings carry owned `String` messages, which need the
 # standard library's `Serialize` implementations to be available.

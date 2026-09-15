@@ -100,44 +100,48 @@ impl PackageReport {
 pub fn detect_packages(root: &Path) -> Vec<Package> {
 	let mut packages = Vec::new();
 
-	// A Cargo workspace declares its members explicitly, and those members are the packages.
+	// A Cargo workspace declares its members explicitly, and those members are the packages. A member
+	// may be a glob (`crates/*`), which needs expanding for the same reason the npm form does: joining
+	// it onto the root produced a path containing a literal asterisk, which never held a manifest.
 	if let Some(cargo) = read_workspace_manifest(root.join("Cargo.toml")) {
 		for member in cargo {
-			let directory = root.join(member.trim_end_matches("/*"));
+			for directory in expand_member(root, &member) {
+				if let Some(name) = cargo_package_name(&directory) {
+					packages.push(Package {
+						name,
+						directory,
+						ecosystem: Ecosystem::Cargo,
+					});
+				}
+			}
+		}
+	}
 
-			if let Some(name) = cargo_package_name(&directory) {
+	// npm and pnpm both express a workspace as glob patterns over package directories, so each member
+	// is expanded rather than joined directly. Joining `packages/*` onto the root produced a path with a
+	// literal asterisk, which never contained a manifest, so workspace members were silently missed.
+	for member in npm_workspace_members(root) {
+		for directory in expand_member(root, &member) {
+			if let Some(name) = npm_package_name(&directory) {
 				packages.push(Package {
 					name,
 					directory,
-					ecosystem: Ecosystem::Cargo,
+					ecosystem: Ecosystem::Npm,
 				});
 			}
 		}
 	}
 
-	// npm and pnpm both express a workspace as glob patterns over package directories.
-	for member in npm_workspace_members(root) {
-		let directory = root.join(member.trim_end_matches("/*"));
-
-		if let Some(name) = npm_package_name(&directory) {
-			packages.push(Package {
-				name,
-				directory,
-				ecosystem: Ecosystem::Npm,
-			});
-		}
-	}
-
-	// Dart's workspace field lists member directories.
+	// Dart's workspace field lists member directories, which may also be globs.
 	for member in dart_workspace_members(root) {
-		let directory = root.join(member);
-
-		if let Some(name) = dart_package_name(&directory) {
-			packages.push(Package {
-				name,
-				directory,
-				ecosystem: Ecosystem::Dart,
-			});
+		for directory in expand_member(root, &member) {
+			if let Some(name) = dart_package_name(&directory) {
+				packages.push(Package {
+					name,
+					directory,
+					ecosystem: Ecosystem::Dart,
+				});
+			}
 		}
 	}
 
@@ -217,6 +221,72 @@ pub fn score_package(
 		complexity,
 		total_penalty: scores.iter().map(|file| file.total_penalty).sum(),
 	}
+}
+
+/// Expands a workspace member pattern into the directories it names.
+///
+/// A member is either a literal directory or a glob over one level, which is how nearly every
+/// JavaScript and Dart monorepo declares its members: `packages/*`, `crates/*`, `apps/web/*`. The
+/// expansion covers a trailing `*` segment and a `**` depth, which is as much of glob syntax as this
+/// needs — the goal is attribution, not a general file matcher.
+fn expand_member(root: &Path, member: &str) -> Vec<PathBuf> {
+	let member = member.trim_end_matches('/');
+
+	// A literal member names one directory.
+	if !member.contains('*') {
+		return vec![root.join(member)];
+	}
+
+	// Split at the first segment containing a wildcard; everything before it is a literal prefix.
+	let segments: Vec<&str> = member.split('/').collect();
+	let wildcard = segments.iter().position(|segment| segment.contains('*'));
+
+	let Some(index) = wildcard else {
+		return vec![root.join(member)];
+	};
+
+	// Everything after the wildcard must be a literal suffix, which this expansion does not support. A
+	// member like `crates/*/src` would otherwise be silently joined into a nonsense path.
+	if segments
+		.get(index + 1..)
+		.is_some_and(|rest| !rest.is_empty())
+	{
+		return Vec::new();
+	}
+
+	let prefix = root.join(segments.get(..index).unwrap_or_default().join("/"));
+	let depth_is_recursive = segments.get(index) == Some(&"**");
+
+	let Ok(entries) = std::fs::read_dir(&prefix) else {
+		return Vec::new();
+	};
+
+	let mut directories: Vec<PathBuf> = entries
+		.filter_map(Result::ok)
+		.filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
+		.map(|entry| entry.path())
+		.collect();
+
+	// `**` also matches nested directories, so the walk descends; a single `*` does not.
+	if depth_is_recursive {
+		let mut nested = Vec::new();
+
+		for directory in &directories {
+			if let Ok(entries) = std::fs::read_dir(directory) {
+				nested.extend(
+					entries
+						.filter_map(Result::ok)
+						.filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
+						.map(|entry| entry.path()),
+				);
+			}
+		}
+
+		directories.extend(nested);
+	}
+
+	directories.sort();
+	directories
 }
 
 /// Reads a Cargo workspace's member list.

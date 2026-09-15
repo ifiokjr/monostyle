@@ -12,7 +12,7 @@ use monostyle_core::Span;
 use monostyle_lexer::LexedFile;
 
 use crate::config::RulesConfig;
-use crate::metrics_bridge;
+use crate::unit_measures;
 
 /// Reports functions nested deeper than the configured limit.
 ///
@@ -39,7 +39,7 @@ pub fn deep_nesting(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 				FindingBuilder::new(
 					"readability/deep-nesting",
 					Category::Readability,
-					Span::new(0, line.text.len(), line.number, line.number),
+					Span::new(line.start_byte, line.end_byte, line.number, line.number),
 				)
 				.severity(Severity::Major)
 				.weight(1.5)
@@ -62,31 +62,36 @@ pub fn deep_nesting(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	findings
 }
 
-/// Reports calls and declarations whose parameter list is too long for one line.
+/// Reports calls and declarations whose argument list is too long for one line.
 ///
-/// A long parameter list is hard to read inline; splitting it across lines gives each argument
-/// its own space and makes the call scannable.
+/// A long argument list is hard to read inline; splitting it across lines gives each argument its own
+/// space and makes the call scannable.
 ///
-/// Width matters as much as count. `Span::new(0, 0, 1, 1)` has four arguments and reads
-/// perfectly well, while three arguments each naming a long expression may not. Measuring the
-/// rendered width is what keeps the rule from nagging about short numeric calls, which is the
-/// most common false positive a count-only version produces.
+/// # Which list is measured
+///
+/// Every parenthesis group on the line is examined and the widest one is reported. Measuring only the
+/// first group meant the rule usually measured the wrong thing: on
+/// `let value = compute(first, second, third)` the first `(` belongs to the enclosing function's empty
+/// parameter list, so the count was zero and the rule never fired on the case it exists for.
+///
+/// Width is considered alongside the count so that a call like `Span::new(0, 0, 1, 1)` is not reported.
+/// The width test is relative to the argument count rather than a fixed threshold, because five short
+/// names are only about thirty columns and would otherwise be silently accepted.
+#[must_use]
 pub fn long_parameter_list(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	/// Columns of argument text that still fit comfortably on one line.
 	const MAX_INLINE_WIDTH: usize = 40;
 
+	/// Average columns per argument below which the arguments are trivial.
+	///
+	/// A single digit or a short constant is about one to three columns; a descriptive name is eight or
+	/// more. The threshold sits between them.
+	const TRIVIAL_ARGUMENT_WIDTH: usize = 4;
+
 	let mut findings = Vec::new();
 
 	for line in &file.lines {
-		if !line.is_code() || !line.masked_code.contains('(') {
-			continue;
-		}
-
-		// Count and width come from the masked view, so text inside strings and comments cannot
-		// inflate either.
-		let (parameters, width) = measure_inline_parameters(&line.masked_code);
-
-		if parameters <= config.max_parameters_inline || width <= MAX_INLINE_WIDTH {
+		if !line.is_code() {
 			continue;
 		}
 
@@ -100,22 +105,40 @@ pub fn long_parameter_list(file: &LexedFile, config: &RulesConfig) -> Vec<Findin
 			continue;
 		}
 
+		let Some((parameters, width)) = widest_argument_list(&line.masked_code) else {
+			continue;
+		};
+
+		if parameters <= config.max_parameters_inline {
+			continue;
+		}
+
+		// The width check spares a call whose arguments are individually trivial, such as
+		// `Span::new(0, 0, 1, 1)`. It compares the *average* argument width rather than the total, because
+		// a total threshold of forty columns rejected five ordinary argument names — the exact case the
+		// rule exists for — while a per-argument average distinguishes names from single digits.
+		let average_width = width / parameters.max(1);
+
+		if average_width <= TRIVIAL_ARGUMENT_WIDTH && width <= MAX_INLINE_WIDTH {
+			continue;
+		}
+
 		findings.push(
 			FindingBuilder::new(
 				"readability/long-parameter-list",
 				Category::Readability,
-				Span::new(0, line.text.len(), line.number, line.number),
+				Span::new(line.start_byte, line.end_byte, line.number, line.number),
 			)
 			.severity(Severity::Minor)
 			.weight(1.0)
 			.message(format!(
-				"this call takes {parameters} arguments spanning {width} columns on one line, \
-				 over the limit of {}",
+				"this call takes {parameters} arguments spanning {width} columns on one line, over the \
+				 limit of {}",
 				config.max_parameters_inline
 			))
 			.suggestion(
-				"Split the arguments across multiple lines, one per line, so each is \
-				 individually readable.",
+				"Split the arguments across multiple lines, one per line, so each is individually \
+				 readable.",
 			)
 			.build(),
 		);
@@ -124,30 +147,78 @@ pub fn long_parameter_list(file: &LexedFile, config: &RulesConfig) -> Vec<Findin
 	findings
 }
 
-/// Counts a line's outermost arguments and measures how wide they render.
-fn measure_inline_parameters(masked: &str) -> (usize, usize) {
-	let Some(open) = masked.find('(') else {
-		return (0, 0);
-	};
+/// Returns the argument count and width of the widest parenthesis group on a line.
+///
+/// Returns `None` when the line has no argument list worth measuring, which includes an empty pair such
+/// as a function's own parameter list.
+fn widest_argument_list(masked: &str) -> Option<(usize, usize)> {
+	let characters: Vec<char> = masked.chars().collect();
+	let mut widest: Option<(usize, usize)> = None;
+	let mut index = 0;
 
-	let arguments = arguments_of(&masked[open..]);
-	let saw_content = arguments.iter().any(|character| !character.is_whitespace());
+	while index < characters.len() {
+		if characters.get(index) != Some(&'(') {
+			index += 1;
+			continue;
+		}
 
-	if !saw_content {
-		return (0, 0);
+		// Collect this group's contents, tracking nesting so a nested call is not split across groups.
+		let mut depth = 0;
+		let mut content = Vec::new();
+		let mut cursor = index;
+
+		while let Some(character) = characters.get(cursor).copied() {
+			match character {
+				'(' => {
+					depth += 1;
+				}
+				')' => {
+					depth -= 1;
+
+					if depth == 0 {
+						break;
+					}
+				}
+				character if depth == 1 => content.push(character),
+				_ => {}
+			}
+
+			cursor += 1;
+		}
+
+		// An empty pair has nothing to measure; a function's own parameter list is the common case.
+		if content.iter().any(|character| !character.is_whitespace()) {
+			let width = content.iter().collect::<String>().trim().len();
+			let commas = content
+				.iter()
+				.filter(|character| **character == ',')
+				.count();
+			let candidate = (commas + 1, width);
+
+			// Keep the widest group, because that is the one a reader has to parse.
+			if widest.is_none_or(|(current_count, current_width)| {
+				candidate.1 > current_width
+					|| (candidate.1 == current_width && candidate.0 > current_count)
+			}) {
+				widest = Some(candidate);
+			}
+		}
+
+		// Resume after this group, so nested groups are not measured a second time.
+		index = cursor + 1;
 	}
 
-	let width = arguments.iter().collect::<String>().trim().len();
-	let commas = arguments
-		.iter()
-		.filter(|character| **character == ',')
-		.count();
-
-	(commas + 1, width)
+	widest
 }
 
-/// Reports files that are too long to navigate.
+/// Reports files that are too long to navigate./// Reports files that are too long to navigate.
 pub fn oversized_file(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
+	// Zero disables the rule, matching how `max-line-width` behaves, so a project can turn off a size
+	// limit without disabling the rule by name.
+	if config.max_file_lines == 0 {
+		return Vec::new();
+	}
+
 	let lines = file.source_line_count();
 
 	if lines <= config.max_file_lines {
@@ -155,7 +226,7 @@ pub fn oversized_file(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	}
 
 	let span = file.lines.first().map_or(Span::new(0, 0, 1, 1), |line| {
-		Span::new(0, line.text.len(), line.number, line.number)
+		Span::new(line.start_byte, line.end_byte, line.number, line.number)
 	});
 
 	vec![
@@ -171,63 +242,12 @@ pub fn oversized_file(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	]
 }
 
-/// Reports over-long lines.
-///
-/// Long lines force horizontal scrolling and usually mean a call or condition is doing too
-/// much to read at a glance.
-pub fn overlong_lines(file: &LexedFile) -> Vec<Finding> {
-	/// Columns beyond which a line is hard to read.
-	const MAX_LINE_WIDTH: usize = 120;
-	/// Columns beyond which a line is a serious problem rather than a minor one.
-	const SEVERE_LINE_WIDTH: usize = 160;
-
-	let mut findings = Vec::new();
-
-	for line in &file.lines {
-		if !line.is_code() {
-			continue;
-		}
-
-		let width = line.code_len();
-
-		if width <= MAX_LINE_WIDTH {
-			continue;
-		}
-
-		let severity = if width > SEVERE_LINE_WIDTH {
-			Severity::Major
-		} else {
-			Severity::Minor
-		};
-
-		findings.push(
-			FindingBuilder::new(
-				"readability/overlong-line",
-				Category::Readability,
-				Span::new(0, line.text.len(), line.number, line.number),
-			)
-			.severity(severity)
-			.weight(0.5)
-			.message(format!(
-				"this line is {width} columns wide, over the {MAX_LINE_WIDTH} limit"
-			))
-			.suggestion(
-				"Break this line at a logical boundary, or extract part of the expression into \
-				 a named variable.",
-			)
-			.build(),
-		);
-	}
-
-	findings
-}
-
 /// Reports functions that are longer than configured.
 pub fn oversized_units(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
-	let units = metrics_bridge::units(file);
+	let units = unit_measures::UnitSet::new(file);
 	let mut findings = Vec::new();
 
-	for unit in units {
+	for (unit, _metrics) in units.iter() {
 		let length = unit.line_count();
 
 		if length <= config.max_unit_lines {
@@ -255,32 +275,4 @@ pub fn oversized_units(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	}
 
 	findings
-}
-
-/// Returns the characters between an opening parenthesis and its match.
-///
-/// Nested parentheses are skipped over rather than counted, which is what makes the returned
-/// slice the outermost argument list.
-fn arguments_of(text: &str) -> Vec<char> {
-	let mut depth = 0;
-	let mut characters = Vec::new();
-
-	for character in text.chars() {
-		match character {
-			// Only content at depth 1 belongs to the outer list; deeper characters fall to the
-			// final arm and are discarded. The parentheses themselves are never collected.
-			'(' => depth += 1,
-			')' => {
-				depth -= 1;
-
-				if depth == 0 {
-					break;
-				}
-			}
-			_ if depth == 1 => characters.push(character),
-			_ => {}
-		}
-	}
-
-	characters
 }

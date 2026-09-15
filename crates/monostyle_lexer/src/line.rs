@@ -27,6 +27,13 @@ pub struct LexedLine {
 	pub number: usize,
 	/// The raw line text, without its terminator.
 	pub text: String,
+	/// Byte offset of this line's first character in the source file.
+	///
+	/// Fixes address the original text by byte range, so a line without its offset cannot be
+	/// edited.
+	pub start_byte: usize,
+	/// Byte offset one past this line's last character, excluding the line terminator.
+	pub end_byte: usize,
 	/// The line's code with string and comment contents blanked out.
 	///
 	/// Keeping this means every later pass — keyword counting, parameter spans, brace

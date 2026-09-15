@@ -2,8 +2,8 @@
 //!
 //! Every list a profile points at is a module-level `const`, which is what lets profiles be
 //! `'static`. Naming them also makes each language's syntax table individually readable and
-//! testable, and lets language families share one table rather than repeating it — a fix to
-//! [`C_DECISIONS`] reaches every language that spreads the C-family base.
+//! testable, and lets language families share one table rather than repeating it — a fix to the
+//! C-family decision list reaches every language that spreads that base.
 //!
 //! String rules are declared longest-opener-first by convention even though
 //! [`LanguageProfile::string_at`] sorts defensively, because reading `'''` before `'` makes
