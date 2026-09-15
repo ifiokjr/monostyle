@@ -15,5 +15,8 @@ rust-version.workspace = true
 monostyle_core = { workspace = true }
 serde = { workspace = true }
 
+[dev-dependencies]
+insta = { workspace = true }
+
 [lints]
 workspace = true

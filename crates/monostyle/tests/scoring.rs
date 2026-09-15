@@ -40,7 +40,7 @@ fn rules(report: &FileReport) -> Vec<String> {
 		.map(|finding| finding.rule.clone())
 		.collect();
 
-	names.sort();
+	names.sort_unstable();
 	names.dedup();
 	names
 }

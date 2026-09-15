@@ -10,6 +10,8 @@
 
 pub mod cognitive;
 pub mod cyclomatic;
+pub mod halstead;
+pub mod structural;
 pub mod unit;
 
 pub use cognitive::CognitiveComplexity;
@@ -19,5 +21,19 @@ pub use cyclomatic::CyclomaticComplexity;
 pub use cyclomatic::Risk;
 pub use cyclomatic::complexity_of_lines;
 pub use cyclomatic::cyclomatic_complexity;
+pub use halstead::Halstead;
+pub use halstead::MaintainabilityIndex;
+pub use halstead::halstead;
+pub use halstead::halstead_of_lines;
+pub use halstead::maintainability_index;
+pub use structural::ExitCount;
+pub use structural::NPath;
+pub use structural::NestingProfile;
+pub use structural::exit_count;
+pub use structural::exit_count_of_lines;
+pub use structural::nesting_profile;
+pub use structural::nesting_profile_of_lines;
+pub use structural::npath;
+pub use structural::npath_of_lines;
 pub use unit::CodeUnit;
 pub use unit::find_units;

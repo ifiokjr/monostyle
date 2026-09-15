@@ -9,7 +9,9 @@ use monostyle_lexer::LexedFile;
 use crate::comments;
 use crate::complexity;
 use crate::config::RulesConfig;
+use crate::line_length;
 use crate::markdown;
+use crate::quality;
 use crate::structure;
 use crate::whitespace;
 
@@ -67,8 +69,8 @@ pub fn all_rules() -> Vec<Rule> {
 		},
 		Rule {
 			name: "readability/overlong-line",
-			description: "Flags lines wider than the readable limit.",
-			run: |file, _config| structure::overlong_lines(file),
+			description: "Flags lines wider than the configured limit.",
+			run: line_length::overlong_lines,
 		},
 		Rule {
 			name: "readability/oversized-unit",
@@ -88,7 +90,12 @@ pub fn all_rules() -> Vec<Rule> {
 		Rule {
 			name: "readability/comment-explains-why",
 			description: "Credits comments that explain why rather than what.",
-			run: |file, config| comments::comment_quality(file, config),
+			run: comments::comments_explaining_why,
+		},
+		Rule {
+			name: "readability/comment-narrates-code",
+			description: "Penalizes comments that restate what the code already says.",
+			run: comments::comments_narrating_code,
 		},
 		Rule {
 			name: "readability/excessive-comments",
@@ -101,6 +108,26 @@ pub fn all_rules() -> Vec<Rule> {
 			run: |file, _config| comments::thin_documentation(file),
 		},
 		Rule {
+			name: "readability/magic-number",
+			description: "Flags meaningful numeric literals that should be named constants.",
+			run: quality::magic_numbers,
+		},
+		Rule {
+			name: "readability/short-identifier",
+			description: "Flags identifiers too short to convey meaning.",
+			run: quality::short_identifiers,
+		},
+		Rule {
+			name: "readability/empty-handler",
+			description: "Flags error handlers that discard the error.",
+			run: quality::empty_handlers,
+		},
+		Rule {
+			name: "readability/commented-out-code",
+			description: "Flags blocks of code that were commented out instead of deleted.",
+			run: quality::commented_out_code,
+		},
+		Rule {
 			name: "complexity/cyclomatic-per-unit",
 			description: "Flags functions with too many independent paths.",
 			run: complexity::cyclomatic_per_unit,
@@ -109,6 +136,21 @@ pub fn all_rules() -> Vec<Rule> {
 			name: "complexity/cognitive-per-unit",
 			description: "Flags functions that are hard to follow.",
 			run: complexity::cognitive_per_unit,
+		},
+		Rule {
+			name: "complexity/npath-per-unit",
+			description: "Flags functions with too many execution paths.",
+			run: complexity::npath_per_unit,
+		},
+		Rule {
+			name: "complexity/exits-per-unit",
+			description: "Flags functions that return from too many places.",
+			run: complexity::exits_per_unit,
+		},
+		Rule {
+			name: "complexity/low-maintainability",
+			description: "Flags functions with a low maintainability index.",
+			run: complexity::maintainability_per_unit,
 		},
 		Rule {
 			name: "complexity/cyclomatic-per-file",

@@ -1,9 +1,10 @@
 //! Rule configuration.
 //!
-//! Thresholds live in configuration rather than in rule bodies so that a project can
-//! tighten or relax a rule without forking the tool, and so that a report can always
-//! state the threshold it measured against.
+//! Thresholds live in configuration rather than in rule bodies so that a project can tighten or
+//! relax a rule without forking the tool, and so that a report can always state the threshold it
+//! measured against.
 
+use monostyle_core::IgnoreConfig;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -35,6 +36,16 @@ pub struct RulesConfig {
 	pub max_parameters_inline: usize,
 	/// Maximum indentation width before a line is considered over-indented.
 	pub max_indent_width: usize,
+	/// Maximum line width, in columns, before a line is considered overlong.
+	///
+	/// Set this to match the project's formatter rather than leaving the default, so the rule agrees
+	/// with the tool that actually wraps the code.
+	pub max_line_width: usize,
+	/// How far past the limit a line must be before the finding is severe.
+	///
+	/// Expressed as a multiple of `max-line-width`, so raising the limit for a project that formats
+	/// wide does not also move the point at which a line becomes a serious problem.
+	pub severe_line_width_ratio: f64,
 
 	// --- Comments ---
 	/// Whether a complex unit must carry an explanatory comment.
@@ -55,12 +66,34 @@ pub struct RulesConfig {
 	pub max_unit_lines: usize,
 	/// Lines above which a file is too large to navigate.
 	pub max_file_lines: usize,
+	/// `NPath` count above which a unit has too many execution paths to reason about.
+	pub max_npath_per_unit: usize,
+	/// Exits above which a unit returns from too many places.
+	pub max_exits_per_unit: usize,
+	/// Maintainability index below which a unit is reported.
+	pub min_maintainability: f64,
+
+	// --- Identifier and literal quality ---
+	/// Whether single-character and overly short identifiers are reported.
+	pub report_short_identifiers: bool,
+	/// Minimum identifier length, excluding conventional loop and coordinate names.
+	pub min_identifier_length: usize,
+	/// Whether numeric literals outside conventional values are reported as magic numbers.
+	pub report_magic_numbers: bool,
+	/// Whether exception handlers that swallow errors are reported.
+	pub report_empty_handlers: bool,
+	/// Whether blocks of commented-out code are reported.
+	pub report_commented_out_code: bool,
 
 	// --- Markdown ---
 	/// Whether code inside Markdown fences is scored.
 	pub score_markdown_fences: bool,
 	/// Maximum consecutive prose lines in Markdown before structure is expected.
 	pub max_prose_run: usize,
+
+	// --- Ignoring ---
+	/// Which paths to skip.
+	pub ignore: IgnoreConfig,
 }
 
 impl Default for RulesConfig {
@@ -76,6 +109,8 @@ impl Default for RulesConfig {
 			max_nesting_depth: 3,
 			max_parameters_inline: 3,
 			max_indent_width: 24,
+			max_line_width: 120,
+			severe_line_width_ratio: 1.35,
 
 			require_comment_on_complex_units: true,
 			comment_required_above_cognitive: 10,
@@ -86,9 +121,20 @@ impl Default for RulesConfig {
 			max_cognitive_per_unit: 15,
 			max_unit_lines: 80,
 			max_file_lines: 600,
+			max_npath_per_unit: 1024,
+			max_exits_per_unit: 6,
+			min_maintainability: 40.0,
+
+			report_short_identifiers: true,
+			min_identifier_length: 3,
+			report_magic_numbers: true,
+			report_empty_handlers: true,
+			report_commented_out_code: true,
 
 			score_markdown_fences: true,
 			max_prose_run: 12,
+
+			ignore: IgnoreConfig::default(),
 		}
 	}
 }
@@ -98,5 +144,14 @@ impl RulesConfig {
 	#[must_use]
 	pub fn is_enabled(&self, rule: &str) -> bool {
 		!self.disabled_rules.iter().any(|disabled| disabled == rule)
+	}
+
+	/// Width past which a line is a severe problem rather than a minor one.
+	#[must_use]
+	pub fn severe_line_width(&self) -> usize {
+		#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+		let scaled = (self.max_line_width as f64 * self.severe_line_width_ratio).round() as usize;
+
+		scaled.max(self.max_line_width + 1)
 	}
 }

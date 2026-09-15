@@ -3,6 +3,7 @@
 use serde::Serialize;
 
 use crate::Category;
+use crate::Fix;
 use crate::Severity;
 use crate::Span;
 
@@ -30,6 +31,13 @@ pub struct Finding {
 	/// This is the value before [`Severity`] is applied, and it is recorded so that
 	/// reports can show where each point went without recomputing rule internals.
 	pub weight: f64,
+	/// An edit that resolves this finding, when one can be made safely.
+	///
+	/// Rules only attach a fix when the edit is certain: a blank line insertion is mechanical, while
+	/// breaking a long line requires understanding the expression. Absence means the reader must
+	/// decide, not that the finding is unimportant.
+	#[serde(skip_serializing_if = "Option::is_none")]
+	pub fix: Option<Fix>,
 }
 
 impl Finding {
@@ -57,6 +65,7 @@ pub struct FindingBuilder {
 	weight: f64,
 	message: Option<String>,
 	suggestion: Option<String>,
+	fix: Option<Fix>,
 }
 
 impl FindingBuilder {
@@ -71,6 +80,7 @@ impl FindingBuilder {
 			weight: 1.0,
 			message: None,
 			suggestion: None,
+			fix: None,
 		}
 	}
 
@@ -102,6 +112,13 @@ impl FindingBuilder {
 		self
 	}
 
+	/// Attaches an edit that resolves this finding.
+	#[must_use]
+	pub fn fix(mut self, fix: Fix) -> Self {
+		self.fix = Some(fix);
+		self
+	}
+
 	/// Finishes the finding.
 	///
 	/// A missing message or suggestion becomes a readable default rather than a
@@ -119,6 +136,7 @@ impl FindingBuilder {
 				.suggestion
 				.unwrap_or_else(|| "review this location".to_string()),
 			weight: self.weight,
+			fix: self.fix,
 		}
 	}
 }

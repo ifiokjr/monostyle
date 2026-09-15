@@ -1,15 +1,27 @@
 //! Whitespace rules.
 //!
-//! These rules encode a specific aesthetic: complex code should be given room, because the
-//! eye needs somewhere to rest. They are the direct, checkable form of the guidance that
-//! blank lines go before control flow, between logical groups, and before returns.
+//! These rules encode a specific aesthetic: complex code should be given room, because the eye needs
+//! somewhere to rest. They are the direct, checkable form of the guidance that blank lines go before
+//! control flow, between logical groups, and before returns.
 //!
-//! Each rule reports where the space is missing and why it matters, so a finding is
-//! actionable without consulting documentation.
+//! Each rule reports where the space is missing and why it matters, so a finding is actionable
+//! without consulting documentation.
+//!
+//! # Why exactly one rule is auto-fixable
+//!
+//! Inserting a blank line before a control-flow statement is the only edit here that is guaranteed to
+//! survive a formatter. Rustfmt, Prettier, Black, and `dart format` all preserve a blank line between
+//! statements and none of them remove one, so the fix cannot fight the project's own tooling.
+//!
+//! Every other rule is deliberately left to the reader. Breaking a long line, renaming an identifier,
+//! extracting a function, and adding an explanatory comment are all judgement calls whose automated
+//! version would be worse than the problem: a fixer that fights the formatter produces a diff the
+//! next `format` run reverts, which is a worse experience than the finding itself.
 
 use monostyle_core::Category;
 use monostyle_core::Finding;
 use monostyle_core::FindingBuilder;
+use monostyle_core::Fix;
 use monostyle_core::Severity;
 use monostyle_core::Span;
 use monostyle_lexer::CommentIntent;
@@ -20,7 +32,7 @@ use crate::config::RulesConfig;
 
 /// Builds a span covering a single line.
 fn line_span(line: &LexedLine) -> Span {
-	Span::new(0, line.text.len(), line.number, line.number)
+	Span::new(line.start_byte, line.end_byte, line.number, line.number)
 }
 
 /// Reports control-flow statements that are not preceded by a blank line.
@@ -67,11 +79,20 @@ pub fn blank_line_before_control_flow(file: &LexedFile, config: &RulesConfig) ->
 			continue;
 		}
 
+		// The fix is mechanical: insert a line break at the start of this line, which puts a blank
+		// line above it without touching its content or indentation.
+		let span = line_span(line);
+		let fix = Fix::insert(
+			Span::new(span.start_byte, span.start_byte, line.number, line.number),
+			"\n",
+			"insert a blank line above",
+		);
+
 		findings.push(
 			FindingBuilder::new(
 				"readability/blank-line-before-control-flow",
 				Category::Readability,
-				line_span(line),
+				span,
 			)
 			.severity(Severity::Minor)
 			.weight(1.0)
@@ -83,6 +104,7 @@ pub fn blank_line_before_control_flow(file: &LexedFile, config: &RulesConfig) ->
 				"Add a blank line before this statement so the reader can treat it as a \
 				 separate decision rather than part of the previous block.",
 			)
+			.fix(fix)
 			.build(),
 		);
 	}
@@ -183,7 +205,9 @@ pub fn blank_line_before_return(file: &LexedFile, config: &RulesConfig) -> Vec<F
 			.message("the return follows other work with no blank line before it")
 			.suggestion(
 				"Add a blank line before the return so the exit from this function is visible \
-				 at a glance.",
+				 at a glance. This is left to you rather than fixed automatically: a formatter may \
+				 reflow the surrounding block, and a rewrite that fights the formatter is worse than \
+				 the missing line.",
 			)
 			.build(),
 		);
@@ -371,7 +395,7 @@ fn check_run(
 		FindingBuilder::new(
 			"readability/group-separation",
 			Category::Readability,
-			Span::new(0, line.text.len(), line.number, line.number),
+			Span::new(line.start_byte, line.end_byte, line.number, line.number),
 		)
 		.severity(Severity::Minor)
 		.weight(0.5)

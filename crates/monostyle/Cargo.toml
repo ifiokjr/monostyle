@@ -28,12 +28,14 @@ serde_json = { workspace = true }
 toml = { workspace = true }
 
 monostyle_core = { workspace = true }
+monostyle_languages = { workspace = true }
 monostyle_lexer = { workspace = true }
 monostyle_markdown = { workspace = true }
 monostyle_metrics = { workspace = true }
 monostyle_rules = { workspace = true }
 
 [dev-dependencies]
+insta = { workspace = true }
 tempfile = { workspace = true }
 
 [lints]

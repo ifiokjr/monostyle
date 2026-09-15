@@ -52,6 +52,9 @@ pub enum Command {
 	/// Analyze a directory, file, or list of paths.
 	Check(CheckArgs),
 
+	/// Apply every fixable finding to the files that have one.
+	Fix(FixArgs),
+
 	/// List every rule, or show details for one.
 	Rules(RulesArgs),
 
@@ -105,11 +108,46 @@ pub struct CheckArgs {
 	#[arg(long)]
 	pub no_ignore: bool,
 
+	/// Analyze generated files as well, overriding the default exclusion.
+	#[arg(long)]
+	pub include_generated: bool,
+
 	/// Exit non-zero when any category scores below this value.
 	#[arg(long, value_name = "SCORE")]
 	pub fail_under: Option<f64>,
 
 	/// Suppress all output except errors.
+	#[arg(long, short)]
+	pub quiet: bool,
+}
+
+/// Arguments to `monostyle fix`.
+///
+/// The boolean fields are independent clap flags rather than a state machine, so they stay flat.
+#[allow(clippy::struct_excessive_bools)]
+#[derive(Debug, Parser)]
+pub struct FixArgs {
+	/// Paths to fix. Defaults to the current directory.
+	#[arg(value_name = "PATH", default_value = ".")]
+	pub paths: Vec<PathBuf>,
+
+	/// Show what would change without writing anything.
+	#[arg(long)]
+	pub dry_run: bool,
+
+	/// Only fix findings from this rule. May be repeated.
+	#[arg(long = "rule", value_name = "RULE")]
+	pub rules: Vec<String>,
+
+	/// Do not read ignore files.
+	#[arg(long)]
+	pub no_ignore: bool,
+
+	/// Analyze generated files as well, overriding the default exclusion.
+	#[arg(long)]
+	pub include_generated: bool,
+
+	/// Suppress per-file output, printing only the summary.
 	#[arg(long, short)]
 	pub quiet: bool,
 }
@@ -124,6 +162,10 @@ pub struct RulesArgs {
 	/// The output format.
 	#[arg(long, short, value_enum, default_value_t = OutputFormat::Text)]
 	pub format: OutputFormat,
+
+	/// Only list rules that can be fixed automatically.
+	#[arg(long)]
+	pub fixable: bool,
 }
 
 /// How to render a report.

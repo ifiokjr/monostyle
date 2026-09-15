@@ -27,7 +27,7 @@ use monostyle_lexer::CommentIntent;
 use monostyle_lexer::LexedFile;
 
 use crate::config::RulesConfig;
-use crate::metrics_bridge;
+use crate::unit_measures;
 
 /// Reports complex units that carry no explanatory comment.
 ///
@@ -39,23 +39,25 @@ pub fn comment_required_on_complex_units(file: &LexedFile, config: &RulesConfig)
 		return Vec::new();
 	}
 
-	let units = metrics_bridge::units(file);
+	let units = unit_measures::find_units(file);
 	let mut findings = Vec::new();
 
 	for unit in units {
-		let lines = metrics_bridge::unit_lines(file, &unit);
+		let lines = unit_measures::lines_of(file, &unit);
 		let cognitive = monostyle_metrics::cognitive_complexity_of_lines(lines);
 
 		if cognitive.total < config.comment_required_above_cognitive {
 			continue;
 		}
 
-		// A unit counts as documented when a why-comment or a doc comment appears anywhere
-		// inside it — including the declaration line, which is where the explanation belongs.
+		// A unit counts as documented when a why-comment or a doc comment appears on it or immediately
+		// above it. The doc comment sits *above* the declaration line, so it falls outside the unit's
+		// span: checking only the span meant a fully documented function was still asked for a comment,
+		// which is the most confusing thing this tool could say.
 		let documented = file
 			.lines
 			.iter()
-			.filter(|line| unit.contains(line.number))
+			.filter(|line| unit.contains(line.number) || line.number + 1 == unit.start_line)
 			.filter_map(|line| line.comment_intent)
 			.any(|intent| matches!(intent, CommentIntent::Why | CommentIntent::Documentation));
 
@@ -91,51 +93,67 @@ pub fn comment_required_on_complex_units(file: &LexedFile, config: &RulesConfig)
 /// Each why-comment earns a small credit and each narrating comment a small penalty. The
 /// weights are deliberately small and roughly symmetric, so commenting is not a way to buy a
 /// score — the surrounding code still has to be readable.
-pub fn comment_quality(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
+pub fn comments_explaining_why(file: &LexedFile, _config: &RulesConfig) -> Vec<Finding> {
 	let mut findings = Vec::new();
 
 	for line in &file.lines {
-		let Some(intent) = line.comment_intent else {
+		if line.comment_intent != Some(CommentIntent::Why) {
 			continue;
-		};
-
-		let span = Span::new(0, line.text.len(), line.number, line.number);
-
-		match intent {
-			CommentIntent::Why => {
-				findings.push(
-					FindingBuilder::new(
-						"readability/comment-explains-why",
-						Category::Readability,
-						span,
-					)
-					.severity(Severity::Minor)
-					// Negative weight: this is credit, not a penalty.
-					.weight(-0.5)
-					.message("this comment explains why the code is the way it is")
-					.suggestion("No action needed; this is the kind of comment to keep.")
-					.build(),
-				);
-			}
-			CommentIntent::How if config.penalize_narrating_comments => {
-				findings.push(
-					FindingBuilder::new(
-						"readability/comment-narrates-code",
-						Category::Readability,
-						span,
-					)
-					.severity(Severity::Minor)
-					.weight(0.75)
-					.message("this comment restates what the code already says")
-					.suggestion(
-						"Delete this comment, or replace it with an explanation of why the code \
-						 does this rather than what it does.",
-					)
-					.build(),
-				);
-			}
-			_ => {}
 		}
+
+		findings.push(
+			FindingBuilder::new(
+				"readability/comment-explains-why",
+				Category::Readability,
+				Span::new(line.start_byte, line.end_byte, line.number, line.number),
+			)
+			.severity(Severity::Minor)
+			// A negative weight: this is credit, not a penalty. Credit lowers the density rather than
+			// being tracked separately, which keeps one number sufficient to explain a score.
+			.weight(-0.5)
+			.message("this comment explains why the code is the way it is")
+			.suggestion("No action needed; this is the kind of comment to keep.")
+			.build(),
+		);
+	}
+
+	findings
+}
+
+/// Penalizes comments that restate what the code already says.
+///
+/// Registered separately from the credit rule above rather than as one function emitting two names,
+/// because a rule that emits another rule's identifier cannot be disabled: turning off
+/// `comment-narrates-code` had no effect, since the registry only checked the name it was registered
+/// under.
+#[must_use]
+pub fn comments_narrating_code(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
+	if !config.penalize_narrating_comments {
+		return Vec::new();
+	}
+
+	let mut findings = Vec::new();
+
+	for line in &file.lines {
+		if line.comment_intent != Some(CommentIntent::How) {
+			continue;
+		}
+
+		findings.push(
+			FindingBuilder::new(
+				"readability/comment-narrates-code",
+				Category::Readability,
+				Span::new(line.start_byte, line.end_byte, line.number, line.number),
+			)
+			.severity(Severity::Minor)
+			.weight(0.75)
+			.message("this comment restates what the code already says")
+			.suggestion(
+				"Delete this comment, or replace it with an explanation of why the code does this \
+				 rather than what it does.",
+			)
+			.build(),
+		);
 	}
 
 	findings
@@ -153,7 +171,12 @@ pub fn comment_quality(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 /// of *ordinary* commentary.
 pub fn excessive_comments(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	/// Minimum lines of code before a comment ratio is meaningful.
-	const MIN_CODE_LINES: usize = 30;
+	///
+	/// Raised from a much lower floor after a test showed the rule could not fire on the case it exists
+	/// for: a file with sixty comment lines and three of code was exempted for having too little code,
+	/// which is the exact shape the rule describes. The floor now guards only against a nearly empty
+	/// file, where a ratio is dominated by rounding.
+	const MIN_CODE_LINES: usize = 3;
 
 	let comment_lines = file
 		.lines
@@ -178,7 +201,7 @@ pub fn excessive_comments(file: &LexedFile, config: &RulesConfig) -> Vec<Finding
 	}
 
 	let span = file.lines.first().map_or(Span::new(0, 0, 1, 1), |line| {
-		Span::new(0, line.text.len(), line.number, line.number)
+		Span::new(line.start_byte, line.end_byte, line.number, line.number)
 	});
 
 	vec![

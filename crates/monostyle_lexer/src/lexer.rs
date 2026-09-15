@@ -148,6 +148,13 @@ pub fn lex_with_profile(source: &str, profile: LanguageProfile) -> LexedFile {
 	// markers, so judging lines independently credited the opening and penalized the rest.
 	classify_comment_blocks(&mut lines);
 
+	// A docstring is a string literal rather than a comment, so it is invisible to the pass above.
+	// Marking it as documentation is what keeps a well-documented Python function from being asked
+	// for a comment it already has.
+	if profile.uses_doc_strings() {
+		mark_doc_strings(&mut lines);
+	}
+
 	let uses_tabs = lines.iter().any(|line| line.indent_text.contains('\t'));
 	let mixed_indentation = uses_tabs && lines.iter().any(|line| line.indent_text.contains("    "));
 
@@ -250,9 +257,19 @@ struct LineBuilder {
 	is_doc_comment: bool,
 	literal_only: bool,
 	saw_code: bool,
+	/// Byte offset of the line's first character.
+	start_byte: usize,
+	/// Byte offset one past the line's last character.
+	end_byte: usize,
 }
 
 impl LineBuilder {
+	/// Records the line's byte range in the source.
+	fn set_bytes(&mut self, start: usize, end: usize) {
+		self.start_byte = start;
+		self.end_byte = end;
+	}
+
 	/// Starts a new line.
 	fn new(number: usize) -> Self {
 		Self {
@@ -264,6 +281,8 @@ impl LineBuilder {
 			is_doc_comment: false,
 			literal_only: false,
 			saw_code: false,
+			start_byte: 0,
+			end_byte: 0,
 		}
 	}
 
@@ -332,6 +351,8 @@ impl LineBuilder {
 		let mut line = LexedLine {
 			number: self.number,
 			text: self.raw,
+			start_byte: self.start_byte,
+			end_byte: self.end_byte,
 			masked_code: self.masked,
 			indent,
 			indent_text,
@@ -381,6 +402,13 @@ struct Scanner {
 	unterminated: Vec<Unterminated>,
 	/// The previous significant character, used for the regex-versus-division decision.
 	previous_code: Option<char>,
+	/// Byte offset of the character currently being scanned in the original source.
+	///
+	/// Tracked as an absolute offset rather than a character count so that fixes can address the
+	/// source by byte range without a second pass to convert positions.
+	current_byte: usize,
+	/// Byte offset where the current line began.
+	line_start_byte: usize,
 }
 
 impl Scanner {
@@ -397,6 +425,8 @@ impl Scanner {
 			line_comment: false,
 			unterminated: Vec::new(),
 			previous_code: None,
+			current_byte: 0,
+			line_start_byte: 0,
 		}
 	}
 
@@ -416,10 +446,13 @@ impl Scanner {
 
 			if character == '\n' {
 				let number = line.number;
+				line.set_bytes(self.line_start_byte, self.current_byte);
 				let finished = std::mem::replace(&mut line, LineBuilder::new(number + 1));
 
 				self.close_line(finished);
 				index += 1;
+				self.current_byte += 1;
+				self.line_start_byte = self.current_byte;
 				continue;
 			}
 
@@ -433,10 +466,13 @@ impl Scanner {
 				}
 
 				let number = line.number;
+				line.set_bytes(self.line_start_byte, self.current_byte);
 				let finished = std::mem::replace(&mut line, LineBuilder::new(number + 1));
 
 				self.close_line(finished);
 				index += 1;
+				self.current_byte += 1;
+				self.line_start_byte = self.current_byte;
 				continue;
 			}
 
@@ -447,9 +483,19 @@ impl Scanner {
 				line.literal_only = true;
 			}
 
+			let before = index;
+
 			index = self.step(&characters, index, &mut line);
+
+			// The scanner consumes characters by index, so the byte offset is advanced by the width
+			// of every character it moved past. This is what turns an index into an addressable
+			// position in the source.
+			for character in &characters[before..index.min(characters.len())] {
+				self.current_byte += character.len_utf8();
+			}
 		}
 
+		line.set_bytes(self.line_start_byte, self.current_byte);
 		self.close_final_line(line);
 		records_for_open_constructs(
 			&mut self.unterminated,
@@ -549,7 +595,7 @@ impl Scanner {
 		}
 
 		if let Some(start) = self.literal_at(&rest, characters, index) {
-			let line_remainder = peek_line(characters, index, usize::MAX);
+			let line_remainder = peek_line(characters, index, MAX_LINE_PEEK);
 
 			return self.open_literal(start, &rest, &line_remainder, line, index);
 		}
@@ -680,7 +726,7 @@ impl Scanner {
 		};
 
 		if let Some(rule) = self.literal_at(&rest, characters, index) {
-			let line_remainder = peek_line(characters, index, usize::MAX);
+			let line_remainder = peek_line(characters, index, MAX_LINE_PEEK);
 
 			return self.open_literal(rule, &rest, &line_remainder, line, index);
 		}
@@ -937,12 +983,22 @@ impl Scanner {
 
 		let character = characters.get(index)?;
 
+		// Everything below inspects only the characters immediately after this one, so a bounded
+		// window is enough. Collecting the remainder of the file here was the scanner's dominant
+		// cost: prefix letters are ordinary identifier characters, so this ran on a large fraction
+		// of all characters and allocated a buffer the length of the remaining text each time.
+		let after_prefix: Vec<char> = characters
+			.iter()
+			.skip(index + 1)
+			.take(PEEK)
+			.copied()
+			.collect();
+
 		// A hashed raw string: prefix, then hashes, then a quote.
 		if self.profile.hashed_raw_strings && self.profile.raw_string_prefix == Some(*character) {
-			let after_prefix: String = characters[index + 1..].iter().collect();
-			let hashes = after_prefix.chars().take_while(|c| *c == '#').count();
+			let hashes = after_prefix.iter().take_while(|c| **c == '#').count();
 
-			if after_prefix.chars().nth(hashes) == Some('"') {
+			if after_prefix.get(hashes) == Some(&'"') {
 				return Some(LiteralStart {
 					rule: self.profile.string_at("\"")?,
 					// The prefix, the hashes, and the opening quote are all consumed.
@@ -957,7 +1013,7 @@ impl Scanner {
 			return None;
 		}
 
-		let remainder: String = characters[index + 1..].iter().collect();
+		let remainder: String = after_prefix.iter().collect();
 		let rule = self.profile.string_at(&remainder)?;
 
 		Some(LiteralStart {
@@ -1218,6 +1274,41 @@ fn classify_comment_blocks(lines: &mut [LexedLine]) {
 	}
 }
 
+/// Marks leading string literals as documentation.
+///
+/// A docstring is the first statement of a module, class, or function, so a literal that opens a
+/// scope is documentation rather than data. Detecting it this way needs no grammar: the first literal
+/// after a declaration or at the start of a file is the docstring, and everything else is a value.
+fn mark_doc_strings(lines: &mut [LexedLine]) {
+	let mut expect_docstring = true;
+
+	for line in lines.iter_mut() {
+		if line.is_blank() {
+			continue;
+		}
+
+		// A literal line is a candidate only while a docstring is expected.
+		if line.is_literal() && expect_docstring {
+			line.comment_intent = Some(CommentIntent::Documentation);
+
+			continue;
+		}
+
+		if line.is_literal() {
+			continue;
+		}
+
+		// A declaration reopens the expectation: the next literal inside it is its docstring.
+		let starts_scope = line.masked_code.trim_end().ends_with(':');
+
+		expect_docstring = starts_scope;
+
+		if line.is_code() && !starts_scope {
+			expect_docstring = false;
+		}
+	}
+}
+
 /// Records every construct that is still open at end of file.
 fn records_for_open_constructs(
 	unterminated: &mut Vec<Unterminated>,
@@ -1323,27 +1414,37 @@ fn find_literal_close(
 	escapes: bool,
 	extra_escapes: &[&str],
 ) -> Option<usize> {
-	let characters: Vec<char> = text.chars().collect();
+	// This works on the `str` directly rather than collecting into a `Vec<char>` first. The
+	// collection was the scanner's dominant cost: it ran once per string literal and allocated a
+	// char buffer the length of the remaining text, so a file with thousands of literals spent its
+	// runtime allocating. Byte offsets are valid here because every delimiter is ASCII, so a match
+	// cannot begin inside a multi-byte character.
+	let bytes = text.as_bytes();
 	let mut index = 0;
 
-	while index < characters.len() {
-		let rest = peek(&characters, index);
+	while index < bytes.len() {
+		let rest = text.get(index..)?;
 
 		if let Some(extra) = extra_escapes.iter().find(|extra| rest.starts_with(**extra)) {
-			index += extra.chars().count();
+			index += extra.len();
 			continue;
 		}
 
 		if rest.starts_with(end) {
-			return Some(index + end.chars().count());
+			return Some(index + end.len());
 		}
 
-		if escapes && characters[index] == '\\' {
+		if escapes && bytes.get(index) == Some(&b'\\') {
+			// Skipping two bytes is correct for an escape of an ASCII character, which is what
+			// every escape sequence in these languages is; a backslash before a multi-byte
+			// character advances past the backslash and lets the character itself be examined.
 			index += 2;
 			continue;
 		}
 
-		index += 1;
+		// Advance by one whole character so a multi-byte character is never split.
+		let width = rest.chars().next().map_or(1, char::len_utf8);
+		index += width;
 	}
 
 	None
@@ -1434,6 +1535,15 @@ const PEEK: usize = 6;
 fn peek(characters: &[char], index: usize) -> String {
 	characters.iter().skip(index).take(PEEK).collect()
 }
+
+/// The longest span of a line any check needs to inspect.
+///
+/// A check that reasons about "the rest of the line" must not read past it. This cap exists because
+/// passing an unbounded limit made the scanner quadratic: every literal copied the remainder of the
+/// file into a `String`, so a file with thousands of string literals spent its whole runtime copying.
+/// Sixteen thousand characters covers every realistic line, and anything longer is truncated rather
+/// than copied, which costs at most one mis-read literal on an already extreme input.
+const MAX_LINE_PEEK: usize = 16 * 1024;
 
 /// Returns characters from `index` up to the next newline, capped at `limit`.
 ///

@@ -1,0 +1,9 @@
+---
+source: crates/monostyle/tests/integration.rs
+expression: "score_summary(&analyze(\"bad\"))"
+---
+files: 1
+code lines: 44
+readability: 0.0
+complexity: 0.0
+overall: 0.0

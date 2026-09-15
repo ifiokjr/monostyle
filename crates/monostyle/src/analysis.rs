@@ -308,12 +308,30 @@ impl ProjectReport {
 }
 
 /// Analysis settings shared across a run.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct AnalysisOptions {
-	/// Rule thresholds.
+	/// Rule thresholds, including which paths to skip.
 	pub rules: RulesConfig,
 	/// Scoring curve settings.
 	pub scoring: ScoringConfig,
+	/// Whether to reuse a lexed result from a previous run.
+	///
+	/// On by default. The cache is keyed by modification time and size, so a hit only occurs when the
+	/// file is genuinely unchanged.
+	pub cache: bool,
+}
+
+impl Default for AnalysisOptions {
+	fn default() -> Self {
+		Self {
+			rules: RulesConfig::default(),
+			scoring: ScoringConfig::default(),
+			// Written out rather than derived, because a derived `Default` would make every boolean
+			// false. That silently disabled the cache: the field existed, the code consulted it, and
+			// the whole feature was dead because the default was the opposite of the intent.
+			cache: true,
+		}
+	}
 }
 
 /// Analyzes one file's source text.
@@ -333,7 +351,43 @@ pub fn analyze_with_language(
 	options: &AnalysisOptions,
 ) -> FileReport {
 	let lexed = lex(source, language);
-	let findings = monostyle_rules::run_rules(&lexed, &options.rules);
+	let findings = findings_for(&lexed, options);
+
+	build_report(path, &lexed, findings, options)
+}
+
+/// Runs the rule set over a lexed file.
+fn findings_for(lexed: &LexedFile, options: &AnalysisOptions) -> Vec<Finding> {
+	monostyle_rules::run_rules(lexed, &options.rules)
+}
+
+/// Builds a report from lines restored from the cache.
+///
+/// The lines are the expensive half of an analysis and are already valid, so only the rules rerun.
+/// Every other input — the thresholds, the scoring curve, and the language — is applied here, which
+/// is why a configuration change does not invalidate the cache.
+fn analyze_lines(
+	path: &Path,
+	lines: &[monostyle_lexer::LexedLine],
+	language: Language,
+	options: &AnalysisOptions,
+) -> FileReport {
+	let lexed = LexedFile {
+		language,
+		profile: monostyle_languages::profile_for(language),
+		lines: lines.to_vec(),
+		// Indentation style is a property of the lines, so it is recomputed rather than cached.
+		uses_tabs: lines.iter().any(|line| line.indent_text.contains('\t')),
+		mixed_indentation: lines.iter().any(|line| line.indent_text.contains('\t'))
+			&& lines
+				.iter()
+				.any(|line| line.indent_text.starts_with("    ")),
+		// The unterminated list is a scan-time diagnostic, and a cached scan has no such list to
+		// report. A file with an unterminated construct misses its first run and is re-scanned.
+		unterminated: Vec::new(),
+	};
+
+	let findings = findings_for(&lexed, options);
 
 	build_report(path, &lexed, findings, options)
 }
@@ -572,7 +626,37 @@ fn common_root(files: &[FileReport]) -> Option<PathBuf> {
 		});
 	}
 
-	root
+	// The deepest shared directory is usually `.../src`, which contains no manifest. A workspace is
+	// declared at the repository or package root, so the search walks upward until it finds one.
+	// Returning the deepest shared directory meant workspace detection silently found nothing
+	// whenever the analyzed files lived below the manifest, which is the normal layout.
+	root.and_then(|deepest| nearest_manifest_root(&deepest))
+}
+
+/// Walks upward from `start` looking for a directory that declares a workspace.
+fn nearest_manifest_root(start: &Path) -> Option<PathBuf> {
+	/// Files that declare a workspace or a package.
+	const MANIFESTS: &[&str] = &[
+		"Cargo.toml",
+		"package.json",
+		"pnpm-workspace.yaml",
+		"pubspec.yaml",
+	];
+
+	let mut directory = Some(start.to_path_buf());
+
+	while let Some(current) = directory {
+		if MANIFESTS
+			.iter()
+			.any(|manifest| current.join(manifest).is_file())
+		{
+			return Some(current);
+		}
+
+		directory = current.parent().map(Path::to_path_buf);
+	}
+
+	None
 }
 
 /// Resolves a language from a path's extension.
@@ -585,7 +669,11 @@ pub fn language_for_path(path: &Path) -> Option<Language> {
 
 /// Collects analyzable paths under `root`, honouring ignore files.
 #[must_use]
-pub fn collect_paths(root: &Path, respect_ignore: bool) -> Vec<PathBuf> {
+pub fn collect_paths(
+	root: &Path,
+	respect_ignore: bool,
+	ignore_config: &monostyle_core::IgnoreConfig,
+) -> Vec<PathBuf> {
 	use ignore::WalkBuilder;
 
 	let mut builder = WalkBuilder::new(root);
@@ -597,13 +685,31 @@ pub fn collect_paths(root: &Path, respect_ignore: bool) -> Vec<PathBuf> {
 	builder.ignore(respect_ignore);
 	builder.parents(respect_ignore);
 
-	builder
-		.build()
+	// Ignored directories are pruned with a filter rather than an override pattern. The walk still
+	// descends into them, but the filter rejects each entry before it is read, which is enough to
+	// keep a repository with a large dependency cache fast without a second glob engine.
+	let walker = builder.build();
+
+	walker
 		.filter_map(Result::ok)
 		.filter(|entry| entry.file_type().is_some_and(|kind| kind.is_file()))
+		.filter(|entry| !has_ignored_component(entry.path()))
 		.filter(|entry| language_for_path(entry.path()).is_some())
 		.map(ignore::DirEntry::into_path)
+		.filter(|path| ignore_config.allows(path))
 		.collect()
+}
+
+/// Whether any path component is a directory that is never analyzed.
+///
+/// Checked before the file-type filters so a dependency cache is rejected without reading its
+/// directory entry.
+fn has_ignored_component(path: &Path) -> bool {
+	path.components().any(|component| {
+		let name = component.as_os_str().to_string_lossy();
+
+		monostyle_core::ignore::is_ignored_directory(&name)
+	})
 }
 
 /// Analyzes a set of paths in parallel.
@@ -611,24 +717,57 @@ pub fn collect_paths(root: &Path, respect_ignore: bool) -> Vec<PathBuf> {
 pub fn analyze_paths(paths: &[PathBuf], options: &AnalysisOptions) -> ProjectReport {
 	use rayon::prelude::*;
 
+	// The cache lives under the analyzed tree's build target. Discovery walks upward from the deepest
+	// directory shared by the files, which is the right starting point for both a whole repository and
+	// a single crate within one: the walk continues past the shared directory until it finds a target
+	// or runs out of parents.
+	let cache = if options.cache {
+		paths
+			.first()
+			.and_then(|path| path.parent())
+			.and_then(crate::cache::Cache::discover)
+	} else {
+		None
+	};
+
 	let results: Vec<(Option<FileReport>, Option<PathBuf>)> = paths
 		.par_iter()
 		.map(|path| {
-			match std::fs::read_to_string(path) {
-				Ok(source) => {
-					let Some(language) = language_for_path(path) else {
-						return (None, Some(path.clone()));
-					};
+			let Some(language) = language_for_path(path) else {
+				return (None, Some(path.clone()));
+			};
 
-					(
-						Some(analyze_with_language(path, &source, language, options)),
-						None,
-					)
+			let Ok(source) = std::fs::read_to_string(path) else {
+				// A file that cannot be read as UTF-8 is reported as skipped rather than failing the
+				// run, because one binary blob in a tree should not stop the analysis.
+				return (None, Some(path.clone()));
+			};
+
+			// A cache hit skips the scanner, which is the expensive half of an analysis. The rules
+			// still run, because thresholds and configuration change far more often than source does.
+			if let Some(cache) = &cache {
+				if let Some(lines) = cache.get(path, language) {
+					return (Some(analyze_lines(path, &lines, language, options)), None);
 				}
-				// A file that cannot be read as UTF-8 is reported as skipped rather than failing
-				// the run, because one binary blob in a tree should not stop the analysis.
-				Err(_) => (None, Some(path.clone())),
+
+				let lexed = lex(&source, language);
+				cache.put(path, language, &lexed.lines);
+
+				return (
+					Some(build_report(
+						path,
+						&lexed,
+						findings_for(&lexed, options),
+						options,
+					)),
+					None,
+				);
 			}
+
+			(
+				Some(analyze_with_language(path, &source, language, options)),
+				None,
+			)
 		})
 		.collect();
 

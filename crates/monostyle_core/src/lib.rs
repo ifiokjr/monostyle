@@ -7,6 +7,8 @@
 
 pub mod category;
 pub mod finding;
+pub mod fix;
+pub mod ignore;
 pub mod language;
 pub mod score;
 pub mod severity;
@@ -15,6 +17,8 @@ pub mod span;
 pub use category::Category;
 pub use finding::Finding;
 pub use finding::FindingBuilder;
+pub use fix::Fix;
+pub use ignore::IgnoreConfig;
 pub use language::Language;
 pub use score::Score;
 pub use score::ScoringConfig;

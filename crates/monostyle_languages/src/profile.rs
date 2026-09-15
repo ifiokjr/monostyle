@@ -249,6 +249,16 @@ impl LanguageProfile {
 		matches.into_iter().next()
 	}
 
+	/// Whether this language documents items with string literals rather than comments.
+	///
+	/// Python is the notable case: a docstring is the first statement in a function or module, not a
+	/// comment, so recognizing it requires looking at the literal rather than at comment syntax. Shell
+	/// is excluded despite its `##` convention, which is a comment form and is handled below.
+	#[must_use]
+	pub const fn uses_doc_strings(self) -> bool {
+		matches!(self.language, Language::Python | Language::Elixir)
+	}
+
 	/// Returns true when `text`, already known to start a line comment, is documentation.
 	#[must_use]
 	pub fn is_documentation_comment(&self, text: &str) -> bool {

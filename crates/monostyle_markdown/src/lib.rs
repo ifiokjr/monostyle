@@ -79,8 +79,11 @@ pub struct Document {
 	pub headings: Vec<Heading>,
 	/// Every code fence, in document order.
 	pub fences: Vec<CodeFence>,
-	/// Prose runs longer than the reader-friendly limit.
-	pub long_prose_runs: Vec<ProseRun>,
+	/// Every consecutive run of prose lines, in document order.
+	///
+	/// All of them, not only the long ones: the threshold is a rule setting, and filtering here would
+	/// make that setting inert.
+	pub prose_runs: Vec<ProseRun>,
 	/// Total lines in the document.
 	pub total_lines: usize,
 }
@@ -103,7 +106,7 @@ pub fn analyze(source: &str) -> Document {
 	let mut document = Document {
 		headings: Vec::new(),
 		fences: Vec::new(),
-		long_prose_runs: Vec::new(),
+		prose_runs: Vec::new(),
 		total_lines: lines.len(),
 	};
 
@@ -198,15 +201,16 @@ pub fn skipped_headings(headings: &[Heading]) -> Vec<SkippedHeading> {
 	skipped
 }
 
-/// Records a finished prose run when it is long enough to need a break.
+/// Records a finished prose run.
+///
+/// Every run is recorded, including short ones, and the caller decides which are long enough to report.
+/// A hardcoded threshold here meant `max-prose-run` had no effect: the analysis filtered the runs before
+/// the rule could apply the configured limit, so raising or lowering the setting changed nothing.
 fn flush_prose(document: &mut Document, prose_start: &mut Option<usize>, prose_length: &mut usize) {
-	/// Consecutive prose lines before a reader loses their place.
-	const PROSE_LIMIT: usize = 12;
-
 	if let Some(start) = prose_start.take()
-		&& *prose_length >= PROSE_LIMIT
+		&& *prose_length > 0
 	{
-		document.long_prose_runs.push(ProseRun {
+		document.prose_runs.push(ProseRun {
 			start_line: start + 1,
 			length: *prose_length,
 		});

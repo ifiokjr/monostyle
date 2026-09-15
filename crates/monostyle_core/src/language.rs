@@ -1,13 +1,14 @@
 //! Language identity.
 
+use serde::Deserialize;
 use serde::Serialize;
 
 /// A programming language monostyle can analyze.
 ///
 /// The set starts from the languages supported by `mozilla/rust-code-analysis`
 /// and adds Dart plus a set of widely used languages that project does not cover.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Language {
 	// Languages inherited from rust-code-analysis.
 	/// C.
@@ -15,10 +16,12 @@ pub enum Language {
 	/// C++.
 	Cpp,
 	/// C#.
+	#[serde(rename = "csharp")]
 	CSharp,
 	/// Java.
 	Java,
 	/// JavaScript.
+	#[serde(rename = "javascript")]
 	JavaScript,
 	/// Kotlin.
 	Kotlin,
@@ -29,6 +32,7 @@ pub enum Language {
 	/// Rust.
 	Rust,
 	/// TypeScript.
+	#[serde(rename = "typescript")]
 	TypeScript,
 	/// TypeScript with JSX.
 	Tsx,

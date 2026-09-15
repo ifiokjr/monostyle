@@ -16,5 +16,8 @@ monostyle_core = { workspace = true }
 monostyle_languages = { workspace = true }
 serde = { workspace = true }
 
+[dev-dependencies]
+insta = { workspace = true }
+
 [lints]
 workspace = true
