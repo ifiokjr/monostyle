@@ -100,7 +100,7 @@ fn run_check(
 	// The generated-file exclusion is a rule default, so overriding it means turning it off before
 	// the walk rather than filtering afterwards.
 	if args.include_generated {
-		options.rules.ignore.generated = Some(false);
+		options.rules.ignore.generated = false;
 	}
 
 	let ignore_config = options.rules.ignore.clone();
@@ -250,7 +250,7 @@ fn run_fix(
 	let mut options = options;
 
 	if args.include_generated {
-		options.rules.ignore.generated = Some(false);
+		options.rules.ignore.generated = false;
 	}
 
 	let ignore_config = options.rules.ignore.clone();
@@ -485,8 +485,28 @@ fn print_config(options: &AnalysisOptions, format: OutputFormat) {
 			serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string())
 		);
 	} else {
+		// The nested tables are lifted out and printed under their full path. TOML's serializer emits a
+		// nested table before its parent's scalar keys, so `ignore` would otherwise appear as a top-level
+		// `[ignore]` header — output that cannot be pasted back into a config file, where the same values
+		// belong under `[rules.ignore]`.
 		let payload = toml::Value::try_from(&options.rules)
-			.map(|value| toml::to_string_pretty(&value).unwrap_or_default())
+			.map(|mut value| {
+				// Removing the table before serializing is what keeps it out of the top-level output.
+				let nested = value
+					.as_table_mut()
+					.and_then(|table| table.remove("ignore"));
+				let mut text = toml::to_string_pretty(&value).unwrap_or_default();
+
+				if let Some(table) = nested {
+					text.push_str("\n[rules.ignore]\n");
+
+					if let Ok(rendered) = toml::to_string_pretty(&table) {
+						text.push_str(&rendered);
+					}
+				}
+
+				text
+			})
 			.unwrap_or_default();
 
 		println!(

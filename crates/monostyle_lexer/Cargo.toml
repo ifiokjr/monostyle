@@ -18,6 +18,7 @@ serde = { workspace = true }
 
 [dev-dependencies]
 insta = { workspace = true }
+monostyle_metrics = { workspace = true }
 
 [lints]
 workspace = true

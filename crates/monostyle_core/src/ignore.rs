@@ -144,7 +144,7 @@ const GENERATED_NAMES: &[&str] = &[
 ///
 /// The three lists are separate because they answer different questions, and a project may
 /// reasonably want to change one without touching the others.
-#[derive(Debug, Clone, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct IgnoreConfig {
 	/// Glob patterns to skip, relative to the analyzed directory.
@@ -155,13 +155,13 @@ pub struct IgnoreConfig {
 	/// Whether generated files are skipped.
 	///
 	/// Defaults to true. Turn it off to measure generated code as part of the project.
-	pub generated: Option<bool>,
+	pub generated: bool,
 
 	/// Whether built-in directory ignores are applied.
 	///
-	/// Defaults to true. Turn it off to score dependency caches and build output, which is almost
-	/// never useful but is occasionally what someone wants when investigating a specific tree.
-	pub defaults: Option<bool>,
+	/// Defaults to true. Turn it off to score dependency caches and build output, which is almost never
+	/// useful but is occasionally what someone wants when investigating a specific tree.
+	pub defaults: bool,
 
 	/// Paths to score even when a rule would skip them.
 	///
@@ -170,17 +170,30 @@ pub struct IgnoreConfig {
 	pub include: Vec<String>,
 }
 
+impl Default for IgnoreConfig {
+	fn default() -> Self {
+		Self {
+			patterns: Vec::new(),
+			// Written out rather than derived, because a derived `Default` would make every boolean
+			// false and silently disable both exclusions.
+			generated: true,
+			defaults: true,
+			include: Vec::new(),
+		}
+	}
+}
+
 impl IgnoreConfig {
 	/// Whether generated files should be skipped.
 	#[must_use]
 	pub fn skip_generated(&self) -> bool {
-		self.generated.unwrap_or(true)
+		self.generated
 	}
 
 	/// Whether built-in directory ignores should be applied.
 	#[must_use]
 	pub fn skip_defaults(&self) -> bool {
-		self.defaults.unwrap_or(true)
+		self.defaults
 	}
 
 	/// Whether `path` should be analyzed.

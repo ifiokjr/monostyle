@@ -463,3 +463,73 @@ fn canonical_extensions_are_declared() {
 		);
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Literal constructors
+// ---------------------------------------------------------------------------
+//
+// These are `const fn`, and a `const fn` called only from a `const` context is evaluated at compile
+// time, which LLVM's coverage instrumentation does not observe. Calling each one at runtime gives the
+// instrumentation something to record, so the constructors are measured rather than reported as dead.
+
+#[test]
+fn every_literal_constructor_produces_its_documented_shape() {
+	use monostyle_languages::StringRule;
+
+	let escaped = StringRule::escaped("\"", "\"");
+	assert_eq!(escaped.open, "\"");
+	assert_eq!(escaped.close, "\"");
+	assert!(escaped.escapes, "`escaped` honours backslash escapes");
+	assert!(!escaped.multiline);
+	assert!(!escaped.interpolates);
+	assert!(
+		escaped.extra_escapes.is_empty(),
+		"no extra escapes are declared"
+	);
+
+	let raw = StringRule::raw("`", "`");
+	assert!(!raw.escapes, "`raw` ignores backslash escapes");
+	assert!(!raw.multiline);
+
+	let multiline = StringRule::multiline("\"\"\"", "\"\"\"");
+	assert!(multiline.escapes);
+	assert!(multiline.multiline, "`multiline` spans lines");
+	assert!(!multiline.interpolates);
+
+	let multiline_raw = StringRule::multiline_raw("`", "`");
+	assert!(!multiline_raw.escapes);
+	assert!(multiline_raw.multiline);
+
+	let interpolated = StringRule::interpolated("\"", "\"");
+	assert!(interpolated.escapes);
+	assert!(!interpolated.multiline);
+	assert!(
+		interpolated.interpolates,
+		"`interpolated` embeds expressions"
+	);
+
+	let multiline_interpolated = StringRule::multiline_interpolated("`", "`");
+	assert!(multiline_interpolated.escapes);
+	assert!(multiline_interpolated.multiline);
+	assert!(multiline_interpolated.interpolates);
+}
+
+#[test]
+fn extra_escapes_are_attached_by_builder() {
+	use monostyle_languages::StringRule;
+
+	let rule = StringRule::multiline_interpolated("''", "''").with_extra_escapes(&["''$"]);
+
+	assert_eq!(rule.extra_escapes, &["''$"]);
+}
+
+#[test]
+fn profile_lookups_run_at_runtime() {
+	// Each lookup is exercised directly so its body is measured rather than only its result.
+	let profile = profile_for(Language::Rust);
+
+	assert!(profile.block_comment_at("/* x */").is_some());
+	assert!(profile.line_comment_at("// x").is_some());
+	assert!(profile.string_at("\"x\"").is_some());
+	assert!(profile.is_documentation_comment("/// x"));
+}

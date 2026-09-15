@@ -184,7 +184,7 @@ fn generated_files_can_be_included() {
 		cache: false,
 		rules: monostyle_rules::RulesConfig {
 			ignore: IgnoreConfig {
-				generated: Some(false),
+				generated: false,
 				..IgnoreConfig::default()
 			},
 			..monostyle_rules::RulesConfig::default()

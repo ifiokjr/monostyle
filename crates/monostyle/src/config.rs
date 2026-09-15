@@ -24,6 +24,38 @@ use crate::analysis::AnalysisOptions;
 /// The on-disk configuration file, kept as raw values so a partial file can be merged.
 pub type ConfigFile = toml::Value;
 
+/// Reports a key that does not exist in the defaults.
+///
+/// A typo in a threshold name would otherwise be silently accepted, and the project would score against
+/// settings nobody chose — the same failure the overlay type was written to avoid, arriving by a
+/// different route. Unknown keys are therefore an error rather than a warning.
+fn reject_unknown_keys(
+	base: &toml::Value,
+	overrides: &toml::Value,
+	path: &str,
+) -> Result<(), ConfigError> {
+	let (Some(base_table), Some(override_table)) = (base.as_table(), overrides.as_table()) else {
+		return Ok(());
+	};
+
+	for (key, value) in override_table {
+		let Some(base_value) = base_table.get(key) else {
+			return Err(ConfigError::UnknownKey {
+				section: path.to_string(),
+				key: key.clone(),
+			});
+		};
+
+		// A nested table is checked recursively, so `[rules.ignore]` reports an unknown key under its
+		// full path rather than only at the top level.
+		if value.is_table() {
+			reject_unknown_keys(base_value, value, &format!("{path}.{key}"))?;
+		}
+	}
+
+	Ok(())
+}
+
 /// Merges `overrides` onto `base`, recursively for tables.
 ///
 /// A nested table is merged key by key rather than replaced, so a file that sets one value under
@@ -72,6 +104,7 @@ impl ConfigExt for AnalysisOptions {
 		let mut merged = toml::Value::try_from(&self.rules).map_err(ConfigError::Serialize)?;
 
 		if let Some(rules) = file.get("rules") {
+			reject_unknown_keys(&merged, rules, "rules")?;
 			merge(&mut merged, rules);
 		}
 
@@ -86,6 +119,7 @@ impl ConfigExt for AnalysisOptions {
 			let mut serialized =
 				toml::Value::try_from(options.scoring).map_err(ConfigError::Serialize)?;
 
+			reject_unknown_keys(&serialized, scoring, "scoring")?;
 			merge(&mut serialized, scoring);
 
 			options.scoring = serialized.try_into().map_err(ConfigError::Deserialize)?;
@@ -184,6 +218,13 @@ pub enum ConfigError {
 	Serialize(toml::ser::Error),
 	/// A merged configuration could not be read back into the typed form.
 	Deserialize(toml::de::Error),
+	/// The file names a key that does not exist.
+	UnknownKey {
+		/// The section the key was found in, as a dotted path.
+		section: String,
+		/// The unrecognized key.
+		key: String,
+	},
 }
 
 impl std::fmt::Display for ConfigError {
@@ -208,6 +249,13 @@ impl std::fmt::Display for ConfigError {
 				write!(
 					formatter,
 					"could not read the merged configuration: {source}"
+				)
+			}
+			Self::UnknownKey { section, key } => {
+				write!(
+					formatter,
+					"unknown configuration key `{key}` in [{section}]; run `monostyle config` to list the \
+				 available keys"
 				)
 			}
 		}

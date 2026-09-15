@@ -409,6 +409,11 @@ fn last_identifier(text: &str) -> Option<String> {
 
 /// Returns true when the text before a parameter list contains a declaration keyword.
 fn is_declaration_prefix(before: &str) -> bool {
+	/// Words that precede a function's name in at least one supported language.
+	///
+	/// A C-family declaration puts its return type before the name, so the type has to be recognized or
+	/// the declaration looks like a call. `auto` is here because modern C++ uses it almost universally,
+	/// and its absence meant C++ functions were silently absent from the report.
 	const DECLARATION_KEYWORDS: &[&str] = &[
 		"fn",
 		"def",
@@ -421,6 +426,16 @@ fn is_declaration_prefix(before: &str) -> bool {
 		"constructor",
 		"void",
 		"int",
+		"auto",
+		"bool",
+		"char",
+		"double",
+		"float",
+		"long",
+		"short",
+		"string",
+		"size_t",
+		"uint",
 		"pub",
 		"async",
 		"static",

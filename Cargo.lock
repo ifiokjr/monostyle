@@ -258,6 +258,7 @@ dependencies = [
  "insta",
  "monostyle_core",
  "monostyle_languages",
+ "monostyle_metrics",
  "serde",
 ]
 

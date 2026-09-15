@@ -100,17 +100,19 @@ impl PackageReport {
 pub fn detect_packages(root: &Path) -> Vec<Package> {
 	let mut packages = Vec::new();
 
-	// A Cargo workspace declares its members explicitly, and those members are the packages.
+	// A Cargo workspace declares its members explicitly, and those members are the packages. A member
+	// may be a glob (`crates/*`), which needs expanding for the same reason the npm form does: joining
+	// it onto the root produced a path containing a literal asterisk, which never held a manifest.
 	if let Some(cargo) = read_workspace_manifest(root.join("Cargo.toml")) {
 		for member in cargo {
-			let directory = root.join(member.trim_end_matches("/*"));
-
-			if let Some(name) = cargo_package_name(&directory) {
-				packages.push(Package {
-					name,
-					directory,
-					ecosystem: Ecosystem::Cargo,
-				});
+			for directory in expand_member(root, &member) {
+				if let Some(name) = cargo_package_name(&directory) {
+					packages.push(Package {
+						name,
+						directory,
+						ecosystem: Ecosystem::Cargo,
+					});
+				}
 			}
 		}
 	}
@@ -242,6 +244,15 @@ fn expand_member(root: &Path, member: &str) -> Vec<PathBuf> {
 	let Some(index) = wildcard else {
 		return vec![root.join(member)];
 	};
+
+	// Everything after the wildcard must be a literal suffix, which this expansion does not support. A
+	// member like `crates/*/src` would otherwise be silently joined into a nonsense path.
+	if segments
+		.get(index + 1..)
+		.is_some_and(|rest| !rest.is_empty())
+	{
+		return Vec::new();
+	}
 
 	let prefix = root.join(segments.get(..index).unwrap_or_default().join("/"));
 	let depth_is_recursive = segments.get(index) == Some(&"**");

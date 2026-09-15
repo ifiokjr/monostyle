@@ -155,6 +155,12 @@ pub fn lex_with_profile(source: &str, profile: LanguageProfile) -> LexedFile {
 		mark_doc_strings(&mut lines);
 	}
 
+	// Parameter spans are resolved after scanning because a list that opens on one line can only be
+	// measured once its matching close has been seen. This was written but never called, so no line ever
+	// reported a span: the long-parameter-list rule could not tell an already-split list from a cramped
+	// one, and reported both.
+	resolve_parameter_spans(&mut lines, &profile);
+
 	let uses_tabs = lines.iter().any(|line| line.indent_text.contains('\t'));
 	let mixed_indentation = uses_tabs && lines.iter().any(|line| line.indent_text.contains("    "));
 
@@ -409,6 +415,8 @@ struct Scanner {
 	current_byte: usize,
 	/// Byte offset where the current line began.
 	line_start_byte: usize,
+	/// Whether the current line was terminated by a CR that has already been consumed.
+	crlf_pending: bool,
 }
 
 impl Scanner {
@@ -427,6 +435,7 @@ impl Scanner {
 			previous_code: None,
 			current_byte: 0,
 			line_start_byte: 0,
+			crlf_pending: false,
 		}
 	}
 
@@ -446,7 +455,15 @@ impl Scanner {
 
 			if character == '\n' {
 				let number = line.number;
-				line.set_bytes(self.line_start_byte, self.current_byte);
+				// A CR consumed by the CRLF branch is a terminator byte, not content, so the range ends
+				// before it while the offsets that follow still count it.
+				let end = if self.crlf_pending {
+					self.current_byte.saturating_sub(1)
+				} else {
+					self.current_byte
+				};
+				self.crlf_pending = false;
+				line.set_bytes(self.line_start_byte, end);
 				let finished = std::mem::replace(&mut line, LineBuilder::new(number + 1));
 
 				self.close_line(finished);
@@ -461,7 +478,13 @@ impl Scanner {
 				let next = characters.get(index + 1).copied();
 
 				if next == Some('\n') {
+					// The carriage return is a real byte in the source even though it is not part of the
+					// line's text, so the offset advances past it and the pending range remembers to
+					// exclude it. Skipping without advancing left every later line's byte range one byte
+					// short of its actual position.
 					index += 1;
+					self.current_byte += 1;
+					self.crlf_pending = true;
 					continue;
 				}
 

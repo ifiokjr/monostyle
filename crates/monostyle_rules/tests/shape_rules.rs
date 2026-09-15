@@ -8,6 +8,20 @@ use monostyle_core::Language;
 use monostyle_lexer::lex;
 use monostyle_rules::RulesConfig;
 use monostyle_rules::comments;
+use monostyle_rules::complexity;
+
+/// Joins generated lines into one string.
+///
+/// Building a fixture by mapping `format!` over a range and collecting is the shape clippy flags, and a
+/// named helper states the intent more plainly than the fold it expands to.
+fn lines_of(items: impl IntoIterator<Item = String>) -> String {
+	items.into_iter().fold(String::new(), |mut text, line| {
+		text.push_str(&line);
+
+		text
+	})
+}
+
 use monostyle_rules::structure;
 
 /// Runs a rule over Rust source with the default configuration.
@@ -18,6 +32,46 @@ fn run(
 	let lexed = lex(source, Language::Rust);
 
 	rule(&lexed, &RulesConfig::default())
+}
+
+/// Runs the exit-count rule.
+fn complexity_exits(
+	file: &monostyle_lexer::LexedFile,
+	config: &RulesConfig,
+) -> Vec<monostyle_core::Finding> {
+	complexity::exits_per_unit(file, config)
+}
+
+/// Runs the `NPath` rule.
+fn complexity_npath(
+	file: &monostyle_lexer::LexedFile,
+	config: &RulesConfig,
+) -> Vec<monostyle_core::Finding> {
+	complexity::npath_per_unit(file, config)
+}
+
+/// Runs the maintainability rule.
+fn complexity_maintainability(
+	file: &monostyle_lexer::LexedFile,
+	config: &RulesConfig,
+) -> Vec<monostyle_core::Finding> {
+	complexity::maintainability_per_unit(file, config)
+}
+
+/// Runs the cyclomatic rule.
+fn complexity_cyclomatic(
+	file: &monostyle_lexer::LexedFile,
+	config: &RulesConfig,
+) -> Vec<monostyle_core::Finding> {
+	complexity::cyclomatic_per_unit(file, config)
+}
+
+/// Runs the per-file complexity rule.
+fn complexity_per_file(
+	file: &monostyle_lexer::LexedFile,
+	config: &RulesConfig,
+) -> Vec<monostyle_core::Finding> {
+	complexity::complexity_per_file(file, config)
 }
 
 /// Runs the documentation rule, which takes no configuration.
@@ -513,6 +567,245 @@ fn add(a: i32, b: i32) -> i32 {
 	);
 	assert_ne!(
 		comments::thin_documentation(&lexed),
+		[] as [monostyle_core::Finding; 0]
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Exit counting
+// ---------------------------------------------------------------------------
+
+#[test]
+fn a_unit_with_many_returns_is_reported() {
+	// Early returns are preferred to nesting, so the rule only fires well past the point where guards are
+	// idiomatic.
+	let arms: String = (0..12)
+		.map(|index| {
+			format!(
+				"    if x == {index} {{ return {index}; }}
+"
+			)
+		})
+		.fold(String::new(), |mut text, line| {
+			text.push_str(&line);
+
+			text
+		});
+	let source = format!("fn many(x: i32) -> i32 {{\n{arms}    0\n}}\n");
+
+	let findings = run(complexity_exits, &source);
+
+	assert!(
+		!findings.is_empty(),
+		"twelve returns should exceed the limit"
+	);
+	assert!(findings[0].message.contains("returns from"));
+}
+
+#[test]
+fn the_exit_message_names_raises_and_jumps() {
+	// The breakdown is what tells a reader what kind of escapes they are consolidating.
+	let arms: String = (0..10)
+		.map(|index| {
+			format!(
+				"    if x == {index} {{ return {index}; }}
+"
+			)
+		})
+		.fold(String::new(), |mut text, line| {
+			text.push_str(&line);
+
+			text
+		});
+	let source = format!(
+		"fn many(x: i32) -> i32 {{\n{arms}    if x > 99 {{ panic!(\"bad\"); }}\n    0\n}}\n"
+	);
+
+	let findings = run(complexity_exits, &source);
+
+	assert_ne!(findings, [] as [monostyle_core::Finding; 0]);
+	assert!(
+		findings[0].message.contains("raise"),
+		"the message should name the raises: {}",
+		findings[0].message
+	);
+}
+
+#[test]
+fn loop_jumps_appear_in_the_exit_breakdown() {
+	let arms: String = (0..10)
+		.map(|index| {
+			format!(
+				"    if x == {index} {{ return {index}; }}
+"
+			)
+		})
+		.fold(String::new(), |mut text, line| {
+			text.push_str(&line);
+
+			text
+		});
+	let source = format!(
+		"fn many(x: i32) -> i32 {{\n{arms}    for item in items {{ if item {{ continue; }} }}\n    0\n}}\n"
+	);
+
+	let findings = run(complexity_exits, &source);
+
+	assert_ne!(findings, [] as [monostyle_core::Finding; 0]);
+	assert!(
+		findings[0].message.contains("jump"),
+		"the message should name the jumps: {}",
+		findings[0].message
+	);
+}
+
+#[test]
+fn a_unit_within_the_exit_limit_is_accepted() {
+	assert_eq!(
+		run(
+			complexity_exits,
+			"fn a(x: i32) -> i32 {\n    if x > 0 { return 1; }\n    0\n}\n"
+		),
+		[] as [monostyle_core::Finding; 0]
+	);
+}
+
+// ---------------------------------------------------------------------------
+// NPath and maintainability
+// ---------------------------------------------------------------------------
+
+#[test]
+fn a_unit_with_many_paths_is_reported() {
+	let arms: String = (0..14)
+		.map(|index| {
+			format!(
+				"    if x > {index} {{ work(); }}
+"
+			)
+		})
+		.fold(String::new(), |mut text, line| {
+			text.push_str(&line);
+
+			text
+		});
+	let source = format!("fn many(x: i32) {{\n{arms}}}\n");
+
+	let findings = run(complexity_npath, &source);
+
+	assert!(
+		!findings.is_empty(),
+		"fourteen sequential branches exceed the path limit"
+	);
+	assert!(findings[0].message.contains("execution paths"));
+}
+
+#[test]
+fn a_simple_unit_is_not_reported_for_its_paths() {
+	assert_eq!(
+		run(complexity_npath, "fn a() { work(); }\n"),
+		[] as [monostyle_core::Finding; 0]
+	);
+}
+
+#[test]
+fn a_dense_unit_is_reported_for_low_maintainability() {
+	// The index combines Halstead volume with complexity and length, so a unit dense with arithmetic and
+	// branching scores low even when no other rule fires.
+	let body: String = (0..40)
+		.map(|index| {
+			format!(
+				"    let v{index} = a * {index} + b / {index} - c % {index};
+"
+			)
+		})
+		.fold(String::new(), |mut text, line| {
+			text.push_str(&line);
+
+			text
+		});
+	let source = format!("fn dense(a: i32, b: i32, c: i32) {{\n{body}}}\n");
+
+	let findings = run(complexity_maintainability, &source);
+
+	assert!(
+		!findings.is_empty(),
+		"a dense unit should have a low maintainability index"
+	);
+	assert!(findings[0].message.contains("maintainability index"));
+}
+
+#[test]
+fn a_short_unit_is_never_reported_for_maintainability() {
+	// Below the measurable length the index is a function of line count alone, so reporting it would be
+	// noise.
+	assert_eq!(
+		run(complexity_maintainability, "fn a() { work(); }\n"),
+		[] as [monostyle_core::Finding; 0]
+	);
+}
+
+#[test]
+fn a_clear_unit_is_accepted() {
+	let source = "fn add(a: i32, b: i32) -> i32 {\n    let sum = a + b;\n\n    sum\n}\n";
+
+	assert_eq!(
+		run(complexity_maintainability, source),
+		[] as [monostyle_core::Finding; 0]
+	);
+}
+
+#[test]
+fn the_cyclomatic_message_names_the_risk_band() {
+	let arms: String = (0..14)
+		.map(|index| {
+			format!(
+				"    if x > {index} {{ work(); }}
+"
+			)
+		})
+		.fold(String::new(), |mut text, line| {
+			text.push_str(&line);
+
+			text
+		});
+	let source = format!("fn many(x: i32) {{\n{arms}}}\n");
+
+	let findings = run(complexity_cyclomatic, &source);
+
+	assert_ne!(findings, [] as [monostyle_core::Finding; 0]);
+	assert!(
+		findings[0].message.contains("risk"),
+		"the message should name the risk band: {}",
+		findings[0].message
+	);
+}
+
+#[test]
+fn a_file_with_a_high_decision_density_is_reported() {
+	// Density rather than a total, so a small file full of branches is caught while a large file with
+	// proportionate complexity is not.
+	let body = lines_of((0..60).map(|index| {
+		format!(
+			"    if x > {index} {{ work(); }}
+"
+		)
+	}));
+	let source = format!("fn many(x: i32) {{\n{body}}}\n");
+
+	let findings = run(complexity_per_file, &source);
+
+	assert!(!findings.is_empty(), "a dense file should be reported");
+	assert!(findings[0].message.contains("decisions per 100 lines"));
+}
+
+#[test]
+fn a_short_file_is_not_reported_for_density() {
+	// Below the minimum length the ratio is dominated by rounding.
+	assert_eq!(
+		run(
+			complexity_per_file,
+			"fn a(x: i32) {\n    if x > 0 { work(); }\n}\n"
+		),
 		[] as [monostyle_core::Finding; 0]
 	);
 }

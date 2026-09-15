@@ -379,3 +379,177 @@ fn a_masked_line_hides_literal_contents() {
 	assert!(!line.masked_code.contains("if"));
 	assert!(line.masked_code.contains("let s"));
 }
+
+// ---------------------------------------------------------------------------
+// Line endings
+// ---------------------------------------------------------------------------
+
+#[test]
+fn windows_line_endings_do_not_add_a_phantom_line() {
+	// CRLF is one line break, not two. Treating the carriage return as its own break would double the
+	// line count and halve every density in the report.
+	let lexed = lex("fn a() {}\r\nfn b() {}\r\n", Language::Rust);
+
+	assert_eq!(lexed.lines.len(), 2);
+	assert!(lexed.is_clean());
+}
+
+#[test]
+fn classic_mac_line_endings_are_treated_as_breaks() {
+	// A lone carriage return is a line break on its own, and a scanner that ignores it reads a whole file
+	// as one line.
+	let lexed = lex("fn a() {}\rfn b() {}\r", Language::Rust);
+
+	assert_eq!(lexed.lines.len(), 2);
+	assert!(lexed.is_clean());
+}
+
+#[test]
+fn mixed_line_endings_are_all_handled() {
+	let lexed = lex("fn a() {}\nfn b() {}\r\nfn c() {}\r", Language::Rust);
+
+	assert_eq!(lexed.lines.len(), 3);
+}
+
+#[test]
+fn a_file_with_no_trailing_newline_still_reports_its_last_line() {
+	let lexed = lex("fn a() {}", Language::Rust);
+
+	assert_eq!(lexed.lines.len(), 1);
+	assert!(lexed.lines[0].text.contains("fn a"));
+}
+
+#[test]
+fn byte_offsets_survive_crlf() {
+	let source = "fn a() {}\r\nfn b() {}\r\n";
+	let lexed = lex(source, Language::Rust);
+
+	for line in &lexed.lines {
+		let slice = &source[line.start_byte..line.end_byte];
+
+		assert!(
+			!slice.contains('\r') && !slice.contains('\n'),
+			"a line's byte range should exclude its terminator: {slice:?}"
+		);
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Indentation
+// ---------------------------------------------------------------------------
+
+#[test]
+fn a_mixed_indentation_file_is_detected() {
+	let lexed = lex("fn a() {\n\twork();\n    other();\n}\n", Language::Rust);
+
+	assert!(
+		lexed.mixed_indentation,
+		"tabs and spaces in one file should be detected"
+	);
+	assert!(lexed.uses_tabs);
+}
+
+#[test]
+fn a_consistent_file_reports_its_indentation_style() {
+	let spaces = lex("fn a() {\n    work();\n}\n", Language::Rust);
+
+	assert!(!spaces.mixed_indentation);
+	assert!(!spaces.uses_tabs);
+
+	let tabs = lex("fn a() {\n\twork();\n}\n", Language::Rust);
+
+	assert!(tabs.uses_tabs);
+	assert!(!tabs.mixed_indentation);
+}
+
+#[test]
+fn a_tab_indent_expands_to_four_columns() {
+	let lexed = lex("fn a() {\n\twork();\n}\n", Language::Rust);
+
+	assert_eq!(lexed.lines[1].indent, 4, "a tab counts as four columns");
+}
+
+// ---------------------------------------------------------------------------
+// Interpolation and raw strings
+// ---------------------------------------------------------------------------
+
+#[test]
+fn rust_raw_string_with_hashes_is_not_closed_by_a_bare_quote() {
+	let source = "let s = r#\"contains \" a quote\"#;\nlet t = 1;\n";
+	let lexed = lex(source, Language::Rust);
+
+	assert!(
+		lexed.is_clean(),
+		"the hashed raw string should close at `\"#`"
+	);
+	assert_eq!(lexed.lines.len(), 2);
+}
+
+#[test]
+fn an_escaped_delimiter_does_not_close_a_string() {
+	let source = "let s = \"a \\\" b\";\nlet t = 1;\n";
+	let lexed = lex(source, Language::Rust);
+
+	assert!(lexed.is_clean());
+	assert_eq!(lexed.lines.len(), 2);
+}
+
+#[test]
+fn a_type_annotation_question_mark_is_not_a_ternary() {
+	// `Option<i32>?` in a Kotlin signature and `x?: y` are different things, and only the second adds a
+	// path. Requiring a colon after the question mark is what separates them where the language uses both.
+	let lexed = lex("val x: Int? = null\n", Language::Kotlin);
+
+	assert!(
+		!lexed.lines[0].has_ternary,
+		"a nullable type is not a ternary"
+	);
+}
+
+#[test]
+fn a_real_ternary_is_detected() {
+	// Rust has no ternary operator, so the language that has one is used to test the rule that counts it.
+	let lexed = lex("const x = ready ? 1 : 0;\n", Language::TypeScript);
+
+	assert!(lexed.lines[0].has_ternary);
+}
+
+#[test]
+fn logical_operators_are_counted() {
+	let lexed = lex("if a && b || c { work(); }\n", Language::Rust);
+
+	assert_eq!(lexed.lines[0].logical_operators, 2);
+}
+
+#[test]
+fn word_form_logical_operators_are_counted() {
+	let lexed = lex("if a and b or c:\n    pass\n", Language::Python);
+
+	assert_eq!(lexed.lines[0].logical_operators, 2);
+}
+
+#[test]
+fn optional_chaining_is_counted() {
+	let lexed = lex("const name = user?.profile?.name;\n", Language::TypeScript);
+
+	assert_eq!(lexed.lines[0].null_coalescing, 2);
+}
+
+#[test]
+fn a_parameter_list_spanning_lines_is_recorded() {
+	let source = "fn a() {\n    compute(\n        first,\n        second,\n    );\n}\n";
+	let lexed = lex(source, Language::Rust);
+	let span = lexed.lines[1].parameter_span;
+
+	assert!(
+		span > 1,
+		"a list that continues below should report its span, got {span}"
+	);
+}
+
+#[test]
+fn a_single_line_parameter_list_has_no_span() {
+	let lexed = lex("fn a() { compute(first, second); }\n", Language::Rust);
+
+	assert_eq!(lexed.lines[0].parameter_span, 0);
+}

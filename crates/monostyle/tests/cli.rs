@@ -9,6 +9,20 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::process::Output;
 
+use monostyle_rules::RulesConfig;
+
+/// Joins generated lines into one string.
+///
+/// Building a fixture by mapping `format!` over a range and collecting is the shape clippy flags, and a
+/// named helper states the intent more plainly than the fold it expands to.
+fn lines_of(items: impl IntoIterator<Item = String>) -> String {
+	items.into_iter().fold(String::new(), |mut text, line| {
+		text.push_str(&line);
+
+		text
+	})
+}
+
 /// Runs the built binary with `args`.
 fn run(args: &[&str]) -> Output {
 	Command::new(env!("CARGO_BIN_EXE_monostyle"))
@@ -546,4 +560,319 @@ fn fix_on_an_already_clean_file_does_nothing() {
 		source,
 		"a clean file should be left untouched"
 	);
+}
+
+// ---------------------------------------------------------------------------
+// Unit filters
+// ---------------------------------------------------------------------------
+
+/// Writes a file with several functions of differing quality.
+fn messy_fixture(directory: &std::path::Path) -> PathBuf {
+	let path = directory.join("messy.rs");
+
+	// One clean function and several tangled ones, so the filters have something to discriminate on.
+	let tangled = lines_of((0..4).map(|index| {
+		let arms = lines_of((0..10).map(|arm| format!("    if x > {arm} {{ work(); }}\n")));
+
+		format!("fn t{index}(x: i32) {{\n{arms}}}\n")
+	}));
+
+	std::fs::write(
+		&path,
+		format!("fn clean() {{\n    work();\n}}\n\n{tangled}"),
+	)
+	.expect("write");
+
+	path
+}
+
+#[test]
+fn max_unit_score_filters_the_table() {
+	let temp = tempfile::tempdir().expect("a temporary directory");
+	let path = messy_fixture(temp.path());
+
+	let unfiltered = stdout(&["check", path.to_str().unwrap(), "--units", "--no-color"]);
+	let filtered = stdout(&[
+		"check",
+		path.to_str().unwrap(),
+		"--units",
+		"--max-unit-score",
+		"50",
+		"--no-color",
+	]);
+
+	let rows = |text: &str| {
+		text.split("worst functions").nth(1).map_or(0, |table| {
+			table
+				.lines()
+				.filter(|line| line.contains("messy.rs:"))
+				.count()
+		})
+	};
+
+	assert!(
+		rows(&filtered) <= rows(&unfiltered),
+		"a score filter should not add rows: {} vs {}",
+		rows(&filtered),
+		rows(&unfiltered)
+	);
+}
+
+#[test]
+fn top_limits_the_table_to_the_worst_functions() {
+	let temp = tempfile::tempdir().expect("a temporary directory");
+	let path = messy_fixture(temp.path());
+
+	let output = stdout(&[
+		"check",
+		path.to_str().unwrap(),
+		"--units",
+		"--top",
+		"2",
+		"--no-color",
+	]);
+
+	let table = output
+		.split("worst functions")
+		.nth(1)
+		.expect("the unit table");
+	let rows = table
+		.lines()
+		.filter(|line| line.contains("messy.rs:"))
+		.count();
+
+	assert!(rows <= 3, "`--top 2` should cap the table, got {rows} rows");
+}
+
+#[test]
+fn top_alone_is_accepted_without_units() {
+	// `--top` only affects the unit table, so passing it without `--units` should be harmless.
+	let output = run(&[
+		"check",
+		fixture_str("bad").as_str(),
+		"--top",
+		"3",
+		"--no-color",
+	]);
+
+	assert!(
+		output.status.success(),
+		"`--top` without `--units` should not fail"
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Output routing
+// ---------------------------------------------------------------------------
+
+#[test]
+fn toml_format_is_accepted_by_check() {
+	// The format enum is shared with the config command, so `check` must accept every value.
+	let output = run(&[
+		"check",
+		fixture_str("bad").as_str(),
+		"--format",
+		"toml",
+		"--no-color",
+	]);
+
+	assert!(
+		output.status.success(),
+		"the toml format should be accepted"
+	);
+}
+
+#[test]
+fn an_output_path_is_created() {
+	let temp = tempfile::tempdir().expect("a temporary directory");
+	let target = temp.path().join("nested/report.json");
+
+	// A missing parent directory should be an error rather than a silent no-op.
+	let output = run(&[
+		"check",
+		fixture_str("bad").as_str(),
+		"--format",
+		"json",
+		"--output",
+		target.to_str().unwrap(),
+	]);
+
+	assert!(
+		!output.status.success(),
+		"writing to a missing directory should fail"
+	);
+}
+
+#[test]
+fn the_summary_line_names_all_three_scores() {
+	let output = run(&["check", fixture_str("bad").as_str(), "--no-color"]);
+	let stderr = String::from_utf8_lossy(&output.stderr);
+
+	assert!(stderr.contains("readability"), "got {stderr:?}");
+	assert!(stderr.contains("complexity"));
+	assert!(stderr.contains("overall"));
+}
+
+#[test]
+fn fail_under_reports_which_score_was_low() {
+	let output = run(&[
+		"check",
+		fixture_str("bad").as_str(),
+		"--fail-under",
+		"100",
+		"--no-color",
+	]);
+	let stderr = String::from_utf8_lossy(&output.stderr);
+
+	assert!(
+		stderr.contains("below the required threshold"),
+		"the failure should explain itself: {stderr}"
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Rule listing
+// ---------------------------------------------------------------------------
+
+#[test]
+fn a_rule_description_is_reported_in_json() {
+	let output = stdout(&["rules", "readability/deep-nesting", "--format", "json"]);
+	let decoded: serde_json::Value = serde_json::from_str(&output).expect("valid JSON");
+
+	assert_eq!(decoded["name"], "readability/deep-nesting");
+	assert!(decoded["description"].is_string());
+}
+
+#[test]
+fn every_rule_is_listed_in_json() {
+	let output = stdout(&["rules", "--format", "json"]);
+	let decoded: serde_json::Value = serde_json::from_str(&output).expect("valid JSON");
+
+	let listed = decoded.as_array().expect("an array");
+
+	assert!(listed.len() >= 20, "got {} rules", listed.len());
+
+	for rule in listed {
+		assert!(rule["name"].is_string());
+		assert!(rule["description"].is_string());
+	}
+}
+
+#[test]
+fn the_config_reports_every_section() {
+	let output = stdout(&["config"]);
+	let decoded: toml::Value = toml::from_str(&output).expect("valid TOML");
+
+	assert!(decoded.get("scoring").is_some());
+	assert!(decoded.get("rules").is_some());
+	assert!(decoded["rules"].get("ignore").is_some());
+}
+
+#[test]
+fn the_printed_config_can_be_read_back() {
+	// The output is documented as a starting point for a config file, so it has to be valid input. TOML's
+	// serializer emits a nested table before its parent's scalar keys, which put `ignore` at the top level
+	// where it would be ignored on the way back in.
+	let output = stdout(&["config"]);
+
+	let parsed: RulesConfig =
+		toml::from_str(&output).expect("the printed config should parse back");
+
+	assert_eq!(parsed.max_line_width, RulesConfig::default().max_line_width);
+	assert!(parsed.ignore.skip_generated());
+}
+
+// ---------------------------------------------------------------------------
+// Fix command
+// ---------------------------------------------------------------------------
+
+#[test]
+fn fix_reports_conflicts_when_edits_overlap() {
+	// Two adjacent statements each needing a blank line produce edits that do not overlap, so this
+	// exercises the ordinary path; the conflict path is covered by the fix-engine unit tests.
+	let temp = tempfile::tempdir().expect("a temporary directory");
+	let target = temp.path().join("sample.rs");
+
+	std::fs::write(
+		&target,
+		"fn a() {\n    work();\n    if x {\n        work();\n    }\n    if y {\n        work();\n    }\n}\n",
+	)
+	.expect("write");
+
+	let output = stdout(&["fix", target.to_str().unwrap(), "--no-color"]);
+
+	assert!(output.contains("fixed"), "got {output:?}");
+
+	let fixed = std::fs::read_to_string(&target).expect("read");
+
+	assert!(
+		fixed.contains("work();\n\n    if x"),
+		"the first blank line should be inserted"
+	);
+	assert!(
+		fixed.contains("}\n\n    if y"),
+		"the second blank line should be inserted"
+	);
+}
+
+#[test]
+fn fix_accepts_a_directory() {
+	let temp = tempfile::tempdir().expect("a temporary directory");
+
+	std::fs::write(
+		temp.path().join("one.rs"),
+		"fn a() {\n    work();\n    if x {\n        work();\n    }\n}\n",
+	)
+	.expect("write");
+	std::fs::write(
+		temp.path().join("two.rs"),
+		"fn b() {\n    work();\n    if y {\n        work();\n    }\n}\n",
+	)
+	.expect("write");
+
+	let _ = stdout(&["fix", temp.path().to_str().unwrap(), "--no-color"]);
+
+	for name in ["one.rs", "two.rs"] {
+		let fixed = std::fs::read_to_string(temp.path().join(name)).expect("read");
+
+		assert!(fixed.contains("\n\n"), "{name} should have been fixed");
+	}
+}
+
+#[test]
+fn fix_quiet_prints_only_the_summary() {
+	let temp = tempfile::tempdir().expect("a temporary directory");
+	let target = temp.path().join("sample.rs");
+
+	std::fs::write(
+		&target,
+		"fn a() {\n    work();\n    if x {\n        work();\n    }\n}\n",
+	)
+	.expect("write");
+
+	let output = stdout(&["fix", target.to_str().unwrap(), "--quiet", "--no-color"]);
+
+	assert!(
+		!output.contains("+ "),
+		"per-file detail should be suppressed: {output}"
+	);
+	assert!(output.contains("fixed"));
+}
+
+#[test]
+fn fix_reports_a_missing_path() {
+	let output = run(&["fix", "/nonexistent/path/for/monostyle"]);
+
+	assert!(!output.status.success());
+	assert!(String::from_utf8_lossy(&output.stderr).contains("does not exist"));
+}
+
+#[test]
+fn fix_on_an_empty_directory_is_not_an_error() {
+	let temp = tempfile::tempdir().expect("a temporary directory");
+
+	let output = run(&["fix", temp.path().to_str().unwrap(), "--no-color"]);
+
+	assert!(output.status.success());
+	assert!(String::from_utf8_lossy(&output.stderr).contains("no analyzable files"));
 }
