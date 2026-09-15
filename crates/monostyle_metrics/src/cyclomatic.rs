@@ -16,7 +16,7 @@
 //! | `for` / `while` / `loop` | 1 each |
 //! | `case` / `when` arm | 1 each |
 //! | `catch` / `except` / `rescue` | 1 each |
-//! | `&&`, `||`, `and`, `or` | 1 each |
+//! | `&&`, `\|\|`, `and`, `or` | 1 each |
 //! | Ternary | 1 |
 //! | `??`, `?.` | 1 each |
 //! | `goto` | 1 each |
@@ -109,7 +109,7 @@ impl Risk {
 /// Computes cyclomatic complexity for every line in `file`.
 ///
 /// The total is for the whole file; per-unit values come from
-/// [`unit::find_units`](crate::unit::find_units), which slices the same lines.
+/// [`find_units`](crate::unit::find_units), which slices the same lines.
 #[must_use]
 pub fn cyclomatic_complexity(file: &LexedFile) -> CyclomaticComplexity {
 	complexity_of_lines(&file.lines)

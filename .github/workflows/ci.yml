@@ -227,25 +227,29 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: verify crates package cleanly
-        # Each crate is packaged in isolation. A workspace-wide `cargo package` resolves every sibling
-        # against crates.io, which fails for a path dependency that has not been published yet — so the
-        # check would always fail on a project before its first release.
+      - name: verify every crate packages cleanly
+        # `--list` rather than a full package. A complete `cargo package` resolves each crate's path
+        # dependencies against crates.io, which fails for a workspace whose siblings have not been
+        # published yet — so the check would always fail before a first release and never afterward
+        # catch the thing it exists for. `--list` verifies the file manifest, which is what actually
+        # breaks a publish: a file referenced by `include_str!` or a build script that is missing from
+        # the package.
         run: |
           set -euo pipefail
+          failed=0
 
           for crate in crates/*/; do
             name=$(basename "$crate")
 
-            # The CLI crate is excluded because it depends on every library crate, all of which are
-            # unpublished at this point.
-            if [ "$name" = "monostyle" ]; then
-              continue
+            if ! cargo package --package "$name" --list --allow-dirty >/dev/null; then
+              echo "::error:: $name cannot be packaged"
+              failed=1
+            else
+              echo "$name packages cleanly"
             fi
-
-            echo "packaging $name"
-            cargo package --package "$name" --no-verify
           done
+
+          exit $failed
 
   security:
     name: security
@@ -283,12 +287,12 @@ jobs:
       matrix:
         repo:
           - name: rust-code-analysis
-            url: https://github.com/mozilla/rust-code-analysis
+            repository: mozilla/rust-code-analysis
             path: .
           # A JavaScript and TypeScript monorepo, which exercises the npm workspace detection and
           # the template-literal handling in the scanner.
           - name: monochange
-            url: https://github.com/monochange/monochange
+            repository: monochange/monochange
             path: .
     steps:
       - uses: actions/checkout@v4
@@ -307,7 +311,7 @@ jobs:
       - name: check out ${{ matrix.repo.name }}
         uses: actions/checkout@v4
         with:
-          repository: ${{ matrix.repo.url }}
+          repository: ${{ matrix.repo.repository }}
           path: target/${{ matrix.repo.name }}
           persist-credentials: false
 

@@ -5,7 +5,7 @@
 //!
 //! - **Complexity**: [`cyclomatic`] counts independent paths, and [`cognitive`] weights
 //!   those paths by how hard they are to hold in your head.
-//! - **Units**: [`unit`] finds the function-like regions those metrics are attributed to,
+//! - **Units**: [`unit`](mod@unit) finds the function-like regions those metrics are attributed to,
 //!   so scores can be reported per function rather than only per file.
 
 pub mod cognitive;

@@ -14,7 +14,7 @@
 //!
 //! Merging the parsed TOML over the serialized defaults removes the second list entirely. The defaults
 //! are serialized once, the file's values are overlaid onto them, and the result is deserialized back
-//! into the typed config. Adding a field to [`RulesConfig`] needs no change here at all.
+//! into the typed config. Adding a field to [`RulesConfig`](monostyle_rules::RulesConfig) needs no change here at all.
 
 use std::path::Path;
 use std::path::PathBuf;

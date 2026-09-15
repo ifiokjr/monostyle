@@ -2,7 +2,7 @@
 //!
 //! # How a score is derived
 //!
-//! Every rule emits [`Finding`](crate::Finding)s. Each finding carries a `weight`, which
+//! Every rule emits [`Finding`]s. Each finding carries a `weight`, which
 //! [`Severity`](crate::Severity) scales into a penalty. Penalties are summed per
 //! [`Category`] and divided by the amount of code they were found in to produce a
 //! *penalty density* — findings per 100 lines. Density, not raw count, is what the
