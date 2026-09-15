@@ -1,8 +1,4 @@
-# monostyle
-
-[Documentation](https://ifiokjr.github.io/monostyle/) | [API docs](https://ifiokjr.github.io/monostyle/api/monostyle/)
-
-<!-- {=projectOverview} -->
+<!-- {@projectOverview} -->
 
 `monostyle` scores the complexity and readability of a codebase, a file, or a function, out of 100. Every point lost is traced to a named rule with an explanation and a suggested fix, so a report is a worklist rather than a grade.
 
@@ -12,7 +8,7 @@
 
 <!-- {/projectOverview} -->
 
-<!-- {=projectWhy} -->
+<!-- {@projectWhy} -->
 
 Code is read far more often than it is written, and the things that make it pleasant to read are mostly layout: a blank line before a branch, space around a long argument list, a gap between logical groups, and a comment on the one function that is genuinely hard to follow.
 
@@ -20,9 +16,7 @@ Those things are invisible to every existing metric. Cyclomatic complexity will 
 
 <!-- {/projectWhy} -->
 
-## Installation
-
-<!-- {=installation} -->
+<!-- {@installation} -->
 
 ```console
 cargo install monostyle
@@ -36,9 +30,7 @@ cargo build --release --package monostyle
 
 <!-- {/installation} -->
 
-## Usage
-
-<!-- {=usageExamples} -->
+<!-- {@usageExamples} -->
 
 ```console
 monostyle check [PATH]...          # analyze a directory, file, or list of paths
@@ -54,11 +46,7 @@ monostyle config                   # print the effective configuration
 
 <!-- {/usageExamples} -->
 
-## Rules
-
-### Readability
-
-<!-- {=readabilityRules} -->
+<!-- {@readabilityRules} -->
 
 | Rule | What it catches |
 | --- | --- |
@@ -80,9 +68,7 @@ monostyle config                   # print the effective configuration
 
 <!-- {/readabilityRules} -->
 
-### Complexity
-
-<!-- {=complexityRules} -->
+<!-- {@complexityRules} -->
 
 | Rule | What it catches |
 | --- | --- |
@@ -95,9 +81,7 @@ monostyle config                   # print the effective configuration
 
 <!-- {/complexityRules} -->
 
-### Markdown
-
-<!-- {=markdownRules} -->
+<!-- {@markdownRules} -->
 
 Code inside documentation is scored too, because README examples are what people copy.
 
@@ -112,9 +96,7 @@ Code inside documentation is scored too, because README examples are what people
 
 <!-- {/markdownRules} -->
 
-## Supported languages
-
-<!-- {=supportedLanguages} -->
+<!-- {@supportedLanguages} -->
 
 Rust, C, C++, C#, Java, JavaScript, Kotlin, Mozjs, Python, TypeScript, TSX, **Dart**, Go, Swift, Ruby, PHP, Scala, Shell, Lua, Elixir, Haskell, Nix, and Markdown.
 
@@ -122,9 +104,7 @@ The first eleven match what [`rust-code-analysis`](https://github.com/mozilla/ru
 
 <!-- {/supportedLanguages} -->
 
-## How scoring works
-
-<!-- {=scoringModel} -->
+<!-- {@scoringModel} -->
 
 Findings carry a `weight`; severity scales it into a penalty. Penalties sum per category and are normalized by code volume into a penalty density — findings per 100 lines — so a large well-written file is not punished for its size. Density maps to 0–100 through exponential decay:
 
@@ -140,59 +120,7 @@ Scores are aggregated by **line-weighted mean**, the same way test coverage is a
 
 <!-- {/scoringModel} -->
 
-## Finding what to fix
-
-<!-- {=impactExample} -->
-
-```console
-$ monostyle check . --units
-readability: what is costing you points
-
-  ██████░░░░  61.2%  readability/blank-line-before-control-flow  (4,181 findings)
-             crates/example/src/main.rs:91 [minor]
-             `if` follows the previous statement with no blank line between them
-             -> Add a blank line before this statement so the reader can treat it as
-             a separate decision rather than part of the previous block.
-```
-
-Each entry names its worst offender as `path:line`, and the report ends with the single highest-value fix:
-
-```console
-start here
-  Fixing readability/blank-line-before-control-flow at crates/example/src/main.rs:91 would
-  recover 30.7% of the available points.
-```
-
-<!-- {/impactExample} -->
-
-## Auto-fix
-
-<!-- {=autofixExplanation} -->
-
-One rule is auto-fixable: inserting a blank line before a control-flow statement. That is the only edit guaranteed to survive a formatter — rustfmt, Prettier, Black, and `dart format` all preserve a blank line between statements and none of them remove one. A fixer that fights the project's formatter produces a diff the next format run reverts, which is worse than the finding itself.
-
-Every other rule explains itself and leaves the change to you. The fix output shows both: what was applied, and what still needs a decision, with the suggestion attached.
-
-<!-- {/autofixExplanation} -->
-
-## Ignoring files
-
-<!-- {=ignoreConfigExample} -->
-
-```toml
-[rules.ignore]
-patterns = ["**/*.spec.ts", "crates/legacy/**"]
-generated = true                     # skip generated code (the default)
-include = ["lib/hand_edited.g.dart"] # always score this one
-```
-
-Recognized as generated: `.g.dart`, `.freezed.dart`, `.pb.rs`, `.pb.go`, `_pb2.py`, `.designer.cs`, `.gen.ts`, `.min.js`, `.bundle.js`, and lock files. Ignored directories include `node_modules`, `target`, `dist`, `build`, `vendor`, `.venv`, `.dart_tool`, and `__pycache__`.
-
-<!-- {/ignoreConfigExample} -->
-
-## Configuration
-
-<!-- {=configExample} -->
+<!-- {@configExample} -->
 
 ```toml
 [scoring]
@@ -215,29 +143,46 @@ generated = true
 
 <!-- {/configExample} -->
 
-## Performance
-
-| Repository | Files | Lines of code | Time |
-| --- | --- | --- | --- |
-| mdt | 228 | 35,749 | 0.13s |
-| monochange | 318 | 193,900 | 0.42s |
-| pina | 2,198 | 232,417 | 1.08s |
-
-See [docs/performance.md](./docs/performance.md) for what made it fast and what the cache does.
-
-## Design
-
-The architecture, and why a profile-driven lexer was chosen over tree-sitter, is documented in
-[ARCHITECTURE.md](./ARCHITECTURE.md). The short version: readability is a layout metric, so the tool needs
-a trustworthy tokenizer over comments and string literals rather than a full parse tree, and the tokenizer's
-correctness is guarded by the heaviest test suite in the repository.
-
-## npm
+<!-- {@impactExample} -->
 
 ```console
-npm install -g @monostyle-rs/cli
+$ monostyle check . --units
+readability: what is costing you points
+
+  ██████░░░░  61.2%  readability/blank-line-before-control-flow  (4,181 findings)
+             crates/example/src/main.rs:91 [minor]
+             `if` follows the previous statement with no blank line between them
+             -> Add a blank line before this statement so the reader can treat it as
+             a separate decision rather than part of the previous block.
 ```
 
-## License
+Each entry names its worst offender as `path:line`, and the report ends with the single highest-value fix:
 
-Unlicense.
+```console
+start here
+  Fixing readability/blank-line-before-control-flow at crates/example/src/main.rs:91 would
+  recover 30.7% of the available points.
+```
+
+<!-- {/impactExample} -->
+
+<!-- {@autofixExplanation} -->
+
+One rule is auto-fixable: inserting a blank line before a control-flow statement. That is the only edit guaranteed to survive a formatter — rustfmt, Prettier, Black, and `dart format` all preserve a blank line between statements and none of them remove one. A fixer that fights the project's formatter produces a diff the next format run reverts, which is worse than the finding itself.
+
+Every other rule explains itself and leaves the change to you. The fix output shows both: what was applied, and what still needs a decision, with the suggestion attached.
+
+<!-- {/autofixExplanation} -->
+
+<!-- {@ignoreConfigExample} -->
+
+```toml
+[rules.ignore]
+patterns = ["**/*.spec.ts", "crates/legacy/**"]
+generated = true                     # skip generated code (the default)
+include = ["lib/hand_edited.g.dart"] # always score this one
+```
+
+Recognized as generated: `.g.dart`, `.freezed.dart`, `.pb.rs`, `.pb.go`, `_pb2.py`, `.designer.cs`, `.gen.ts`, `.min.js`, `.bundle.js`, and lock files. Ignored directories include `node_modules`, `target`, `dist`, `build`, `vendor`, `.venv`, `.dart_tool`, and `__pycache__`.
+
+<!-- {/ignoreConfigExample} -->

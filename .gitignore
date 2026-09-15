@@ -30,3 +30,9 @@ score.txt
 # binary would ship whatever architecture the last developer built on.
 packages/monostyle__cli-*/bin/monostyle
 packages/monostyle__cli-*/bin/monostyle.exe
+
+# mdbook build output
+docs/book/
+
+# mdt cache
+.mdt/cache/

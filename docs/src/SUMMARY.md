@@ -1,0 +1,15 @@
+# Summary
+
+- [Introduction](./introduction.md)
+- [Installation](./installation.md)
+- [Rules](./rules/index.md)
+  - [Readability](./rules/readability.md)
+  - [Complexity](./rules/complexity.md)
+  - [Markdown](./rules/markdown.md)
+- [How scoring works](./scoring.md)
+- [Auto-fix](./autofix.md)
+- [Ignoring files](./ignoring.md)
+- [Configuration](./configuration.md)
+- [Supported languages](./languages.md)
+- [Performance](./performance.md)
+- [Architecture](./architecture.md)
