@@ -1,0 +1,22 @@
+[package]
+name = "monostyle_rules"
+description = "The rule set that turns layout observations into explained findings."
+version.workspace = true
+authors.workspace = true
+categories.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+monostyle_core = { workspace = true }
+monostyle_lexer = { workspace = true }
+monostyle_metrics = { workspace = true }
+monostyle_markdown = { workspace = true }
+serde = { workspace = true }
+
+[lints]
+workspace = true

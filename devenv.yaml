@@ -1,0 +1,36 @@
+clean:
+  enabled: true
+  keep:
+    - CI
+    - GH_TOKEN
+    - GITHUB_ACTIONS
+    - GITHUB_ENV
+    - GITHUB_OUTPUT
+    - GITHUB_REF_NAME
+    - GITHUB_REPOSITORY
+    - GITHUB_RUN_ID
+    - GITHUB_TOKEN
+    - GITHUB_WORKFLOW
+    - HOME
+    - MONOSTYLE_FAIL_UNDER
+    - RUNNER_TEMP
+    - SHELL
+    - TERM
+    - USER
+
+inputs:
+  git-hooks:
+    url: github:cachix/git-hooks.nix
+    inputs:
+      nixpkgs:
+        follows: nixpkgs
+  ifiokjr-nixpkgs:
+    url: github:ifiokjr/nixpkgs
+  nixpkgs:
+    url: github:NixOS/nixpkgs/nixpkgs-unstable
+  rust-overlay:
+    url: github:oxalica/rust-overlay
+    overlays:
+      - default
+allow_unfree: true
+require_version: ">=2.1"

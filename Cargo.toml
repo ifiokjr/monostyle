@@ -1,0 +1,75 @@
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+authors = ["Ifiok Jr. <ifiokotung@gmail.com>"]
+categories = ["development-tools", "development-tools::testing"]
+edition = "2024"
+keywords = ["complexity", "readability", "metrics", "lint", "code-quality"]
+license = "Unlicense"
+readme = "readme.md"
+repository = "https://github.com/monostyle/monostyle"
+rust-version = "1.90.0"
+
+[workspace.dependencies]
+clap = { version = "4", default-features = false, features = ["derive", "help", "std", "usage"] }
+ignore = { version = "0.4", default-features = false }
+rayon = { version = "1.10", default-features = false }
+# `std` is required: findings carry owned `String` messages, which need the
+# standard library's `Serialize` implementations to be available.
+serde = { version = "1", default-features = false, features = ["derive", "std"] }
+# `std` is required for JSON output; the default-features = false baseline keeps the
+# dependency graph small everywhere else.
+serde_json = { version = "1", default-features = false, features = ["std"] }
+tempfile = { version = "3", default-features = false }
+# `serde` is needed to read configuration into typed structs; `parse` and `display` so
+# configuration can be both read and printed back.
+toml = { version = "1", default-features = false, features = ["parse", "display", "serde"] }
+
+# Internal crates
+monostyle_core = { version = "0.1.0", path = "./crates/monostyle_core" }
+monostyle_languages = { version = "0.1.0", path = "./crates/monostyle_languages" }
+monostyle_lexer = { version = "0.1.0", path = "./crates/monostyle_lexer" }
+monostyle_markdown = { version = "0.1.0", path = "./crates/monostyle_markdown" }
+monostyle_metrics = { version = "0.1.0", path = "./crates/monostyle_metrics" }
+monostyle_rules = { version = "0.1.0", path = "./crates/monostyle_rules" }
+
+# Distribution profile for release builds.
+# Use `cargo build --profile dist` for optimized, stripped binaries.
+[profile.dist]
+inherits = "release"
+lto = true
+codegen-units = 1
+strip = "symbols"
+
+[workspace.lints.rust]
+rust_2021_compatibility = { level = "warn", priority = -1 }
+rust_2024_compatibility = { level = "warn", priority = -1 }
+unsafe_code = "deny"
+unstable_features = "deny"
+unused_extern_crates = "warn"
+unused_import_braces = "warn"
+unused_lifetimes = "warn"
+unused_macro_rules = "warn"
+unused_qualifications = "warn"
+
+[workspace.lints.clippy]
+complexity = { level = "warn", priority = -1 }
+correctness = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+cast_possible_truncation = "allow"
+cast_possible_wrap = "allow"
+cast_precision_loss = "allow"
+cast_sign_loss = "allow"
+indexing_slicing = "deny"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+too_many_lines = "allow"
+wildcard_imports = "allow"

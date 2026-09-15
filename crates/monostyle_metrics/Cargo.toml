@@ -1,0 +1,21 @@
+[package]
+name = "monostyle_metrics"
+description = "Complexity and readability metrics computed over lexed source."
+version.workspace = true
+authors.workspace = true
+categories.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+monostyle_core = { workspace = true }
+monostyle_languages = { workspace = true }
+monostyle_lexer = { workspace = true }
+serde = { workspace = true }
+
+[lints]
+workspace = true

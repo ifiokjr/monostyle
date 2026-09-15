@@ -1,0 +1,14 @@
+# Build output
+/target
+**/target
+
+# devenv
+.devenv
+.direnv
+
+# Locally installed cargo binaries
+.bin
+
+# Editor and OS noise
+.DS_Store
+*.swp

@@ -1,0 +1,20 @@
+[package]
+name = "monostyle_lexer"
+description = "Profile-driven tokenizer that extracts layout and complexity signals from source code."
+version.workspace = true
+authors.workspace = true
+categories.workspace = true
+edition.workspace = true
+keywords.workspace = true
+license.workspace = true
+readme.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+monostyle_core = { workspace = true }
+monostyle_languages = { workspace = true }
+serde = { workspace = true }
+
+[lints]
+workspace = true
