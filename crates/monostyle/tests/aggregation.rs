@@ -120,3 +120,56 @@ fn penalties_accumulate_across_files() {
 		double.value
 	);
 }
+
+#[test]
+fn overall_impact_uses_one_denominator_across_categories() {
+	// The bug this pins: per-category shares are computed against that category's total, so
+	// combining two ranked lists and quoting one of their percentages as a whole-project figure
+	// overstates the benefit of the fix. A rule holding most of one category may hold a third of
+	// the total.
+	use monostyle_core::Category;
+	use monostyle_core::Finding;
+	use monostyle_core::Severity;
+	use monostyle_core::Span;
+
+	/// Builds a finding with an explicit category and penalty.
+	fn finding(rule: &str, category: Category, weight: f64) -> Finding {
+		Finding {
+			rule: rule.to_string(),
+			category,
+			severity: Severity::Minor,
+			span: Span::new(0, 0, 1, 1),
+			message: String::new(),
+			suggestion: String::new(),
+			weight,
+		}
+	}
+
+	let findings = vec![
+		(
+			PathBuf::from("a.rs"),
+			finding("complexity/expensive", Category::Complexity, 90.0),
+		),
+		(
+			PathBuf::from("b.rs"),
+			finding("readability/cheap", Category::Readability, 10.0),
+		),
+	];
+
+	let impacts = monostyle::aggregate::rank_overall_impact(&findings);
+	let top = impacts.first().expect("one rule should rank first");
+
+	// 90 of 100 total penalty is 90%, not the 100% the complexity-only denominator would give.
+	assert!(
+		(top.share * 100.0 - 90.0).abs() < 0.01,
+		"the top rule's share should be 90% of the total, got {:.1}%",
+		top.share * 100.0
+	);
+
+	let total: f64 = impacts.iter().map(|impact| impact.share).sum();
+
+	assert!(
+		(total - 1.0).abs() < 0.01,
+		"shares should sum to 1 across categories, got {total:.2}"
+	);
+}

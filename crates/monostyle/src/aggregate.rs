@@ -229,6 +229,84 @@ pub fn rank_rule_impact(findings: &[(PathBuf, Finding)], category: Category) -> 
 	impacts
 }
 
+/// Ranks rules across both categories by their share of the *total* penalty.
+///
+/// `rank_rule_impact` computes a share within one category, so its percentages are only comparable
+/// to other rules in that category. The "start here" line needs the single most valuable fix across
+/// everything, which requires one denominator: the total penalty of both categories together.
+///
+/// Reporting a per-category share as if it were a whole-project share would overstate the benefit of
+/// a fix — a rule holding 90% of the complexity penalty might hold only 30% of the total, so
+/// presenting 90% would promise a recovery three times larger than the fix can deliver.
+#[must_use]
+pub fn rank_overall_impact(findings: &[(PathBuf, Finding)]) -> Vec<RuleImpact> {
+	let mut impacts: Vec<RuleImpact> = Vec::new();
+	let mut total: f64 = 0.0;
+
+	for (path, finding) in findings {
+		let penalty = finding.penalty();
+
+		if penalty <= 0.0 {
+			continue;
+		}
+
+		total += penalty;
+
+		match impacts
+			.iter_mut()
+			.find(|impact| impact.rule == finding.rule)
+		{
+			Some(impact) => {
+				if penalty >= impact.worst_penalty {
+					impact.worst_penalty = penalty;
+					impact.message.clone_from(&finding.message);
+					impact.suggestion.clone_from(&finding.suggestion);
+					impact.worst_offender = Some(OffenderLocation {
+						path: path.clone(),
+						line: finding.span.start_line,
+						severity: finding.severity.label().to_string(),
+					});
+				}
+
+				impact.penalty += penalty;
+				impact.count += 1;
+			}
+			None => {
+				impacts.push(RuleImpact {
+					rule: finding.rule.clone(),
+					penalty,
+					count: 1,
+					share: 0.0,
+					worst_penalty: penalty,
+					worst_offender: Some(OffenderLocation {
+						path: path.clone(),
+						line: finding.span.start_line,
+						severity: finding.severity.label().to_string(),
+					}),
+					message: finding.message.clone(),
+					suggestion: finding.suggestion.clone(),
+				});
+			}
+		}
+	}
+
+	for impact in &mut impacts {
+		impact.share = if total > 0.0 {
+			impact.penalty / total
+		} else {
+			0.0
+		};
+	}
+
+	impacts.sort_by(|left, right| {
+		right
+			.penalty
+			.partial_cmp(&left.penalty)
+			.unwrap_or(std::cmp::Ordering::Equal)
+	});
+	impacts
+}
+
 /// Ranks files by the penalty they contribute, most costly first.
 ///
 /// Reported alongside the per-file score so a reader can tell the difference between a file that

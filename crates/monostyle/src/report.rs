@@ -424,14 +424,12 @@ fn render_unterminated(output: &mut String, report: &ProjectReport) {
 /// A report that ends with one specific suggestion is far more likely to be acted on than one that
 /// ends with a list.
 fn render_next_step(output: &mut String, report: &ProjectReport) {
-	let mut impacts = report.readability_impact();
-	impacts.extend(report.complexity_impact());
+	// Every rule ranked against one denominator, so the percentage below is a share of the whole
+	// score rather than of a single category. Combining the two per-category rankings would compare
+	// percentages computed against different totals, which overstates the benefit of a fix.
+	let impacts = crate::aggregate::rank_overall_impact(&report.owned_findings_public());
 
-	let Some(top) = impacts.iter().max_by(|left, right| {
-		left.penalty
-			.partial_cmp(&right.penalty)
-			.unwrap_or(std::cmp::Ordering::Equal)
-	}) else {
+	let Some(top) = impacts.first() else {
 		let _ = writeln!(output, "{}", style::green("No rule violations found."));
 
 		return;
