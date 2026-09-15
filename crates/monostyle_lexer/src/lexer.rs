@@ -528,7 +528,7 @@ impl Scanner {
 	/// Each opener is checked before the character is emitted, so no delimiter ever leaks into
 	/// the masked view and gets read as code by a later pass.
 	fn step_code(&mut self, characters: &[char], index: usize, line: &mut LineBuilder) -> usize {
-		let rest: String = characters[index..].iter().collect();
+		let rest = peek(characters, index);
 		let character = characters[index];
 
 		if let Some((open, end)) = self.profile.block_comment_at(&rest) {
@@ -549,7 +549,9 @@ impl Scanner {
 		}
 
 		if let Some(start) = self.literal_at(&rest, characters, index) {
-			return self.open_literal(start, &rest, line, index);
+			let line_remainder = peek_line(characters, index, usize::MAX);
+
+			return self.open_literal(start, &rest, &line_remainder, line, index);
 		}
 
 		if self.try_open_heredoc(&rest, line) {
@@ -604,7 +606,7 @@ impl Scanner {
 			return index + 1;
 		};
 
-		let rest: String = characters[index..].iter().collect();
+		let rest = peek(characters, index);
 
 		if let Some(extra) = literal
 			.extra_escapes
@@ -672,13 +674,15 @@ impl Scanner {
 		line: &mut LineBuilder,
 	) -> usize {
 		let character = characters[index];
-		let rest: String = characters[index..].iter().collect();
+		let rest = peek(characters, index);
 		let Some(interpolation) = self.interpolation.clone() else {
 			return index + 1;
 		};
 
 		if let Some(rule) = self.literal_at(&rest, characters, index) {
-			return self.open_literal(rule, &rest, line, index);
+			let line_remainder = peek_line(characters, index, usize::MAX);
+
+			return self.open_literal(rule, &rest, &line_remainder, line, index);
 		}
 
 		match (character, interpolation.style) {
@@ -736,7 +740,7 @@ impl Scanner {
 		index: usize,
 		line: &mut LineBuilder,
 	) -> usize {
-		let rest: String = characters[index..].iter().collect();
+		let rest = peek(characters, index);
 		let Some(comment) = self.block_comment.clone() else {
 			return index + 1;
 		};
@@ -968,6 +972,7 @@ impl Scanner {
 		&mut self,
 		start: LiteralStart,
 		rest: &str,
+		line_remainder: &str,
 		line: &mut LineBuilder,
 		index: usize,
 	) -> usize {
@@ -978,9 +983,9 @@ impl Scanner {
 		} = start;
 		let end = closing_delimiter(rule, hashes);
 
-		// `rest` runs to the end of the file, so anything asking "how does this line end?" must cut
-		// it at the next newline first. Testing `rest` directly asks about the whole remaining file.
-		let line_remainder = rest.split('\n').next().unwrap_or(rest);
+		// Whether a short literal closes on this line can only be answered from the whole line, so the
+		// caller passes the remainder of the line rather than the bounded peek window used for
+		// delimiter matching.
 		let body = line_remainder.get(rule.open.len()..).unwrap_or_default();
 		let has_close = hashes > 0
 			|| find_literal_close(body, &end, rule.escapes, rule.extra_escapes).is_some();
@@ -1322,7 +1327,7 @@ fn find_literal_close(
 	let mut index = 0;
 
 	while index < characters.len() {
-		let rest: String = characters[index..].iter().collect();
+		let rest = peek(&characters, index);
 
 		if let Some(extra) = extra_escapes.iter().find(|extra| rest.starts_with(**extra)) {
 			index += extra.chars().count();
@@ -1411,6 +1416,36 @@ fn consume_comment(characters: &[char], index: usize, length: usize, line: &mut 
 			line.push_comment(*character);
 		}
 	}
+}
+
+/// The number of characters a delimiter peek needs.
+///
+/// The longest opener in any profile is three characters (a triple quote, `<<<`, or `--[[`), and the
+/// longest single-token line comment is two. Six leaves room for a hashed raw-string prefix without
+/// truncating a match.
+const PEEK: usize = 6;
+
+/// Returns up to the next [`PEEK`] characters, starting at `index`.
+///
+/// Scanning must not allocate per character. Every step used to collect the whole remaining file
+/// into a `String` purely to test a two-character delimiter, which made the scanner quadratic in
+/// file size — a seven-thousand-line file did not finish within a minute. A bounded window answers
+/// the same questions in constant work per character.
+fn peek(characters: &[char], index: usize) -> String {
+	characters.iter().skip(index).take(PEEK).collect()
+}
+
+/// Returns characters from `index` up to the next newline, capped at `limit`.
+///
+/// Used where a check must reason about the rest of the line rather than the rest of the file, such
+/// as finding a regex literal's closing slash.
+fn peek_line(characters: &[char], index: usize, limit: usize) -> String {
+	characters
+		.iter()
+		.skip(index)
+		.take_while(|character| **character != '\n')
+		.take(limit)
+		.collect()
 }
 
 /// Assigns a kind to a finished line.
