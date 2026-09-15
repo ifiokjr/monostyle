@@ -167,6 +167,91 @@ disabled-rules = ["readability/excessive-comments"]
 
 Run `monostyle config` to print every available setting with its default.
 
+## Monorepo support
+
+Cargo, npm, pnpm, and Dart workspaces are detected from their manifests, and every file is
+attributed to the package that owns it. Each package is scored independently, weighted by its own
+lines of code, so the report can say which package is the problem rather than only that the
+repository scored 72.
+
+```console
+$ monostyle check .
+  ...
+packages
+
+     read    cplx  package
+     43.5    40.4  pina_lints cargo · crates/pina_lints · 9,856 LOC
+     33.1    37.0  pina_macros cargo · crates/pina_macros · 6,031 LOC
+     18.9    46.1  pina_abi cargo · crates/pina_abi · 3,177 LOC
+```
+
+## Finding what to fix
+
+A score tells you something is wrong. The impact table tells you what to do about it, ranked by how
+much of the score each rule accounts for:
+
+```console
+$ monostyle check . --units
+readability: what is costing you points
+
+  ██████░░░░  61.2%  readability/blank-line-before-control-flow  (4,181 findings)
+             crates/example/src/main.rs:91 [minor]
+             `if` follows the previous statement with no blank line between them
+             -> Add a blank line before this statement so the reader can treat it as
+             a separate decision rather than part of the previous block.
+```
+
+Each entry names its worst offender as `path:line`, and the report ends with the single
+highest-value fix:
+
+```console
+start here
+  Fixing readability/blank-line-before-control-flow at crates/example/src/main.rs:91 would
+  recover 30.7% of the available points.
+```
+
+The percentage is a share of the *whole* score, not of one category, so it is the recovery that fix
+can actually deliver.
+
+## Scoring is weighted by lines of code
+
+A project's score is not the average of its files' scores. It is a line-weighted mean of their
+penalties, the way coverage is aggregated, so a ten-line file cannot count as much as a
+thousand-line file.
+
+Three invariants hold, and all three are enforced by tests:
+
+- Splitting a file into two does not change the project score.
+- Doubling both penalty and volume does not change the score.
+- Fifty two-line files cannot outweigh one five-thousand-line file.
+
+## npm
+
+```console
+npm install -g @monostyle-rs/cli
+```
+
+The launcher resolves a prebuilt binary for the current platform, falling through across libc
+variants so Alpine and glibc systems both work. `@monostyle-rs/skill` carries the agent guidance for
+using the tool.
+
+## CI
+
+The workflows verify builds, tests, and the tool's own quality:
+
+| Job | What it checks |
+| --- | --- |
+| `lint` | Formatting and clippy with warnings denied |
+| `test` | The suite on Linux, macOS, and Windows |
+| `lexer-correctness` | The scanner's adversarial trivia suite, run on its own |
+| `coverage` | A 70% line floor, so deleting tests fails the build |
+| `dogfood` | The repository's own readability floor |
+| `npm` | Every manifest agrees and the launcher can resolve each package |
+| `docs` | Documentation builds without warnings |
+| `package-check` | Every crate packages cleanly |
+| `security` | Advisories, licenses, and workflow scanning |
+| `real-world` | Analysis of other repositories, asserting a well-formed report |
+
 ## Design
 
 The architecture, and why a profile-driven lexer was chosen over tree-sitter, is documented in
