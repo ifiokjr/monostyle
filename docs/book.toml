@@ -1,0 +1,16 @@
+[book]
+title = "monostyle"
+authors = ["Ifiok Jr."]
+description = "Score the complexity and readability of a codebase, a file, or a function"
+src = "src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+git-repository-url = "https://github.com/ifiokjr/monostyle"
+edit-url-template = "https://github.com/ifiokjr/monostyle/edit/main/{path}"
+
+[output.html.search]
+enable = true
+
