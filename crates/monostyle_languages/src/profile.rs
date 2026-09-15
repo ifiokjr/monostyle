@@ -259,6 +259,13 @@ impl LanguageProfile {
 			return true;
 		}
 
+		// JSDoc-style block documentation, used by TypeScript, JavaScript, Java, PHP, Kotlin,
+		// Swift, and Scala. This was missing at first, which meant the most common documentation
+		// form in those languages was keyword-judged as if it were a casual inline comment.
+		if trimmed.starts_with("/**") {
+			return true;
+		}
+
 		// Python, Elixir, and Shell mark documentation with a doubled hash.
 		if trimmed.starts_with("##") {
 			return true;

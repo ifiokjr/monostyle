@@ -10,6 +10,10 @@ use clap::ValueEnum;
 ///
 /// Every point lost is traced to a named rule with an explanation, so a score is always
 /// actionable rather than merely informative.
+///
+/// The global flags below are independent switches rather than a state machine, so they stay
+/// flat.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Parser)]
 #[command(name = "monostyle", version, about, long_about = None)]
 pub struct Cli {
@@ -32,6 +36,14 @@ pub struct Cli {
 	/// Score leniently, raising every threshold's tolerance.
 	#[arg(long, global = true)]
 	pub lenient: bool,
+
+	/// Force coloured output even when stdout is not a terminal.
+	#[arg(long, global = true, conflicts_with = "no_color")]
+	pub color: bool,
+
+	/// Disable coloured output.
+	#[arg(long, global = true)]
+	pub no_color: bool,
 }
 
 /// The available subcommands.

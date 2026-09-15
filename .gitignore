@@ -12,3 +12,15 @@
 # Editor and OS noise
 .DS_Store
 *.swp
+
+# npm
+node_modules
+*.tsbuildinfo
+
+# Coverage output
+lcov.info
+coverage/
+
+# Locally generated reports
+report.json
+score.txt

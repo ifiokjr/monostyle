@@ -1,0 +1,27 @@
+{
+	"name": "@monostyle-rs/cli-darwin-x64",
+	"version": "0.1.0",
+	"description": "Prebuilt monostyle binary for macOS x64",
+	"homepage": "https://github.com/ifiokjr/monostyle",
+	"bugs": {
+		"url": "https://github.com/ifiokjr/monostyle/issues"
+	},
+	"license": "Unlicense",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ifiokjr/monostyle.git"
+	},
+	"files": [
+		"bin"
+	],
+	"os": [
+		"darwin"
+	],
+	"cpu": [
+		"x64"
+	],
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
+}

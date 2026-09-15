@@ -131,6 +131,27 @@ impl Score {
 		}
 	}
 
+	/// Computes a score directly from a penalty density.
+	///
+	/// Aggregation needs this because a project's density is a *weighted mean of per-file
+	/// densities*, not a single penalty divided by a single line count. Exposing the curve here
+	/// keeps one implementation of it, so a file's score and a project's score cannot drift apart.
+	#[must_use]
+	pub fn from_density(density: f64, penalty: f64, config: ScoringConfig) -> Self {
+		let half_life = if config.half_life > 0.0 {
+			config.half_life
+		} else {
+			DEFAULT_HALF_LIFE
+		};
+		let raw = Score::PERFECT * 2f64.powf(-density / half_life);
+
+		Self {
+			value: raw.clamp(0.0, Score::PERFECT),
+			penalty,
+			density,
+		}
+	}
+
 	/// A perfect score with no findings behind it.
 	#[must_use]
 	pub fn perfect() -> Self {

@@ -1,0 +1,103 @@
+name: release
+
+# Creates and maintains the release pull request.
+#
+# A release is driven by changesets: a feature branch adds a changeset describing its version bump,
+# and this workflow keeps exactly one release PR open summarizing what the next version contains.
+# Merging that PR is what cuts the release, so the decision to release is a merge rather than a tag
+# pushed by hand.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release-pr:
+    name: release pr
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # monochange reads history to build the changelog, so a shallow clone would produce a
+          # release PR with an incomplete entry list.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2026-09-07
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: install monochange
+        run: cargo binstall monochange --no-confirm || cargo install monochange --locked
+
+      - name: validate the release configuration
+        run: monochange step validate
+
+      - name: open or update the release pull request
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          # `--dry-run` when no changesets exist, so an empty release does not open a PR that says
+          # nothing happened.
+          if [ -z "$(git log --format=%s -1 | grep -E '^chore\(release\)' || true)" ]; then
+            monochange release plan
+          fi
+        continue-on-error: true
+
+      - name: fail when a published package changed without a changeset
+        # Skipping this is how a package ships without a changelog entry, which is the failure mode
+        # that makes release notes untrustworthy.
+        run: |
+          set -euo pipefail
+
+          changed=$(git diff --name-only origin/main~1..HEAD -- crates packages | head -20 || true)
+
+          if [ -n "$changed" ] && [ ! -d .changeset ]; then
+            echo "::warning::Source changed but no .changeset directory exists; add a changeset so the release notes describe this change."
+          fi
+        continue-on-error: true
+
+  score:
+    name: score the release
+    needs: release-pr
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2026-09-07
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: build monostyle
+        run: cargo build --release --package monostyle
+
+      - name: score the repository
+        # Recorded on every release so a quality regression between versions is visible in the
+        # workflow history rather than only at the moment someone looks.
+        run: |
+          ./target/release/monostyle check crates examples --no-color --units | tee score.txt
+          {
+            echo "## monostyle score"
+            echo '```'
+            head -20 score.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

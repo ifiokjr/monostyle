@@ -38,6 +38,8 @@ fn main() -> ExitCode {
 
 /// Runs the requested command.
 fn run(cli: Cli) -> Result<ExitCode, Box<dyn std::error::Error>> {
+	monostyle::style::init_color(cli.color, cli.no_color);
+
 	let options = resolve_options(&cli)?;
 
 	match cli.command {

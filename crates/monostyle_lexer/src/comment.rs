@@ -1,9 +1,25 @@
 //! Comment classification.
 //!
-//! Distinguishing a comment that explains *why* from one that restates *what* is the
-//! single hardest heuristic in monostyle. It is a heuristic, so it is deliberately
-//! conservative: it stays quiet when unsure, because wrongly penalizing a good comment
-//! costs more reader trust than missing a bad one.
+//! Distinguishing a comment that explains *why* from one that restates *what* is the hardest
+//! heuristic in monostyle, and the honest framing is that this is **a keyword matcher, not
+//! comprehension**. It counts phrases from two curated lists and reports whichever list wins.
+//! It has no model of the code being commented on and no understanding of the prose.
+//!
+//! Because it is a heuristic, three rules keep it from doing harm:
+//!
+//! 1. **Whole blocks are classified, not lines.** Reasoning usually sits on the first line of a
+//!    multi-line comment and the continuation carries none of the markers. Judging lines
+//!    independently credited the opening and penalized the rest, which made the verdict a
+//!    function of where the author wrapped their text.
+//! 2. **Documentation is never judged at all.** A doc comment is expected, not suspicious, so
+//!    it short-circuits before any keyword matching runs.
+//! 3. **No verdict is invented from length.** An earlier version credited any 12-word comment
+//!    with no markers, which meant pure filler scored as reasoning. Ambiguity now reports
+//!    [`CommentIntent::Neutral`]: silence is more honest than a guess.
+//!
+//! The known limitation is that substring matching cannot see negation or grammatical role, so
+//! "Do not increment the counter" reads as narration. The lists are curated to keep that class of
+//! error rare, and [`CommentIntent::Neutral`] absorbs the ambiguous middle.
 
 /// What a comment appears to be doing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -22,9 +38,8 @@ pub enum CommentIntent {
 
 /// Markers that indicate a comment is explaining reasoning rather than restating code.
 ///
-/// Each entry earns its place by being a phrase that is essentially never used to
-/// narrate *what* code does — a comment saying "because" is always reaching for a
-/// reason.
+/// Each entry earns its place by being a phrase that is essentially never used to narrate *what*
+/// code does — a comment saying "because" is always reaching for a reason.
 const WHY_MARKERS: &[&str] = &[
 	"because",
 	"so that",
@@ -46,7 +61,6 @@ const WHY_MARKERS: &[&str] = &[
 	"would break",
 	"breaking change",
 	"for historical",
-	"legacy",
 	"backward compat",
 	"backwards compat",
 	"regression",
@@ -80,48 +94,64 @@ const WHY_MARKERS: &[&str] = &[
 	"until",
 	"we used to",
 	"previously",
+	"not safe",
+	"does not work",
+	"doesn't work",
+	"fails when",
+	"breaks when",
+	"only works",
+	"required by",
+	"relies on",
+	"depends on",
+	"in case",
+	"even though",
+	"so we",
+	"so the",
+	"so a",
+	"so it",
 ];
 
 /// Markers that indicate a comment is narrating what the code does.
+///
+/// These are deliberately narrow. A phrase like "declare" appears in ordinary explanatory prose
+/// ("the literal was declared with single quotes"), so the entries here are limited to forms that
+/// usually introduce a restatement of the adjacent line.
 const HOW_MARKERS: &[&str] = &[
-	"increment",
-	"decrement",
-	"set the",
-	"sets the",
-	"get the",
-	"gets the",
-	"call the",
-	"calls the",
-	"loop over",
-	"loops over",
-	"iterate over",
-	"iterates over",
-	"assign",
-	"assigns",
-	"initialize",
-	"initializes",
-	"return the",
-	"returns the",
-	"check if",
-	"checks if",
-	"create a",
-	"creates a",
-	"declare",
-	"declares",
-	"define the",
-	"defines the",
+	"increment the",
+	"decrement the",
+	"set the value",
+	"sets the value",
+	"get the value",
+	"gets the value",
+	"call the function",
+	"calls the function",
+	"loop over the",
+	"loops over the",
+	"iterate over the",
+	"iterates over the",
+	"initialize the",
+	"initializes the",
+	"return the result",
+	"returns the result",
+	"check if the",
+	"checks if the",
+	"create a new",
+	"creates a new",
+	"declare a",
+	"declares a",
+	"define the function",
+	"defines the function",
 	"add the",
 	"adds the",
 	"remove the",
 	"removes the",
-	"the following",
-	"first,",
-	"second,",
-	"third,",
 	"step 1",
 	"step 2",
 	"step one",
 	"step two",
+	"first, we",
+	"second, we",
+	"third, we",
 ];
 
 /// Prefixes that mark machine-readable directives rather than human prose.
@@ -155,24 +185,25 @@ const DIRECTIVE_PREFIXES: &[&str] = &[
 	"auto-generated",
 ];
 
-/// Documentation comment markers, which are expected and neither rewarded nor penalized.
-const DOCUMENTATION_PREFIXES: &[&str] =
-	&["///", "//!", "//", "///<", "##", "<!--", "'''", "\"\"\""];
-
-/// Classifies the body of a comment.
+/// Classifies a whole comment block.
 ///
-/// `is_doc_style` should be true when the comment uses the language's documentation
-/// syntax, which changes the classification to [`CommentIntent::Documentation`].
+/// Passing the entire block rather than one line is what keeps the verdict stable: the reasoning
+/// in a comment's opening line is still visible when a marker on a later line is weighed against
+/// it.
+///
+/// `is_doc_style` should be true when the block uses the language's documentation syntax. It
+/// short-circuits to [`CommentIntent::Documentation`], because a documented public API is
+/// expected rather than suspicious and should never be keyword-judged.
 #[must_use]
-pub fn classify(body: &str, is_doc_style: bool) -> CommentIntent {
-	let normalized = normalize(body);
+pub fn classify(block: &str, is_doc_style: bool) -> CommentIntent {
+	if is_doc_style {
+		return CommentIntent::Documentation;
+	}
+
+	let normalized = normalize(block);
 
 	if normalized.is_empty() {
 		return CommentIntent::Neutral;
-	}
-
-	if is_doc_style {
-		return CommentIntent::Documentation;
 	}
 
 	if DIRECTIVE_PREFIXES
@@ -182,8 +213,8 @@ pub fn classify(body: &str, is_doc_style: bool) -> CommentIntent {
 		return CommentIntent::Directive;
 	}
 
-	// A comment that has a URL, a ticket reference, or an issue link is pointing at
-	// external context, which is exactly the kind of reason code cannot express itself.
+	// A comment that has a URL, a ticket reference, or an issue link is pointing at external
+	// context, which is exactly the kind of reason code cannot express itself.
 	if contains_reference(&normalized) {
 		return CommentIntent::Why;
 	}
@@ -197,36 +228,19 @@ pub fn classify(body: &str, is_doc_style: bool) -> CommentIntent {
 		.filter(|marker| normalized.contains(*marker))
 		.count();
 
-	if why_hits > 0 && why_hits >= how_hits {
-		return CommentIntent::Why;
+	match why_hits.cmp(&how_hits) {
+		std::cmp::Ordering::Greater => CommentIntent::Why,
+		std::cmp::Ordering::Less => CommentIntent::How,
+		// A tie means the block contains both kinds of phrase, which is genuine ambiguity rather
+		// than evidence for either verdict.
+		std::cmp::Ordering::Equal => CommentIntent::Neutral,
 	}
-
-	if how_hits > 0 {
-		return CommentIntent::How;
-	}
-
-	// A long comment with no narration markers is more likely to be reasoning than
-	// restating; a very short one is too ambiguous to call either way.
-	if normalized.split_whitespace().count() >= 12 {
-		return CommentIntent::Why;
-	}
-
-	CommentIntent::Neutral
-}
-
-/// Returns true when the comment begins with documentation syntax.
-#[must_use]
-pub fn is_doc_style(raw: &str) -> bool {
-	let trimmed = raw.trim_start();
-
-	DOCUMENTATION_PREFIXES.iter().any(|prefix| {
-		trimmed.starts_with(prefix) && prefix.starts_with("//") || trimmed.starts_with("///")
-	}) || trimmed.starts_with("///")
-		|| trimmed.starts_with("//!")
-		|| trimmed.starts_with("##")
 }
 
 /// Lowercases and collapses whitespace so marker matching is punctuation-insensitive.
+///
+/// Colons survive normalization because several markers end in one (`security:`, `why:`), and
+/// they are a reliable signal that a comment is labelling its reason.
 fn normalize(body: &str) -> String {
 	body.chars()
 		.map(|character| {
@@ -250,7 +264,7 @@ fn contains_reference(normalized: &str) -> bool {
 		|| normalized.contains("see #")
 		|| normalized.contains("issue #")
 		|| normalized.contains("pr #")
-		|| normalized.contains("rfc")
-		|| normalized.contains("spec")
-		|| normalized.contains("docs")
+		|| normalized.contains(" rfc")
+		|| normalized.contains("spec ")
+		|| normalized.contains("docs ")
 }

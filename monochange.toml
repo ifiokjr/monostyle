@@ -1,0 +1,140 @@
+#:schema ./docs/src/schemas/monochange.schema.json
+
+# =============================================================================
+# monochange.toml — release configuration for monostyle
+# =============================================================================
+#
+# This file is the single source of truth for release planning, version bumps,
+# changelog generation, and publishing. Run `monochange step validate` to check
+# it against the workspace.
+
+[defaults]
+# Bump severity applied to transitive dependents when a dependency changes.
+parent_bump = "patch"
+
+# Whether private packages take part in discovery and release planning.
+include_private = false
+
+# Warn when version-group members drift apart.
+warn_on_group_mismatch = true
+
+# Most packages in this repository are Cargo crates, so the default package type
+# saves repeating `type = "cargo"` on every entry.
+package_type = "cargo"
+
+[defaults.changelog]
+path = "{{ path }}/changelog.md"
+format = "keep_a_changelog"
+initial_header = """
+# Changelog
+
+All notable changes to this project are documented in this file.
+
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
+this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+"""
+
+# =============================================================================
+# Version groups
+# =============================================================================
+
+# Every Rust crate, the npm CLI, its platform binaries, and the skill release in
+# lockstep. They are one product: a CLI whose version does not match its
+# platform packages would resolve a binary set that may not launch, and a skill
+# that describes flags a different version supports is worse than no skill.
+[groups.monostyle]
+packages = [
+	"monostyle",
+	"monostyle_core",
+	"monostyle_languages",
+	"monostyle_lexer",
+	"monostyle_markdown",
+	"monostyle_metrics",
+	"monostyle_rules",
+	"@monostyle-rs/cli",
+	"@monostyle-rs/cli-darwin-arm64",
+	"@monostyle-rs/cli-darwin-x64",
+	"@monostyle-rs/cli-linux-arm64-gnu",
+	"@monostyle-rs/cli-linux-arm64-musl",
+	"@monostyle-rs/cli-linux-x64-gnu",
+	"@monostyle-rs/cli-linux-x64-musl",
+	"@monostyle-rs/cli-win32-arm64-msvc",
+	"@monostyle-rs/cli-win32-x64-msvc",
+	"@monostyle-rs/skill",
+]
+
+# =============================================================================
+# Cargo crates
+# =============================================================================
+
+[package.monostyle]
+path = "crates/monostyle"
+type = "cargo"
+
+[package.monostyle_core]
+path = "crates/monostyle_core"
+type = "cargo"
+
+[package.monostyle_languages]
+path = "crates/monostyle_languages"
+type = "cargo"
+
+[package.monostyle_lexer]
+path = "crates/monostyle_lexer"
+type = "cargo"
+
+[package.monostyle_markdown]
+path = "crates/monostyle_markdown"
+type = "cargo"
+
+[package.monostyle_metrics]
+path = "crates/monostyle_metrics"
+type = "cargo"
+
+[package.monostyle_rules]
+path = "crates/monostyle_rules"
+type = "cargo"
+
+# =============================================================================
+# npm packages
+# =============================================================================
+
+[package."@monostyle-rs/cli"]
+path = "packages/monostyle__cli"
+type = "npm"
+
+[package."@monostyle-rs/cli-darwin-arm64"]
+path = "packages/monostyle__cli-darwin-arm64"
+type = "npm"
+
+[package."@monostyle-rs/cli-darwin-x64"]
+path = "packages/monostyle__cli-darwin-x64"
+type = "npm"
+
+[package."@monostyle-rs/cli-linux-arm64-gnu"]
+path = "packages/monostyle__cli-linux-arm64-gnu"
+type = "npm"
+
+[package."@monostyle-rs/cli-linux-arm64-musl"]
+path = "packages/monostyle__cli-linux-arm64-musl"
+type = "npm"
+
+[package."@monostyle-rs/cli-linux-x64-gnu"]
+path = "packages/monostyle__cli-linux-x64-gnu"
+type = "npm"
+
+[package."@monostyle-rs/cli-linux-x64-musl"]
+path = "packages/monostyle__cli-linux-x64-musl"
+type = "npm"
+
+[package."@monostyle-rs/cli-win32-arm64-msvc"]
+path = "packages/monostyle__cli-win32-arm64-msvc"
+type = "npm"
+
+[package."@monostyle-rs/cli-win32-x64-msvc"]
+path = "packages/monostyle__cli-win32-x64-msvc"
+type = "npm"
+
+[package."@monostyle-rs/skill"]
+path = "packages/monostyle__skill"
+type = "npm"

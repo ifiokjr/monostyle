@@ -1,0 +1,27 @@
+{
+	"name": "@monostyle-rs/cli-win32-x64-msvc",
+	"version": "0.1.0",
+	"description": "Prebuilt monostyle binary for Windows x64",
+	"homepage": "https://github.com/ifiokjr/monostyle",
+	"bugs": {
+		"url": "https://github.com/ifiokjr/monostyle/issues"
+	},
+	"license": "Unlicense",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ifiokjr/monostyle.git"
+	},
+	"files": [
+		"bin"
+	],
+	"os": [
+		"win32"
+	],
+	"cpu": [
+		"x64"
+	],
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
+}

@@ -5,74 +5,324 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 env:
   CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  # Fast feedback first: a formatting or lint failure should surface in under a minute rather than
+  # after the full test matrix has run.
   lint:
-    name: Lint
+    name: lint
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - uses: DeterminateSystems/nix-installer-action@main
-
-      - uses: cachix/cachix-action@v15
-        if: ${{ env.CACHIX_AUTH_TOKEN != '' }}
-        env:
-          CACHIX_AUTH_TOKEN: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      - name: install rust toolchain
+        uses: dtolnay/rust-toolchain@stable
         with:
-          name: ifiokjr
-          authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+          toolchain: nightly-2026-09-07
+          components: rustfmt, clippy
 
-      - name: Check formatting
-        run: nix develop --command cargo fmt --all --check
+      - uses: Swatinem/rust-cache@v2
 
-      - name: Run clippy
-        run: nix develop --command cargo clippy --workspace --all-features --all-targets -- -D warnings
+      - name: check formatting
+        run: cargo fmt --all --check
+
+      - name: run clippy
+        # Warnings are denied so a lint-only regression cannot land and then be inherited by every
+        # later branch.
+        run: cargo clippy --workspace --all-features --all-targets -- -D warnings
 
   test:
-    name: Test
+    name: test (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
 
-      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2026-09-07
 
-      - name: Run tests
-        run: nix develop --command cargo nextest run --workspace --all-features
+      - uses: Swatinem/rust-cache@v2
 
-  # The tool measures readability, so it is held to its own standard. This job is what makes
-  # the project's claims about its own style verifiable rather than aspirational.
+      - name: install nextest
+        uses: taiki-e/install-action@nextest
+
+      - name: run tests
+        run: cargo nextest run --workspace --all-features --no-fail-fast
+
+      - name: run documentation tests
+        run: cargo test --doc --workspace --all-features
+
+  # The scanner's correctness is what every score depends on, so its suite runs on its own and is
+  # never allowed to be skipped by a fail-fast on an unrelated job.
+  lexer-correctness:
+    name: lexer correctness
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2026-09-07
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: run the trivia suite
+        run: cargo test --package monostyle_lexer --test trivia -- --nocapture
+
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2026-09-07
+          components: llvm-tools-preview
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: taiki-e/install-action@cargo-llvm-cov
+
+      - name: measure coverage
+        run: |
+          cargo llvm-cov --workspace --all-features --lcov --output-path lcov.info
+
+      - name: enforce the coverage floor
+        # A floor rather than a target: it catches a change that deletes tests without failing on
+        # the ordinary churn of a refactor.
+        run: cargo llvm-cov report --summary-only --fail-under-lines 70
+
+      - name: upload coverage
+        uses: codecov/codecov-action@v4
+        continue-on-error: true
+        with:
+          files: lcov.info
+          fail_ci_if_error: false
+
+  # monostyle measures readability, so it is held to its own standard. This job is what makes the
+  # project's claims about its own style verifiable rather than aspirational.
   dogfood:
-    name: Score this repository
+    name: score this repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2026-09-07
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: build monostyle
+        run: cargo build --release --package monostyle
+
+      - name: score the source
+        run: ./target/release/monostyle check crates examples --no-color
+
+      - name: enforce the readability floor
+        run: ./target/release/monostyle check crates --fail-under 70 --quiet
+
+  npm:
+    name: npm packages
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: validate every package manifest
+        # Catches a launcher that points at a platform package that does not exist or is at a
+        # different version, which would otherwise only fail for users after publish.
+        run: node scripts/check-packages.mjs
+
+      - name: check the launcher parses
+        run: node --check packages/monostyle__cli/bin/monostyle.js
+
+  docs:
+    name: docs
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2026-09-07
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: check documentation builds
+        run: cargo doc --workspace --all-features --no-deps
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+      - name: check the release config
+        run: |
+          # A malformed config would silently break release planning, which is hard to notice until
+          # a release is attempted.
+          python3 -c "
+          import tomllib, sys
+          with open('monochange.toml', 'rb') as handle:
+              config = tomllib.load(handle)
+          packages = len([key for key in config.get('package', {})])
+          groups = len(config.get('groups', {}))
+          print(f'monochange.toml parses: {packages} packages, {groups} group')
+          if packages == 0:
+              sys.exit('no packages declared in monochange.toml')
+          "
+
+  # Verifies the crate set can actually be published, which catches a missing file in a package
+  # before a release attempt rather than during one.
+  package-check:
+    name: package check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2026-09-07
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: verify crates package cleanly
+        run: cargo package --workspace --all-features --no-verify
+
+  security:
+    name: security
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2026-09-07
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: install cargo-deny
+        uses: taiki-e/install-action@cargo-deny
+
+      - name: check advisories, licenses, and bans
+        run: cargo deny check
+
+      - name: scan workflows for security issues
+        uses: zizmorcore/zizmor-action@v0.1.2
+        continue-on-error: true
+
+  # The whole point of the tool is that it works on real repositories, so this job runs it against
+  # a set of them rather than only against the fixtures in the test suite.
+  real-world:
+    name: real world (${{ matrix.repo }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        repo:
+          - name: rust-code-analysis
+            url: https://github.com/mozilla/rust-code-analysis
+            path: .
+          # A JavaScript and TypeScript monorepo, which exercises the npm workspace detection and
+          # the template-literal handling in the scanner.
+          - name: monochange
+            url: https://github.com/monochange/monochange
+            path: .
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: nightly-2026-09-07
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: build monostyle
+        run: cargo build --release --package monostyle
+
+      - name: check out ${{ matrix.repo.name }}
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.repo.url }}
+          path: target/${{ matrix.repo.name }}
+          persist-credentials: false
+
+      - name: analyze it
+        # The assertion is that the run completes and emits a well-formed report, not that the
+        # repository scores above any particular value: monostyle does not get to decide that
+        # someone else's code is bad.
+        run: |
+          ./target/release/monostyle check "target/${{ matrix.repo.name }}/${{ matrix.repo.path }}" \
+            --format json --output report.json
+
+          python3 -c "
+          import json, sys
+          report = json.load(open('report.json'))
+          if not report['files']:
+              sys.exit('no files analyzed')
+          print(f\"{len(report['files'])} files, {report['code_lines']} lines of code\")
+          print(f\"readability {report['readability']['value']:.1f}, complexity {report['complexity']['value']:.1f}\")
+          "
+
+  # Aggregates the matrix results so branch protection needs exactly one required check.
+  ci-ok:
+    name: ci ok
+    if: always()
+    needs: [lint, test, lexer-correctness, coverage, dogfood, npm, docs, package-check, security]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - uses: DeterminateSystems/nix-installer-action@main
-
-      - name: Build monostyle
-        run: nix develop --command cargo build --release --package monostyle
-
-      - name: Score the source
+      - name: verify every job succeeded
         run: |
-          ./target/release/monostyle check crates examples \
-            --fail-under "${MONOSTYLE_FAIL_UNDER:-60}" \
-            --units
-        env:
-          MONOSTYLE_FAIL_UNDER: "60"
+          if [ "${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" = "true" ]; then
+            echo "::error::At least one required job failed."
+            exit 1
+          fi
+
+          echo "All required jobs succeeded."

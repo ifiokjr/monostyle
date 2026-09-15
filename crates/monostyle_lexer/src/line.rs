@@ -120,6 +120,38 @@ impl LexedLine {
 		end.saturating_sub(self.code_start_column)
 	}
 
+	/// Whether the line's only content is a trailing comment after code.
+	///
+	/// Used when grouping comment blocks: a trailing comment belongs with the block above it only
+	/// when there is no code between them.
+	#[must_use]
+	pub fn is_trailing_comment_only(&self) -> bool {
+		matches!(self.kind, LineKind::CodeWithComment) && self.code_len() == 0
+	}
+
+	/// Returns the text of this line's comment.
+	///
+	/// The lexer keeps comment text inside `text` rather than a separate field, so this strips the
+	/// leading marker so a caller can classify the prose without the syntax.
+	#[must_use]
+	pub fn comment_body(&self) -> String {
+		let trimmed = self.text.trim_start();
+
+		let body = trimmed
+			.strip_prefix("///")
+			.or_else(|| trimmed.strip_prefix("//!"))
+			.or_else(|| trimmed.strip_prefix("/**"))
+			.or_else(|| trimmed.strip_prefix("//"))
+			.or_else(|| trimmed.strip_prefix("##"))
+			.or_else(|| trimmed.strip_prefix('#'))
+			.or_else(|| trimmed.strip_prefix("/*"))
+			.or_else(|| trimmed.strip_prefix('*'))
+			.or_else(|| trimmed.strip_prefix("--"))
+			.unwrap_or(trimmed);
+
+		body.trim_end_matches("*/").trim().to_string()
+	}
+
 	/// A short preview of the line's code, for report output.
 	#[must_use]
 	pub fn preview(&self, width: usize) -> String {

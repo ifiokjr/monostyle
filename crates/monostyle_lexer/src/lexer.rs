@@ -140,8 +140,13 @@ pub fn lex(source: &str, language: Language) -> LexedFile {
 #[must_use]
 pub fn lex_with_profile(source: &str, profile: LanguageProfile) -> LexedFile {
 	let mut scanner = Scanner::new(profile);
-	let lines = scanner.run(source);
+	let mut lines = scanner.run(source);
 	let unterminated = scanner.finish();
+
+	// Comment intent is decided per *block* here rather than per line during scanning. Reasoning
+	// usually sits on a comment's first line and its continuation lines carry none of the
+	// markers, so judging lines independently credited the opening and penalized the rest.
+	classify_comment_blocks(&mut lines);
 
 	let uses_tabs = lines.iter().any(|line| line.indent_text.contains('\t'));
 	let mixed_indentation = uses_tabs && lines.iter().any(|line| line.indent_text.contains("    "));
@@ -1146,6 +1151,65 @@ impl Scanner {
 		});
 
 		previous.is_none_or(|character| self.profile.regex_allowed_after(character))
+	}
+}
+
+/// Re-classifies comment intent over whole comment blocks.
+///
+/// A block is a run of adjacent comment or literal lines at the same indentation, which is how a
+/// multi-line `//` comment and a `/* ... */` body both appear. Grouping them means the reasoning
+/// in the opening line is still visible when a later line is weighed against it.
+///
+/// Block comment bodies are always classified as documentation when they opened with `/**`, and
+/// otherwise judged as one unit; a run whose lines disagree is left as whatever the whole-block
+/// verdict is, so the score no longer depends on where the author wrapped their text.
+fn classify_comment_blocks(lines: &mut [LexedLine]) {
+	let mut index = 0;
+
+	while index < lines.len() {
+		let starts_block = lines
+			.get(index)
+			.is_some_and(|line| line.is_comment() || line.is_trailing_comment_only());
+
+		if !starts_block {
+			index += 1;
+			continue;
+		}
+
+		// Extend the run while lines stay comment-ish and keep the same indentation, so a blank
+		// line or a dedent correctly ends the block.
+		let indent = lines.get(index).map_or(0, |line| line.indent);
+		let mut end = index + 1;
+
+		while let Some(candidate) = lines.get(end) {
+			let continues = (candidate.is_comment() || candidate.is_trailing_comment_only())
+				&& candidate.indent == indent;
+
+			if !continues {
+				break;
+			}
+
+			end += 1;
+		}
+
+		let is_doc = lines.get(index).and_then(|line| line.comment_intent)
+			== Some(CommentIntent::Documentation);
+
+		let body = lines
+			.get(index..end)
+			.unwrap_or_default()
+			.iter()
+			.map(LexedLine::comment_body)
+			.collect::<Vec<_>>()
+			.join("\n");
+
+		let block_intent = classify(&body, is_doc);
+
+		for line in lines.get_mut(index..end).unwrap_or_default() {
+			line.comment_intent = Some(block_intent);
+		}
+
+		index = end;
 	}
 }
 

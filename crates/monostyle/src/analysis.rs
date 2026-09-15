@@ -56,6 +56,33 @@ pub struct UnitReport {
 	pub findings: Vec<Finding>,
 }
 
+impl UnitReport {
+	/// The unit's combined score, out of 100.
+	///
+	/// A unit with no findings is clean rather than unmeasured, so it scores perfectly instead of
+	/// dividing by an empty penalty set.
+	#[must_use]
+	pub fn score(&self) -> f64 {
+		if self.findings.is_empty() {
+			return Score::PERFECT;
+		}
+
+		f64::midpoint(self.readability.value, self.complexity.value)
+	}
+
+	/// The unit's overall grade.
+	#[must_use]
+	pub fn grade(&self) -> &'static str {
+		match self.score() {
+			value if value >= 90.0 => "excellent",
+			value if value >= 75.0 => "good",
+			value if value >= 60.0 => "fair",
+			value if value >= 40.0 => "poor",
+			_ => "bad",
+		}
+	}
+}
+
 /// A scored file.
 #[derive(Debug, Clone, Serialize)]
 pub struct FileReport {
@@ -100,6 +127,19 @@ impl FileReport {
 		f64::midpoint(self.readability.value, self.complexity.value)
 	}
 
+	/// Reduces this report to what aggregation needs.
+	#[must_use]
+	pub fn to_file_score(&self) -> crate::aggregate::FileScore {
+		crate::aggregate::FileScore {
+			path: self.path.clone(),
+			language: self.language,
+			code_lines: self.code_lines,
+			readability: self.readability,
+			complexity: self.complexity,
+			total_penalty: self.readability.penalty + self.complexity.penalty,
+		}
+	}
+
 	/// Findings ordered from most to least costly.
 	#[must_use]
 	pub fn ranked_findings(&self) -> Vec<&Finding> {
@@ -121,9 +161,9 @@ impl FileReport {
 pub struct ProjectReport {
 	/// Every analyzed file.
 	pub files: Vec<FileReport>,
-	/// Aggregate readability score.
+	/// Aggregate readability score, weighted by lines of code.
 	pub readability: Score,
-	/// Aggregate complexity score.
+	/// Aggregate complexity score, weighted by lines of code.
 	pub complexity: Score,
 	/// Total lines across all files.
 	pub total_lines: usize,
@@ -131,6 +171,67 @@ pub struct ProjectReport {
 	pub code_lines: usize,
 	/// Files skipped because their language was unsupported.
 	pub skipped: Vec<PathBuf>,
+	/// Detected workspace packages, when the analyzed path is a monorepo.
+	pub packages: Vec<crate::package::PackageReport>,
+}
+
+impl ProjectReport {
+	/// Rules ranked by how much readability penalty each contributes.
+	///
+	/// The first entry is the single change that would recover the most points.
+	#[must_use]
+	pub fn readability_impact(&self) -> Vec<crate::aggregate::RuleImpact> {
+		crate::aggregate::rank_rule_impact(&self.owned_findings(), Category::Readability)
+	}
+
+	/// Rules ranked by how much complexity penalty each contributes.
+	#[must_use]
+	pub fn complexity_impact(&self) -> Vec<crate::aggregate::RuleImpact> {
+		crate::aggregate::rank_rule_impact(&self.owned_findings(), Category::Complexity)
+	}
+
+	/// Files ranked by the penalty they contribute, most costly first.
+	#[must_use]
+	pub fn file_impact(&self) -> Vec<(PathBuf, f64, f64, usize)> {
+		let mut ranked: Vec<(PathBuf, f64, f64, usize)> = self
+			.files
+			.iter()
+			.map(|file| {
+				(
+					file.path.clone(),
+					file.readability.penalty + file.complexity.penalty,
+					file.overall(),
+					file.code_lines,
+				)
+			})
+			.collect();
+
+		ranked.sort_by(|left, right| {
+			right
+				.1
+				.partial_cmp(&left.1)
+				.unwrap_or(std::cmp::Ordering::Equal)
+		});
+		ranked
+	}
+
+	/// Findings paired with their paths, as owned values.
+	#[must_use]
+	pub fn owned_findings_public(&self) -> Vec<(PathBuf, Finding)> {
+		self.owned_findings()
+	}
+
+	/// Findings paired with their paths, as owned values.
+	fn owned_findings(&self) -> Vec<(PathBuf, Finding)> {
+		self.files
+			.iter()
+			.flat_map(|file| {
+				file.findings
+					.iter()
+					.map(|finding| (file.path.clone(), finding.clone()))
+			})
+			.collect()
+	}
 }
 
 impl ProjectReport {
@@ -395,6 +496,8 @@ pub fn aggregate(
 		options.scoring,
 	);
 
+	let packages = score_packages(&files, options);
+
 	ProjectReport {
 		files,
 		readability,
@@ -402,7 +505,74 @@ pub fn aggregate(
 		total_lines,
 		code_lines,
 		skipped,
+		packages,
 	}
+}
+
+/// Detects workspace packages and scores each one.
+///
+/// Detection runs against the common ancestor of the analyzed files, so scoring a directory inside
+/// a repository still attributes files to the package that owns them rather than to the directory.
+fn score_packages(
+	files: &[FileReport],
+	options: &AnalysisOptions,
+) -> Vec<crate::package::PackageReport> {
+	let Some(root) = common_root(files) else {
+		return Vec::new();
+	};
+
+	let packages = crate::package::detect_packages(&root);
+
+	if packages.is_empty() {
+		return Vec::new();
+	}
+
+	let paths: Vec<PathBuf> = files.iter().map(|file| file.path.clone()).collect();
+	let scores: Vec<crate::aggregate::FileScore> =
+		files.iter().map(FileReport::to_file_score).collect();
+
+	let by_path: std::collections::HashMap<&PathBuf, &crate::aggregate::FileScore> =
+		paths.iter().zip(scores.iter()).collect();
+
+	crate::package::attribute_files(&packages, &paths)
+		.into_iter()
+		.map(|(package, owned)| {
+			let owned_scores: Vec<crate::aggregate::FileScore> = owned
+				.iter()
+				.filter_map(|path| by_path.get(path).map(|score| (*score).clone()))
+				.collect();
+
+			crate::package::score_package(&package, &owned_scores, options.scoring)
+		})
+		.collect()
+}
+
+/// Returns the deepest directory containing every analyzed file.
+fn common_root(files: &[FileReport]) -> Option<PathBuf> {
+	let mut root: Option<PathBuf> = None;
+
+	for file in files {
+		let directory = file.path.parent()?.to_path_buf();
+
+		root = Some(match root {
+			None => directory,
+			Some(current) => {
+				let mut shared = PathBuf::new();
+
+				for (left, right) in current.components().zip(directory.components()) {
+					if left != right {
+						break;
+					}
+
+					shared.push(left);
+				}
+
+				shared
+			}
+		});
+	}
+
+	root
 }
 
 /// Resolves a language from a path's extension.
