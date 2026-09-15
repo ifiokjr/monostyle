@@ -208,12 +208,16 @@ impl Language {
 			_ => None,
 		};
 
+		// A tag that begins with a language's name and continues with more of it, such as `typescript5`
+		// or `python3`, resolves to that language. The previous containment test matched in both
+		// directions, which made `brainfuck` resolve to C and `typescriptx` to TypeScript: a single-letter
+		// name appears inside almost every word, so the rule was matching noise.
 		aliased.or_else(|| {
-			Self::ALL.iter().copied().find(|language| {
-				let name = language.name();
-
-				name.contains(primary) || primary.contains(name)
-			})
+			Self::ALL
+				.iter()
+				.copied()
+				.filter(|language| primary.starts_with(language.name()))
+				.max_by_key(|language| language.name().len())
 		})
 	}
 

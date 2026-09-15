@@ -22,6 +22,7 @@ use monostyle_lexer::lex;
 use monostyle_markdown::CodeFence;
 
 use crate::config::RulesConfig;
+use crate::line_length;
 use crate::structure;
 use crate::whitespace;
 
@@ -113,7 +114,7 @@ fn nested_layout_findings(lexed: &LexedFile, config: &RulesConfig) -> Vec<Findin
 	findings.extend(whitespace::mixed_indentation(lexed));
 	findings.extend(structure::deep_nesting(lexed, config));
 	findings.extend(structure::long_parameter_list(lexed, config));
-	findings.extend(structure::overlong_lines(lexed));
+	findings.extend(line_length::overlong_lines(lexed, config));
 
 	findings
 }

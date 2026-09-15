@@ -533,3 +533,66 @@ fn profile_lookups_run_at_runtime() {
 	assert!(profile.string_at("\"x\"").is_some());
 	assert!(profile.is_documentation_comment("/// x"));
 }
+
+// ---------------------------------------------------------------------------
+// Fence tag aliases
+// ---------------------------------------------------------------------------
+
+#[test]
+fn every_fence_alias_resolves() {
+	// Every alias is a spelling someone will type in a fence, and an unresolved one means a code example
+	// nobody scores.
+	const ALIASES: &[(&str, Language)] = &[
+		("c++", Language::Cpp),
+		("cplusplus", Language::Cpp),
+		("c#", Language::CSharp),
+		("csharp", Language::CSharp),
+		("dart", Language::Dart),
+		("golang", Language::Go),
+		("hs", Language::Haskell),
+		("js", Language::JavaScript),
+		("node", Language::JavaScript),
+		("jsx", Language::Tsx),
+		("kt", Language::Kotlin),
+		("md", Language::Markdown),
+		("py", Language::Python),
+		("rb", Language::Ruby),
+		("sh", Language::Shell),
+		("shell-session", Language::Shell),
+		("console", Language::Shell),
+		("bash", Language::Shell),
+		("zsh", Language::Shell),
+		("ts", Language::TypeScript),
+	];
+
+	for (alias, expected) in ALIASES {
+		assert_eq!(
+			Language::from_fence_tag(alias),
+			Some(*expected),
+			"`{alias}` should resolve to {expected}"
+		);
+	}
+}
+
+#[test]
+fn a_name_that_contains_another_resolves_to_the_exact_one() {
+	// The fallback matches a name by containment, so it must still prefer an exact name.
+	assert_eq!(Language::from_fence_tag("tsx"), Some(Language::Tsx));
+	assert_eq!(
+		Language::from_fence_tag("typescript"),
+		Some(Language::TypeScript)
+	);
+	assert_eq!(Language::from_fence_tag("c"), Some(Language::C));
+	assert_eq!(Language::from_fence_tag("cpp"), Some(Language::Cpp));
+}
+
+#[test]
+fn an_unrecognized_tag_resolves_to_nothing() {
+	for tag in ["brainfuck", "zzz", "unknown-language"] {
+		assert_eq!(
+			Language::from_fence_tag(tag),
+			None,
+			"`{tag}` should not resolve"
+		);
+	}
+}

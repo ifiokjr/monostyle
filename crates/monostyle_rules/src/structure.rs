@@ -242,57 +242,6 @@ pub fn oversized_file(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	]
 }
 
-/// Reports over-long lines.
-///
-/// Long lines force horizontal scrolling and usually mean a call or condition is doing too
-/// much to read at a glance.
-pub fn overlong_lines(file: &LexedFile) -> Vec<Finding> {
-	/// Columns beyond which a line is hard to read.
-	const MAX_LINE_WIDTH: usize = 120;
-	/// Columns beyond which a line is a serious problem rather than a minor one.
-	const SEVERE_LINE_WIDTH: usize = 160;
-
-	let mut findings = Vec::new();
-
-	for line in &file.lines {
-		if !line.is_code() {
-			continue;
-		}
-
-		let width = line.code_len();
-
-		if width <= MAX_LINE_WIDTH {
-			continue;
-		}
-
-		let severity = if width > SEVERE_LINE_WIDTH {
-			Severity::Major
-		} else {
-			Severity::Minor
-		};
-
-		findings.push(
-			FindingBuilder::new(
-				"readability/overlong-line",
-				Category::Readability,
-				Span::new(line.start_byte, line.end_byte, line.number, line.number),
-			)
-			.severity(severity)
-			.weight(0.5)
-			.message(format!(
-				"this line is {width} columns wide, over the {MAX_LINE_WIDTH} limit"
-			))
-			.suggestion(
-				"Break this line at a logical boundary, or extract part of the expression into \
-				 a named variable.",
-			)
-			.build(),
-		);
-	}
-
-	findings
-}
-
 /// Reports functions that are longer than configured.
 pub fn oversized_units(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	let units = unit_measures::find_units(file);

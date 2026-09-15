@@ -243,15 +243,6 @@ struct Heredoc {
 	first_line: bool,
 }
 
-/// An open regex literal.
-#[derive(Debug, Clone)]
-struct Regex {
-	/// Whether the scan is inside a `[...]` character class.
-	in_class: bool,
-	/// The line it opened on.
-	opened_at: usize,
-}
-
 /// Accumulates one physical line while scanning.
 #[derive(Debug)]
 struct LineBuilder {
@@ -400,8 +391,6 @@ struct Scanner {
 	block_comment: Option<BlockComment>,
 	/// The open heredoc, if any.
 	heredoc: Option<Heredoc>,
-	/// The open regex, if any.
-	regex: Option<Regex>,
 	/// Whether a line comment is in progress.
 	line_comment: bool,
 	/// Lines still awaiting their closing construct.
@@ -429,7 +418,6 @@ impl Scanner {
 			interpolation: None,
 			block_comment: None,
 			heredoc: None,
-			regex: None,
 			line_comment: false,
 			unterminated: Vec::new(),
 			previous_code: None,
@@ -525,7 +513,6 @@ impl Scanner {
 			&self.literals,
 			self.block_comment.as_ref(),
 			self.heredoc.as_ref(),
-			self.regex.as_ref(),
 		);
 		std::mem::take(&mut self.lines)
 	}
@@ -583,10 +570,6 @@ impl Scanner {
 
 		if self.interpolation.is_some() {
 			return self.step_interpolation(characters, index, line);
-		}
-
-		if self.regex.is_some() {
-			return self.step_regex(characters, index, line);
 		}
 
 		self.step_code(characters, index, line)
@@ -861,59 +844,6 @@ impl Scanner {
 			.map(|(open, _)| *open)
 	}
 
-	/// Handles a character inside a regex literal.
-	fn step_regex(&mut self, characters: &[char], index: usize, line: &mut LineBuilder) -> usize {
-		let character = characters[index];
-		let Some(regex) = self.regex.clone() else {
-			return index + 1;
-		};
-
-		if character == '\\' {
-			line.push_masked(character);
-
-			if let Some(escaped) = characters.get(index + 1) {
-				line.push_masked(*escaped);
-			}
-
-			return index + 2;
-		}
-
-		// A slash inside `[...]` is a member of the class, not the terminator.
-		if character == '[' {
-			self.regex = Some(Regex {
-				in_class: true,
-				..regex
-			});
-
-			line.push_masked(character);
-
-			return index + 1;
-		}
-
-		if character == ']' && regex.in_class {
-			self.regex = Some(Regex {
-				in_class: false,
-				..regex
-			});
-
-			line.push_masked(character);
-
-			return index + 1;
-		}
-
-		if character == '/' && !regex.in_class {
-			line.push_masked(character);
-			self.regex = None;
-
-			return index + 1;
-		}
-
-		line.push_masked(character);
-		line.literal_only = false;
-
-		index + 1
-	}
-
 	/// Handles a character while a heredoc body is open.
 	fn step_heredoc(&mut self, characters: &[char], index: usize, line: &mut LineBuilder) -> usize {
 		let Some(heredoc) = self.heredoc.clone() else {
@@ -970,16 +900,6 @@ impl Scanner {
 			&& !literal.multiline
 		{
 			self.literals.pop();
-		}
-
-		if let Some(regex) = self.regex.clone() {
-			self.unterminated.push(Unterminated {
-				kind: UnterminatedKind::Regex,
-				line: regex.opened_at,
-				delimiter: "/".to_string(),
-			});
-
-			self.regex = None;
 		}
 
 		// A regex literal only lives on one line, so it is closed by the line break rather
@@ -1338,7 +1258,6 @@ fn records_for_open_constructs(
 	literals: &[Literal],
 	block_comment: Option<&BlockComment>,
 	heredoc: Option<&Heredoc>,
-	regex: Option<&Regex>,
 ) {
 	for literal in literals {
 		unterminated.push(Unterminated {
@@ -1361,14 +1280,6 @@ fn records_for_open_constructs(
 			kind: UnterminatedKind::Heredoc,
 			line: heredoc.opened_at,
 			delimiter: heredoc.delimiter.clone(),
-		});
-	}
-
-	if let Some(regex) = regex {
-		unterminated.push(Unterminated {
-			kind: UnterminatedKind::Regex,
-			line: regex.opened_at,
-			delimiter: "/".to_string(),
 		});
 	}
 }

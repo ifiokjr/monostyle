@@ -375,3 +375,50 @@ fn markdown_prose_is_never_reported() {
 		"Markdown prose must never produce a line-length finding"
 	);
 }
+
+// ---------------------------------------------------------------------------
+// Line length inside fences
+// ---------------------------------------------------------------------------
+
+#[test]
+fn an_overlong_line_inside_a_markdown_fence_is_reported_against_the_document() {
+	// The Markdown rule path forwards to the line-length rule, so a missing forwarding call would make
+	// every fence exempt from a limit its own language enforces.
+	use monostyle_lexer::lex;
+	use monostyle_rules::markdown;
+
+	// The line must exceed the configured limit, which is 120 columns by default.
+	let arguments: String = (0..20)
+		.map(|index| format!("argument_number_{index}, "))
+		.fold(String::new(), |mut text, argument| {
+			text.push_str(&argument);
+
+			text
+		});
+	let source = format!("```rust\nfn a() {{ let value = compute({arguments}done); }}\n```\n");
+	let lexed = lex(&source, Language::Markdown);
+
+	let findings = markdown::fence_readability(&lexed, &RulesConfig::default());
+
+	assert!(
+		findings
+			.iter()
+			.any(|finding| finding.rule == "readability/overlong-line"),
+		"a long line inside a fence should be reported: {findings:?}"
+	);
+}
+
+#[test]
+fn markdown_prose_is_still_exempt_from_the_limit() {
+	// The fence path uses the same rule as source, and that rule must still skip prose.
+	use monostyle_lexer::lex;
+	use monostyle_rules::line_length;
+
+	let prose = format!("# Title\n\n{}\n", "word ".repeat(200));
+	let lexed = lex(&prose, Language::Markdown);
+
+	assert!(
+		line_length::overlong_lines(&lexed, &RulesConfig::default()).is_empty(),
+		"Markdown prose has no line limit"
+	);
+}
