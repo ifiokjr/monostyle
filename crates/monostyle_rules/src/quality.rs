@@ -414,6 +414,15 @@ fn is_constant_declaration(line: &LexedLine) -> bool {
 fn binding_names(text: &str, language: Language) -> Vec<String> {
 	let mut names: Vec<String> = Vec::new();
 
+	// An import alias is the imported module's name, not a name the author chose: `import typing as T`
+	// carries whatever the library is called, so reporting `T` asks for a rename the author cannot make.
+	let trimmed = text.trim_start();
+
+	if trimmed.starts_with("import ") || trimmed.starts_with("use ") || trimmed.starts_with("from ")
+	{
+		return names;
+	}
+
 	// `push_name` deduplicates, because a name can be found by both the assignment path and the
 	// declaration path — `let ab = x` matches both — and reporting it twice inflates the finding count
 	// for one problem.

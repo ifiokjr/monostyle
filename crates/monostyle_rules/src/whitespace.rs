@@ -58,6 +58,14 @@ pub fn blank_line_before_control_flow(file: &LexedFile, config: &RulesConfig) ->
 			continue;
 		}
 
+		// A continuation line is part of the statement above it, so a keyword inside it is an expression
+		// rather than a new decision. An inline conditional in an argument list — `path / "x" if flag else
+		// "y"` — was reported as a missing blank line before a branch, which asked for a blank line inside a
+		// single expression.
+		if inside_expression(line, &file.lines, index) {
+			continue;
+		}
+
 		// Separation is a property of the immediately preceding physical line. A blank line or
 		// a comment above the statement already gives the reader the break this rule asks for,
 		// which is why the check is on the physical neighbour rather than the previous code
@@ -481,6 +489,36 @@ pub fn mixed_indentation(file: &LexedFile) -> Vec<Finding> {
 			.suggestion("Pick one indentation character and apply it consistently across the file.")
 			.build(),
 	]
+}
+
+/// Returns true when a line continues an expression rather than starting a statement.
+///
+/// Two shapes count: a line that opens a delimiter which has not closed yet, and a line whose own text
+/// begins inside one. In both cases the keyword it carries belongs to an expression.
+fn inside_expression(line: &LexedLine, lines: &[LexedLine], index: usize) -> bool {
+	// The line itself starts inside an unclosed delimiter from an earlier line.
+	let mut depth: isize = 0;
+
+	for earlier in lines.iter().take(index) {
+		if !earlier.is_code() {
+			continue;
+		}
+
+		depth += earlier.masked_code.matches('(').count() as isize;
+		depth -= earlier.masked_code.matches(')').count() as isize;
+		depth += earlier.masked_code.matches('[').count() as isize;
+		depth -= earlier.masked_code.matches(']').count() as isize;
+	}
+
+	if depth > 0 {
+		return true;
+	}
+
+	// The line opens more than it closes, so whatever follows is a continuation of it.
+	let opens = line.masked_code.matches('(').count() + line.masked_code.matches('[').count();
+	let closes = line.masked_code.matches(')').count() + line.masked_code.matches(']').count();
+
+	opens > closes
 }
 
 /// Returns true when a line declares a block rather than being a statement inside one.

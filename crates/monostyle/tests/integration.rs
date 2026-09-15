@@ -72,6 +72,18 @@ fn penalizing_rules(report: &ProjectReport) -> Vec<String> {
 	rules
 }
 
+/// Joins generated lines into one string.
+///
+/// Building a fixture by mapping `format!` over a range and collecting is the shape clippy flags, and a
+/// named helper states the intent more plainly than the fold it expands to.
+fn lines_of(items: impl IntoIterator<Item = String>) -> String {
+	items.into_iter().fold(String::new(), |mut text, line| {
+		text.push_str(&line);
+
+		text
+	})
+}
+
 /// Formats a report's scores for a snapshot.
 fn score_summary(report: &ProjectReport) -> String {
 	format!(
@@ -509,5 +521,102 @@ fn json_output_round_trips() {
 	assert!(
 		decoded["files"][0]["findings"].is_array(),
 		"findings should be present in the JSON"
+	);
+}
+
+// ---------------------------------------------------------------------------
+// Determinism
+// ---------------------------------------------------------------------------
+
+#[test]
+fn repeated_analysis_of_many_files_is_identical() {
+	// The bug this pins: per-unit metrics were memoized by the `LexedFile`'s memory address. Rayon drops
+	// each file's value when its task finishes, and the next file allocated at the same address inherited
+	// the previous file's metrics — so a file was scored with another file's numbers, and the same input
+	// produced complexity scores between 10 and 79 across runs.
+	//
+	// The fixture is one file with many functions, which is the shape that made address reuse likely: a
+	// single small file does not allocate enough for the addresses to collide.
+	let source = lines_of((0..80).map(|index| {
+		format!("fn f{index}(x: i32) -> i32 {{\n    if x > {index} {{\n        return {index};\n    }}\n\n    x\n}}\n\n")
+	}));
+
+	let temp = tempfile::tempdir().expect("a temporary directory");
+	std::fs::write(temp.path().join("many.rs"), &source).expect("write");
+
+	let options = AnalysisOptions {
+		cache: false,
+		..AnalysisOptions::default()
+	};
+	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
+
+	let first = analyze_paths(&paths, &options);
+	let scores: Vec<(f64, f64)> = (0..5)
+		.map(|_| {
+			let report = analyze_paths(&paths, &options);
+
+			(report.readability.value, report.complexity.value)
+		})
+		.collect();
+
+	for (readability, complexity) in &scores {
+		assert_eq!(
+			*readability, first.readability.value,
+			"readability changed between runs: {scores:?}"
+		);
+		assert_eq!(
+			*complexity, first.complexity.value,
+			"complexity changed between runs: {scores:?}"
+		);
+	}
+
+	// The unit count and the per-unit numbers must be stable too, since those are what the memo held.
+	let unit_counts: Vec<usize> = (0..3)
+		.map(|_| {
+			let report = analyze_paths(&paths, &options);
+
+			report.files[0].units.len()
+		})
+		.collect();
+
+	assert_eq!(unit_counts[0], unit_counts[1]);
+	assert_eq!(unit_counts[1], unit_counts[2]);
+}
+
+#[test]
+fn every_unit_is_measured_with_its_own_lines() {
+	// Each function in the fixture has a distinct cyclomatic complexity, so a metric borrowed from another
+	// unit shows up as a duplicate value.
+	let temp = tempfile::tempdir().expect("a temporary directory");
+
+	// Sixteen functions with 1 to 16 branches each.
+	let source = lines_of((1..=16).map(|count| {
+		let arms = lines_of((0..count).map(|arm| format!("    if x > {arm} {{ work(); }}\n")));
+
+		format!("fn f{count}(x: i32) {{\n{arms}}}\n\n")
+	}));
+
+	std::fs::write(temp.path().join("many.rs"), &source).expect("write");
+
+	let options = AnalysisOptions {
+		cache: false,
+		..AnalysisOptions::default()
+	};
+	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
+	let report = analyze_paths(&paths, &options);
+
+	let mut complexities: Vec<usize> = report.files[0]
+		.units
+		.iter()
+		.map(|unit| unit.cyclomatic)
+		.collect();
+
+	complexities.sort_unstable();
+
+	// Sixteen distinct functions should yield sixteen distinct complexities, one more than the branch count.
+	assert_eq!(
+		complexities,
+		(2..=17).collect::<Vec<usize>>(),
+		"each unit should be measured against its own lines"
 	);
 }

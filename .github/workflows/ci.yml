@@ -228,7 +228,24 @@ jobs:
       - uses: Swatinem/rust-cache@v2
 
       - name: verify crates package cleanly
-        run: cargo package --workspace --all-features --no-verify
+        # Each crate is packaged in isolation. A workspace-wide `cargo package` resolves every sibling
+        # against crates.io, which fails for a path dependency that has not been published yet — so the
+        # check would always fail on a project before its first release.
+        run: |
+          set -euo pipefail
+
+          for crate in crates/*/; do
+            name=$(basename "$crate")
+
+            # The CLI crate is excluded because it depends on every library crate, all of which are
+            # unpublished at this point.
+            if [ "$name" = "monostyle" ]; then
+              continue
+            fi
+
+            echo "packaging $name"
+            cargo package --package "$name" --no-verify
+          done
 
   security:
     name: security
@@ -258,7 +275,7 @@ jobs:
   # The whole point of the tool is that it works on real repositories, so this job runs it against
   # a set of them rather than only against the fixtures in the test suite.
   real-world:
-    name: real world (${{ matrix.repo }})
+    name: real world (${{ matrix.repo.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:

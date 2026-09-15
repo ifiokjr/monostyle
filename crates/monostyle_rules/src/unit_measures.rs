@@ -1,34 +1,28 @@
-//! Per-unit metric memoization.
+//! Per-unit measurement, computed once per file.
 //!
 //! # The cost this removes
 //!
-//! Eight rules need a complexity figure for each function-like unit: cyclomatic, cognitive, `NPath`,
-//! exits, Halstead, maintainability. Each figure is a scan over the unit's lines, and each rule was
-//! doing its own scan.
+//! Eight rules need a complexity figure for each function-like unit: cyclomatic, cognitive, `NPath`, exits,
+//! Halstead, and maintainability. Each figure is a scan over the unit's lines, and each rule was doing its
+//! own scan. On a 17,000-line file with 499 functions that was 499 units times eight scans, which was the
+//! dominant cost of the whole analysis.
 //!
-//! On a file with hundreds of functions that is hundreds of units times eight scans. Measured on a
-//! 17,000-line test file with 499 units, this was the dominant cost of the whole analysis — the
-//! difference between 285 seconds and under 5.
+//! # Why this is a value rather than a cache
 //!
-//! # Why the memo is keyed by line range
+//! The first version memoized by the [`LexedFile`]'s memory address in a thread-local map. That was
+//! unsound, and the symptom was severe: the same input produced complexity scores between 10 and 79 across
+//! runs. Rayon drops a file's `LexedFile` when its task finishes, and the next file allocated at the same
+//! address inherited the previous file's metrics — so a file was scored with another file's numbers.
+//! **Address identity is not file identity.**
 //!
-//! The measurements are pure functions of a unit's lines, so the unit's start and end line identify
-//! them exactly. Keying on the range rather than on the unit's name matters because names repeat —
-//! `new`, `default`, and `from` appear many times in one file — and a name-keyed memo would return one
-//! function's complexity for another.
-//!
-//! # Why this is not circular
-//!
-//! Unit *metrics* depend only on the lines, so they can be computed before any rule runs. Unit
-//! *scores* depend on the findings, which the rules produce, so scores are computed afterwards by the
-//! reporting layer. Keeping the two apart is what lets rules consume metrics without the ordering
-//! problem of consuming findings that do not exist yet.
-
-use std::cell::RefCell;
-use std::collections::HashMap;
+//! This module now computes a [`UnitSet`] as a plain value and hands it to the rules. There is no key, no
+//! thread-local state, and no way for one file's measurements to reach another: the lifetime belongs to the
+//! caller, so a stale read is not expressible.
 
 use monostyle_lexer::LexedFile;
 use monostyle_lexer::LexedLine;
+use monostyle_metrics::CodeUnit;
+use monostyle_metrics::ExitCount;
 use monostyle_metrics::Halstead;
 use monostyle_metrics::NPath;
 
@@ -52,7 +46,7 @@ pub struct UnitMetrics {
 	/// Acyclic execution paths.
 	pub npath: NPath,
 	/// Flow-control escapes.
-	pub exits: monostyle_metrics::ExitCount,
+	pub exits: ExitCount,
 	/// Halstead volume and counts.
 	pub halstead: Halstead,
 	/// Maintainability index on a 0–100 scale.
@@ -61,103 +55,74 @@ pub struct UnitMetrics {
 	pub documented: bool,
 }
 
-/// Metrics for one file, keyed by a unit's line range.
-type FileMetrics = HashMap<UnitKey, UnitMetrics>;
-
-/// A unit's identity within a file: its start and end line.
-type UnitKey = (usize, usize);
-
-thread_local! {
-	/// Metrics for the file currently being analyzed, identified by its address.
-	///
-	/// Thread-local because analysis is parallel across files: a shared map would need locking on
-	/// every read, while a per-thread map cannot mix two files up.
-	static METRICS: RefCell<Option<(usize, FileMetrics)>> = const { RefCell::new(None) };
+/// A unit and its measurements.
+#[derive(Debug, Clone)]
+pub struct MeasuredUnit {
+	/// The detected unit.
+	pub unit: CodeUnit,
+	/// The unit's measurements.
+	pub metrics: UnitMetrics,
 }
 
-thread_local! {
-	/// Units detected for the file currently being analyzed on this thread.
-	static UNITS: RefCell<Option<(usize, Vec<monostyle_metrics::CodeUnit>)>> = const {
-		RefCell::new(None)
-	};
-}
-
-/// Returns every function-like unit in `file`.
+/// Every unit in one file, already measured.
 ///
-/// Detection is a structural scan, so it is memoized the same way the metrics are: the units a file
-/// contains cannot change while the file is being analyzed.
-#[must_use]
-pub fn find_units(file: &LexedFile) -> Vec<monostyle_metrics::CodeUnit> {
-	let file_key = std::ptr::from_ref(file) as usize;
+/// Built once per file and handed to the rules, so the work happens exactly once however many rules ask for
+/// a figure.
+#[derive(Debug, Clone)]
+pub struct UnitSet {
+	units: Vec<MeasuredUnit>,
+}
 
-	let cached = UNITS.with(|cache| {
-		cache
-			.borrow()
-			.as_ref()
-			.filter(|(address, _)| *address == file_key)
-			.map(|(_address, units)| units.clone())
-	});
+impl UnitSet {
+	/// Measures every unit in `file`.
+	#[must_use]
+	pub fn new(file: &LexedFile) -> Self {
+		let units = monostyle_metrics::find_units(file)
+			.into_iter()
+			.map(|unit| {
+				let metrics = measure(file, &unit);
 
-	if let Some(units) = cached {
-		return units;
+				MeasuredUnit { unit, metrics }
+			})
+			.collect();
+
+		Self { units }
 	}
 
-	let units = monostyle_metrics::find_units(file);
-
-	UNITS.with(|cache| {
-		*cache.borrow_mut() = Some((file_key, units.clone()));
-	});
-
-	units
-}
-
-/// Returns the `(start, end)` line range identifying a unit.
-#[must_use]
-pub fn unit_key(unit: &monostyle_metrics::CodeUnit) -> UnitKey {
-	(unit.start_line, unit.end_line)
-}
-
-/// Returns metrics for `unit`, computing them once per unit per file.
-#[must_use]
-pub fn metrics_for(file: &LexedFile, unit: &monostyle_metrics::CodeUnit) -> UnitMetrics {
-	let file_key = std::ptr::from_ref(file) as usize;
-	let key = unit_key(unit);
-
-	// A hit requires the same file identity, so a stale map from a previous file cannot answer.
-	let cached = METRICS.with(|cache| {
-		cache
-			.borrow()
-			.as_ref()
-			.filter(|(address, _)| *address == file_key)
-			.and_then(|(_address, map)| map.get(&key).copied())
-	});
-
-	if let Some(metrics) = cached {
-		return metrics;
+	/// Iterates over each unit with its measurements.
+	pub fn iter(&self) -> impl Iterator<Item = (&CodeUnit, &UnitMetrics)> {
+		self.units
+			.iter()
+			.map(|measured| (&measured.unit, &measured.metrics))
 	}
 
-	let metrics = compute(file, unit);
+	/// Returns the measurement for `unit`, or `None` when it is not part of this set.
+	///
+	/// A rule that needs one unit's figures looks it up by line range, which identifies it within the file
+	/// the set was built from.
+	#[must_use]
+	pub fn metrics_for(&self, unit: &CodeUnit) -> Option<&UnitMetrics> {
+		self.units
+			.iter()
+			.find(|measured| measured.unit.start_line == unit.start_line)
+			.map(|measured| &measured.metrics)
+	}
 
-	METRICS.with(|cache| {
-		let mut borrow = cache.borrow_mut();
+	/// Whether the file declared no units at all.
+	#[must_use]
+	pub fn is_empty(&self) -> bool {
+		self.units.is_empty()
+	}
 
-		match borrow.as_mut() {
-			Some((address, map)) if *address == file_key => {
-				map.insert(key, metrics);
-			}
-			_ => {
-				let mut map = HashMap::new();
-				map.insert(key, metrics);
-				*borrow = Some((file_key, map));
-			}
-		}
-	});
-
-	metrics
+	/// The number of units.
+	#[must_use]
+	pub fn len(&self) -> usize {
+		self.units.len()
+	}
 }
 
-/// Computes metrics for one unit.
-fn compute(file: &LexedFile, unit: &monostyle_metrics::CodeUnit) -> UnitMetrics {
+/// Measures one unit.
+fn measure(file: &LexedFile, unit: &CodeUnit) -> UnitMetrics {
 	let lines = lines_of(file, unit);
 
 	let cyclomatic = monostyle_metrics::complexity_of_lines(lines);
@@ -196,26 +161,9 @@ fn compute(file: &LexedFile, unit: &monostyle_metrics::CodeUnit) -> UnitMetrics 
 
 /// Returns the lines belonging to a unit.
 #[must_use]
-pub fn lines_of<'file>(
-	file: &'file LexedFile,
-	unit: &monostyle_metrics::CodeUnit,
-) -> &'file [LexedLine] {
+pub fn lines_of<'file>(file: &'file LexedFile, unit: &CodeUnit) -> &'file [LexedLine] {
 	let start = unit.start_line.saturating_sub(1).min(file.lines.len());
 	let end = unit.end_line.min(file.lines.len());
 
 	file.lines.get(start..end).unwrap_or_default()
-}
-
-/// Empties the memo.
-///
-/// Called between files so a recycled allocation cannot produce a stale hit when one `LexedFile` is
-/// dropped and another happens to land at the same address.
-pub fn clear() {
-	METRICS.with(|cache| {
-		*cache.borrow_mut() = None;
-	});
-
-	UNITS.with(|cache| {
-		*cache.borrow_mut() = None;
-	});
 }

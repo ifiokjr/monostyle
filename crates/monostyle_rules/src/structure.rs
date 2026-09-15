@@ -244,10 +244,10 @@ pub fn oversized_file(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 
 /// Reports functions that are longer than configured.
 pub fn oversized_units(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
-	let units = unit_measures::find_units(file);
+	let units = unit_measures::UnitSet::new(file);
 	let mut findings = Vec::new();
 
-	for unit in units {
+	for (unit, _metrics) in units.iter() {
 		let length = unit.line_count();
 
 		if length <= config.max_unit_lines {

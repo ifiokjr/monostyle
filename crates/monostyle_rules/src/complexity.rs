@@ -27,11 +27,11 @@ use crate::unit_measures;
 /// own while "untestable without a table-driven suite" means a lot.
 #[must_use]
 pub fn cyclomatic_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
-	let units = unit_measures::find_units(file);
+	let units = unit_measures::UnitSet::new(file);
 	let mut findings = Vec::new();
 
-	for unit in units {
-		let metrics = unit_measures::metrics_for(file, &unit);
+	for (unit, metrics) in units.iter() {
+		let metrics = *metrics;
 
 		if metrics.cyclomatic <= config.max_cyclomatic_per_unit {
 			continue;
@@ -83,11 +83,11 @@ pub fn cyclomatic_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Findin
 /// is not, the advice is to split along responsibilities, because there is nothing to flatten.
 #[must_use]
 pub fn cognitive_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
-	let units = unit_measures::find_units(file);
+	let units = unit_measures::UnitSet::new(file);
 	let mut findings = Vec::new();
 
-	for unit in units {
-		let metrics = unit_measures::metrics_for(file, &unit);
+	for (unit, metrics) in units.iter() {
+		let metrics = *metrics;
 
 		if metrics.cognitive <= config.max_cognitive_per_unit {
 			continue;
@@ -140,11 +140,11 @@ pub fn cognitive_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding
 /// that is not deeply nested but is exhaustively unverifiable.
 #[must_use]
 pub fn npath_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
-	let units = unit_measures::find_units(file);
+	let units = unit_measures::UnitSet::new(file);
 	let mut findings = Vec::new();
 
-	for unit in units {
-		let metrics = unit_measures::metrics_for(file, &unit);
+	for (unit, metrics) in units.iter() {
+		let metrics = *metrics;
 		let npath = metrics.npath;
 
 		if npath.value <= config.max_npath_per_unit {
@@ -193,11 +193,11 @@ pub fn npath_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 /// escape in mind to know what it guarantees.
 #[must_use]
 pub fn exits_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
-	let units = unit_measures::find_units(file);
+	let units = unit_measures::UnitSet::new(file);
 	let mut findings = Vec::new();
 
-	for unit in units {
-		let metrics = unit_measures::metrics_for(file, &unit);
+	for (unit, metrics) in units.iter() {
+		let metrics = *metrics;
 		let exits = metrics.exits;
 
 		if exits.exits <= config.max_exits_per_unit {
@@ -252,11 +252,11 @@ pub fn maintainability_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<F
 	/// Lines below which a maintainability index is not meaningful.
 	const MIN_MEASURABLE_LINES: usize = 10;
 
-	let units = unit_measures::find_units(file);
+	let units = unit_measures::UnitSet::new(file);
 	let mut findings = Vec::new();
 
-	for unit in units {
-		let metrics = unit_measures::metrics_for(file, &unit);
+	for (unit, metrics) in units.iter() {
+		let metrics = *metrics;
 
 		// A handful of lines cannot produce a meaningful index, so a short unit is skipped rather
 		// than reported for having a low one.

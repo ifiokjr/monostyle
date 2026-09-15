@@ -39,11 +39,11 @@ pub fn comment_required_on_complex_units(file: &LexedFile, config: &RulesConfig)
 		return Vec::new();
 	}
 
-	let units = unit_measures::find_units(file);
+	let units = unit_measures::UnitSet::new(file);
 	let mut findings = Vec::new();
 
-	for unit in units {
-		let lines = unit_measures::lines_of(file, &unit);
+	for (unit, _metrics) in units.iter() {
+		let lines = unit_measures::lines_of(file, unit);
 		let cognitive = monostyle_metrics::cognitive_complexity_of_lines(lines);
 
 		if cognitive.total < config.comment_required_above_cognitive {
