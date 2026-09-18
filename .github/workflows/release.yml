@@ -114,16 +114,28 @@ jobs:
           # expression is substituted as text, so a shell comparison against it is a comparison
           # against a literal that shellcheck cannot type-check.
           PENDING: ${{ steps.pending.outputs.count }}
+          # The checkout disables credential persistence so the token is not written into `.git/config`
+          # for every later step to inherit. Pushing the release branch still needs it, so it is
+          # supplied through a helper that exists only for this command.
+          RELEASE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
-          # `--create-pr` needs write access to the branch, which the workflow token has through the
-          # job's `contents: write` permission.
-          if [ "$PENDING" -gt 0 ]; then
-            monochange run release --commit --create-pr
-          else
+          if [ "$PENDING" -eq 0 ]; then
             echo "No pending changesets; nothing to release."
+            exit 0
           fi
+
+          # The value is single-quoted on purpose: git runs it through its own shell, which is what
+          # expands `$RELEASE_TOKEN`. Expanding it here instead would bake the token into the git
+          # configuration in plaintext.
+          # shellcheck disable=SC2016
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=credential.https://github.com.helper
+          # shellcheck disable=SC2016
+          export GIT_CONFIG_VALUE_0='!f() { echo "username=x-access-token"; echo "password=$RELEASE_TOKEN"; }; f'
+
+          monochange run release --commit --create-pr
 
   # Records the repository's own monostyle score on every release. A quality regression between
   # versions is then visible in the workflow history rather than only at the moment someone looks.
