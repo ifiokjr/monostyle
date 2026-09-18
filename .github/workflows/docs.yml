@@ -22,18 +22,20 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@v2.9.2 # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: install mdbook
-        uses: taiki-e/install-action@mdbook
+        uses: taiki-e/install-action@8ed95cf4ff55afeb4411ad3165fa10f7ca9e7a62 # v2
+        with:
+          tool: mdbook
 
       - name: build documentation
         run: mdbook build docs
@@ -51,7 +53,7 @@ jobs:
           echo '<meta http-equiv="refresh" content="0;url=monostyle/">' > combined/api/index.html
 
       - name: upload pages artifact
-        uses: actions/upload-pages-artifact@v3.0.1 # v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
         with:
           path: combined
 
@@ -69,4 +71,4 @@ jobs:
     steps:
       - name: deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4.0.5 # v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5

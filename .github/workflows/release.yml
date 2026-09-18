@@ -42,18 +42,18 @@ jobs:
       pull-requests: write
 
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           # monochange reads history to build the changelog, so a shallow clone would produce a
           # release PR with an incomplete entry list.
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@v2.9.2 # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: install monochange
         run: cargo binstall monochange --no-confirm || cargo install monochange --locked
@@ -107,15 +107,15 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@v2.9.2 # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: build monostyle
         run: cargo build --release --package monostyle

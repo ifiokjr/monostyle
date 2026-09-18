@@ -41,6 +41,9 @@ on:
         type: boolean
         default: false
 
+permissions:
+  contents: read
+
 concurrency:
   group: publish-${{ inputs.tag || github.ref_name }}
   # A partial registry publish is worse than a queued run waiting its turn, so this never cancels.
@@ -56,10 +59,12 @@ jobs:
     name: validate
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ env.RELEASE_TAG }}
           fetch-depth: 0
@@ -78,7 +83,7 @@ jobs:
         # not accept a corrected version at the same number.
         run: |
           set -euo pipefail
-          version="${{ steps.version.outputs.version }}"
+          version="${STEPS_VERSION_OUTPUTS_VERSION}"
           failed=0
 
           while IFS= read -r manifest; do
@@ -98,6 +103,8 @@ jobs:
           done
 
           exit $failed
+        env:
+          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
 
   build:
     name: build ${{ matrix.target }}
@@ -131,23 +138,26 @@ jobs:
           - target: x86_64-pc-windows-msvc
             os: windows-latest
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ env.RELEASE_TAG }}
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
           targets: ${{ matrix.target }}
 
-      - uses: Swatinem/rust-cache@v2.9.2 # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           key: ${{ matrix.target }}
+          lookup-only: true
 
       - name: install cross
         if: matrix.cross
-        uses: taiki-e/install-action@cross
+        uses: taiki-e/install-action@8ed95cf4ff55afeb4411ad3165fa10f7ca9e7a62 # v2
+        with:
+          tool: cross
 
       - name: build
         shell: bash
@@ -165,7 +175,7 @@ jobs:
         run: node scripts/stage-binaries.mjs "${{ matrix.target }}"
 
       - name: upload the release artifact
-        uses: actions/upload-artifact@v4.6.2 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: monostyle-${{ matrix.target }}
           path: |
@@ -176,7 +186,7 @@ jobs:
 
       - name: attest the binary's provenance
         if: inputs.dry_run != true
-        uses: actions/attest-build-provenance@v2.4.0 # v2
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
           subject-path: |
             target/${{ matrix.target }}/release/monostyle
@@ -191,13 +201,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ env.RELEASE_TAG }}
           persist-credentials: false
 
       - name: download every artifact
-        uses: actions/download-artifact@v4.3.0 # v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts
 
@@ -233,33 +243,36 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ env.RELEASE_TAG }}
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@v2.9.2 # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          lookup-only: true
 
       - name: request a crates.io credential via OIDC
         id: oidc
         # A crate that is not yet enrolled with a trusted publisher makes this fail, and that is not
         # an error worth stopping for: the token fallback below covers exactly that case.
         continue-on-error: true
-        uses: rust-lang/crates-io-auth-action@v1.0.5 # v1
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
 
       - name: resolve crates.io authentication
         id: auth
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          STEPS_OIDC_OUTPUTS_TOKEN: ${{ steps.oidc.outputs.token }}
         run: |
           set -euo pipefail
 
           force_token="${{ inputs.force_token_auth || false }}"
-          oidc_token="${{ steps.oidc.outputs.token }}"
+          oidc_token="${STEPS_OIDC_OUTPUTS_TOKEN}"
 
           if [ "$force_token" != "true" ] && [ -n "$oidc_token" ]; then
             echo "path=trusted" >> "$GITHUB_OUTPUT"
@@ -330,17 +343,21 @@ jobs:
       # trusted publisher or a token, so this is required either way.
       id-token: write
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ env.RELEASE_TAG }}
           persist-credentials: false
 
-      - uses: actions/setup-node@v4.4.0 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
+          # No package-manager cache in a publish job. A cache entry written by a pull request could
+          # otherwise be restored here and change what gets published, which is the one job where the
+          # input has to be exactly the tagged commit.
+          package-manager-cache: false
 
-      - uses: actions/download-artifact@v4.3.0 # v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts
 

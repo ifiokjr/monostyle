@@ -40,7 +40,8 @@ use serde::Serialize;
 /// A score floor for one or both categories.
 ///
 /// Both fields are optional so a section can set a floor for the category it cares about. `complexity` can
-/// never be set below [`FLOOR_MINIMUM`], because a floor that permits unmaintainable code is not a floor.
+/// never be set below [`ScoreFloor::FLOOR_MINIMUM`], because a floor that permits unmaintainable code is not
+/// a floor.
 #[derive(Debug, Clone, Copy, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default, rename_all = "kebab-case")]
 pub struct ScoreFloor {
