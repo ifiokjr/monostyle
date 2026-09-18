@@ -7,8 +7,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: pages
@@ -18,9 +16,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    # Pages write access belongs to the deploy job alone. Building documentation needs only the
+    # ability to read the repository, so granting it here would widen the window in which a
+    # compromised build step could publish to the site.
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4.4.0 # v4
         with:
@@ -56,11 +56,16 @@ jobs:
           path: combined
 
   deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    # `deploy-pages` exchanges the job's OIDC identity for a Pages deployment, so both permissions
+    # are required, and both are scoped to this job rather than the workflow.
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
     steps:
       - name: deploy to GitHub Pages
         id: deployment

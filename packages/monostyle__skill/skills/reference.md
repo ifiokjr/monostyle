@@ -8,29 +8,29 @@ Every flag, configuration key, and output format.
 
 Analyzes paths. Defaults to the current directory.
 
-| Flag | Effect |
-| --- | --- |
-| `--format text\|json\|toml` | Output format. `text` is the default and is meant for humans. |
-| `--explain` | List every finding with its location, message, and suggested fix. |
-| `--units` | Add per-function scores, sorted worst first. |
-| `--top N` | With `--units`, show only the worst N functions. |
-| `--max-unit-score S` | With `--units`, show only functions scoring below S. |
-| `--language LANG` | Restrict to a language. Repeatable. |
-| `--output FILE` | Write the report to a file. |
-| `--fail-under SCORE` | Exit 1 when either score is below the threshold. |
-| `--no-ignore` | Walk ignored files too. |
-| `--quiet` | Suppress the summary line on stderr. |
+| Flag                        | Effect                                                            |
+| --------------------------- | ----------------------------------------------------------------- |
+| `--format text\|json\|toml` | Output format. `text` is the default and is meant for humans.     |
+| `--explain`                 | List every finding with its location, message, and suggested fix. |
+| `--units`                   | Add per-function scores, sorted worst first.                      |
+| `--top N`                   | With `--units`, show only the worst N functions.                  |
+| `--max-unit-score S`        | With `--units`, show only functions scoring below S.              |
+| `--language LANG`           | Restrict to a language. Repeatable.                               |
+| `--output FILE`             | Write the report to a file.                                       |
+| `--fail-under SCORE`        | Exit 1 when either score is below the threshold.                  |
+| `--no-ignore`               | Walk ignored files too.                                           |
+| `--quiet`                   | Suppress the summary line on stderr.                              |
 
 ### Global flags
 
-| Flag | Effect |
-| --- | --- |
-| `--config FILE` | Use a specific configuration file. |
-| `--disable RULE` | Turn a rule off. Repeatable. |
-| `--strict` | Halve every threshold's tolerance. |
-| `--lenient` | Double every threshold's tolerance. |
-| `--color` | Force colour even when stdout is not a terminal. |
-| `--no-color` | Disable colour. `NO_COLOR` and `TERM=dumb` are also honoured. |
+| Flag             | Effect                                                        |
+| ---------------- | ------------------------------------------------------------- |
+| `--config FILE`  | Use a specific configuration file.                            |
+| `--disable RULE` | Turn a rule off. Repeatable.                                  |
+| `--strict`       | Halve every threshold's tolerance.                            |
+| `--lenient`      | Double every threshold's tolerance.                           |
+| `--color`        | Force colour even when stdout is not a terminal.              |
+| `--no-color`     | Disable colour. `NO_COLOR` and `TERM=dumb` are also honoured. |
 
 ### `monostyle rules [RULE]`
 
@@ -42,8 +42,8 @@ Prints the effective configuration, including anything loaded from a file.
 
 ## Configuration
 
-monostyle reads `monostyle.toml` from the analyzed directory or any parent. Only the keys you set are
-changed; everything else keeps its default.
+monostyle reads `monostyle.toml` from the analyzed directory or any parent. Only the keys you set
+are changed; everything else keeps its default.
 
 ```toml
 [scoring]

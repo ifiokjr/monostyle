@@ -67,48 +67,15 @@ pub fn cognitive_complexity_of_lines(lines: &[LexedLine]) -> CognitiveComplexity
 	let mut depth: usize = 0;
 
 	for line in lines {
-		// The nesting level a construct sits at is the depth *before* this line opens
-		// anything, which is why the penalty is computed first and the depth updated after.
-		let level = depth;
-		let mut line_cost = 0;
-		let mut logical_sequences = 0;
+		// The nesting level a construct sits at is the depth *before* this line opens anything, which
+		// is why the cost is computed first and the depth updated after.
+		let cost = line_cost(line, depth);
 
-		if line.logical_operators > 0 {
-			// A run of `&&`/`||` counts once; alternating operators read as separate
-			// conditions and so count again, which is why this is modeled as a sequence
-			// rather than a simple presence check.
-			logical_sequences = count_logical_sequences(&line.text, line.logical_operators);
-		}
+		total += cost.total;
+		nesting_penalty += cost.nesting_penalty;
 
-		for keyword in &line.nesting {
-			// The pair is (cost, exempt from the nesting penalty). Chained alternatives and
-			// construct markers are exempt because they do not feel nested to the reader.
-			let (costs, exempt_from_nesting) = match keyword.as_str() {
-				"else" | "case" | "when" | "on" => (1, true),
-				"if" | "elif" | "elseif" | "else if" | "unless" | "guard" | "for" | "foreach"
-				| "while" | "until" | "repeat" | "loop" | "do" | "switch" | "match" | "select"
-				| "cond" | "catch" | "except" | "rescue" => (1, false),
-				_ => (0, true),
-			};
-
-			if costs == 0 {
-				continue;
-			}
-
-			line_cost += 1;
-
-			if !exempt_from_nesting {
-				let penalty = level;
-				line_cost += penalty;
-				nesting_penalty += penalty;
-			}
-		}
-
-		line_cost += logical_sequences;
-		total += line_cost;
-
-		// Depth changes after costing so that a construct is charged for the nesting it
-		// sits inside, not the nesting it creates.
+		// Depth changes after costing so that a construct is charged for the nesting it sits inside,
+		// not the nesting it creates.
 		if opens_nesting(line) {
 			depth += 1;
 			max_nesting = max_nesting.max(depth);
@@ -123,6 +90,60 @@ pub fn cognitive_complexity_of_lines(lines: &[LexedLine]) -> CognitiveComplexity
 		total,
 		nesting_penalty,
 		max_nesting,
+	}
+}
+
+/// What one line costs, and how much of that cost came from nesting.
+struct LineCost {
+	total: usize,
+	nesting_penalty: usize,
+}
+
+/// Computes the cognitive cost of a single line at a known nesting `depth`.
+fn line_cost(line: &LexedLine, depth: usize) -> LineCost {
+	let mut total = 0;
+	let mut nesting_penalty = 0;
+
+	for keyword in &line.nesting {
+		let (costs, exempt_from_nesting) = nesting_charge(keyword);
+
+		if !costs {
+			continue;
+		}
+
+		total += 1;
+
+		// A construct charged for its nesting is what makes cognitive complexity differ from
+		// cyclomatic: the same branch reads harder the deeper it sits.
+		if !exempt_from_nesting {
+			total += depth;
+			nesting_penalty += depth;
+		}
+	}
+
+	// A run of `&&`/`||` counts once; alternating operators read as separate conditions and so count
+	// again, which is why this is modeled as a sequence rather than a simple presence check.
+	if line.logical_operators > 0 {
+		total += count_logical_sequences(&line.text, line.logical_operators);
+	}
+
+	LineCost {
+		total,
+		nesting_penalty,
+	}
+}
+
+/// Reports whether a keyword costs a point, and whether it is exempt from the nesting penalty.
+///
+/// Chained alternatives and construct markers are exempt because they do not feel nested to the
+/// reader: `else` continues a decision already accounted for rather than opening a new one.
+fn nesting_charge(keyword: &str) -> (bool, bool) {
+	match keyword {
+		"else" | "case" | "when" | "on" => (true, true),
+		"if" | "elif" | "elseif" | "else if" | "unless" | "guard" | "for" | "foreach" | "while"
+		| "until" | "repeat" | "loop" | "do" | "switch" | "match" | "select" | "cond" | "catch"
+		| "except" | "rescue" => (true, false),
+		_ => (false, true),
 	}
 }
 

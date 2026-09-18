@@ -12,4 +12,5 @@
 - [Configuration](./configuration.md)
 - [Supported languages](./languages.md)
 - [Performance](./performance.md)
+- [Releases](./releases.md)
 - [Architecture](./architecture.md)

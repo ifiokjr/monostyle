@@ -1131,6 +1131,7 @@ impl Scanner {
 		} else {
 			stripped
 		};
+
 		let delimiter = match stripped.trim_start().chars().next() {
 			Some(quote @ ('"' | '\'')) => {
 				let body: String = stripped.trim_start()[1..]
@@ -1412,6 +1413,7 @@ fn find_regex_close(text: &str) -> Option<usize> {
 			}
 			'[' => in_class = true,
 			']' => in_class = false,
+
 			'/' if !in_class => return Some(index + 1),
 			'\n' => return None,
 			_ => {}

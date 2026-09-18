@@ -15,16 +15,16 @@ const require = createRequire(import.meta.url);
 /** Platform packages to try, most likely first. */
 const PLATFORM_PACKAGES = {
 	darwin: {
-		arm64: ["@monostyle-rs/cli-darwin-arm64"],
-		x64: ["@monostyle-rs/cli-darwin-x64"],
+		arm64: ["@monostyle_rs/cli_darwin_arm64"],
+		x64: ["@monostyle_rs/cli_darwin_x64"],
 	},
 	linux: {
-		arm64: ["@monostyle-rs/cli-linux-arm64-gnu", "@monostyle-rs/cli-linux-arm64-musl"],
-		x64: ["@monostyle-rs/cli-linux-x64-gnu", "@monostyle-rs/cli-linux-x64-musl"],
+		arm64: ["@monostyle_rs/cli_linux_arm64_gnu", "@monostyle_rs/cli_linux_arm64_musl"],
+		x64: ["@monostyle_rs/cli_linux_x64_gnu", "@monostyle_rs/cli_linux_x64_musl"],
 	},
 	win32: {
-		arm64: ["@monostyle-rs/cli-win32-arm64-msvc"],
-		x64: ["@monostyle-rs/cli-win32-x64-msvc"],
+		arm64: ["@monostyle_rs/cli_win32_arm64_msvc"],
+		x64: ["@monostyle_rs/cli_win32_x64_msvc"],
 	},
 };
 
@@ -102,7 +102,7 @@ function main() {
 	}
 
 	console.error(
-		"Reinstall with `npm install -g @monostyle-rs/cli`, download a binary from GitHub releases, " +
+		"Reinstall with `npm install -g @monostyle_rs/cli`, download a binary from GitHub releases, " +
 			"or use `cargo install monostyle`.",
 	);
 

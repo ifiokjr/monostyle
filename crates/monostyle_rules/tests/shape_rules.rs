@@ -141,6 +141,7 @@ fn a(x: i32) {
 
 	let strict = RulesConfig {
 		max_nesting_depth: 1,
+
 		..RulesConfig::default()
 	};
 
@@ -326,6 +327,7 @@ fn a_file_limit_of_zero_disables_the_rule() {
 
 	let config = RulesConfig {
 		max_file_lines: 0,
+
 		..RulesConfig::default()
 	};
 
@@ -426,6 +428,7 @@ fn narrating_comments_can_be_tolerated() {
 	);
 	let config = RulesConfig {
 		penalize_narrating_comments: false,
+
 		..RulesConfig::default()
 	};
 
@@ -570,6 +573,7 @@ fn add(a: i32, b: i32) -> i32 {
 	let lexed = lex(source, Language::Rust);
 	let config = RulesConfig {
 		require_comment_on_complex_units: false,
+
 		..RulesConfig::default()
 	};
 

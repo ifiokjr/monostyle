@@ -119,21 +119,31 @@ fn members_of_every_ecosystem(root: &Path) -> Vec<Package> {
 
 	for detector in DETECTORS {
 		for member in (detector.members)(root) {
-			for directory in expand_member(root, &member) {
-				let Some(name) = (detector.name_at)(&directory) else {
-					continue;
-				};
-
-				packages.push(Package {
-					name,
-					directory,
-					ecosystem: detector.ecosystem,
-				});
-			}
+			packages.extend(packages_in_member(root, &member, detector));
 		}
 	}
 
 	packages
+}
+
+/// Expands one workspace member pattern into the packages it names.
+///
+/// A pattern usually globs to several directories, and only some of them hold a manifest naming a
+/// package. The missing ones are skipped rather than reported: `crates/*` matching a directory that
+/// is not a crate is the normal case, not an error.
+fn packages_in_member(root: &Path, member: &str, detector: &Detector) -> Vec<Package> {
+	expand_member(root, member)
+		.into_iter()
+		.filter_map(|directory| {
+			let name = (detector.name_at)(&directory)?;
+
+			Some(Package {
+				name,
+				directory,
+				ecosystem: detector.ecosystem,
+			})
+		})
+		.collect()
 }
 
 /// Finds the single package at the repository root, if one is declared.
@@ -337,29 +347,27 @@ fn npm_workspace_members(root: &Path) -> Vec<String> {
 		&& let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&contents)
 	{
 		return match parsed.get("workspaces") {
-			Some(serde_json::Value::Array(members)) => {
-				members
-					.iter()
-					.filter_map(|member| member.as_str().map(str::to_string))
-					.collect()
-			}
+			Some(serde_json::Value::Array(members)) => string_members(members),
+			// The object form nests the same list under `packages`, as pnpm and Yarn both write it.
 			Some(serde_json::Value::Object(object)) => {
 				object
 					.get("packages")
 					.and_then(|packages| packages.as_array())
-					.map(|members| {
-						members
-							.iter()
-							.filter_map(|member| member.as_str().map(str::to_string))
-							.collect()
-					})
-					.unwrap_or_default()
+					.map_or_else(Vec::new, |members| string_members(members))
 			}
 			_ => Vec::new(),
 		};
 	}
 
 	Vec::new()
+}
+
+/// Collects the string entries of a JSON array, dropping any other value type.
+fn string_members(members: &[serde_json::Value]) -> Vec<String> {
+	members
+		.iter()
+		.filter_map(|member| member.as_str().map(str::to_string))
+		.collect()
 }
 
 /// Extracts package globs from a `pnpm-workspace.yaml` without a YAML dependency.

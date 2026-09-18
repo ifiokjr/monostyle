@@ -65,11 +65,21 @@ fn run(cli: Cli) -> Result<ExitCode, Box<dyn std::error::Error>> {
 }
 
 /// Builds analysis options from the configuration file and command-line flags.
+///
+/// `--config` wins when given. Otherwise the file is discovered by walking up from the analyzed paths,
+/// which is what makes a checked-in `monostyle.toml` take effect with no flag. It previously loaded
+/// only when `--config` was passed, so every section, floor, and threshold in a repository's own
+/// configuration was silently inert.
 fn resolve_options(cli: &Cli) -> Result<AnalysisOptions, Box<dyn std::error::Error>> {
 	let mut options = AnalysisOptions::default();
 
-	if let Some(path) = &cli.config {
-		options = options.apply_config(&config::load_config(path)?)?;
+	let configured = match &cli.config {
+		Some(path) => Some(path.clone()),
+		None => discover_config(cli),
+	};
+
+	if let Some(path) = configured {
+		options = options.apply_config(&config::load_config(&path)?)?;
 	}
 
 	options
@@ -79,6 +89,36 @@ fn resolve_options(cli: &Cli) -> Result<AnalysisOptions, Box<dyn std::error::Err
 	options = config::apply_tolerance(options, cli.strict, cli.lenient);
 
 	Ok(options)
+}
+
+/// Finds the configuration file for a command's paths.
+///
+/// Each analyzed path is searched rather than only the working directory, so `monostyle check some/dir`
+/// picks up `some/dir/monostyle.toml` even when the command runs from elsewhere. The first path that
+/// resolves a file wins, and an explicit path is preferred over an inferred one.
+fn discover_config(cli: &Cli) -> Option<PathBuf> {
+	let paths = match &cli.command {
+		Command::Check(args) => &args.paths,
+		Command::Fix(args) => &args.paths,
+		// The remaining commands take no paths, so the working directory is the only starting point.
+		Command::Rules(_) | Command::Config { .. } => &Vec::new(),
+	};
+
+	// A directory is searched from itself; a file from the directory holding it, since a config beside
+	// a single analyzed file is the intent.
+	let mut starting_points = paths
+		.iter()
+		.map(|path| {
+			if path.is_dir() {
+				path.clone()
+			} else {
+				path.parent()
+					.map_or_else(|| path.clone(), Path::to_path_buf)
+			}
+		})
+		.chain(std::env::current_dir().ok());
+
+	starting_points.find_map(|start| config::find_config(&start))
 }
 
 /// Runs the `check` command.
@@ -363,6 +403,14 @@ fn fix_paths(
 /// the caller's output focused on files that changed.
 fn fix_one_file(path: &Path, args: &FixArgs, options: &AnalysisOptions) -> Option<FixOutcome> {
 	let language = analysis::language_for_path(path)?;
+
+	// A section can exclude a path entirely, and `fix` has to honour that or it rewrites files
+	// `check` deliberately skips. A test fixture asserted to score 0 is exactly that case: fixing it
+	// silently changed the input the scoring tests depend on.
+	if options.is_ignored(path) {
+		return None;
+	}
+
 	let source = std::fs::read_to_string(path).ok()?;
 	let report = analysis::analyze_with_language(path, &source, language, options);
 

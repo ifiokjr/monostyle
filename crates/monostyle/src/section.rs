@@ -31,6 +31,7 @@
 //! component rather than by string prefix, so `src` matches `src/main.rs` but not `srcgen/main.rs`.
 
 use std::path::Path;
+use std::path::PathBuf;
 
 use monostyle_rules::RulesConfig;
 use serde::Deserialize;
@@ -113,6 +114,16 @@ impl Section {
 	/// Whether this section applies to `path`.
 	///
 	/// Matched by path component, so `src` does not match `srcgen`.
+	///
+	/// Section paths are relative to the configuration file, and so are the paths a command reports
+	/// when it is run from that directory — `monostyle check crates` produces `crates/...`. A path may
+	/// still carry `.` or `..` components from an argument like `check .`, so those are removed before
+	/// the comparison; without that, `./crates/...` did not start with `crates` and a section was
+	/// silently inert for the single most common invocation.
+	///
+	/// Matching the section anywhere in the path was tried and is wrong: the repository's own `crates`
+	/// section began matching temporary directories that happened to contain a `crates` component,
+	/// silently changing what unrelated tests measured.
 	#[must_use]
 	pub fn matches(&self, path: &Path) -> bool {
 		let section = Path::new(self.path.trim_end_matches('/'));
@@ -121,7 +132,11 @@ impl Section {
 			return false;
 		}
 
-		path.starts_with(section)
+		if path.starts_with(section) {
+			return true;
+		}
+
+		normalize(path).starts_with(section)
 	}
 
 	/// How specific this section is, used to pick a winner among several matches.
@@ -133,6 +148,27 @@ impl Section {
 			.components()
 			.count()
 	}
+}
+
+/// Removes `.` and `..` components from a path.
+///
+/// Only worth doing when the path has them, which is why the caller compares the original first. A
+/// `..` is popped against the component before it so `a/b/../c` reads as `a/c`, which is what the
+/// argument meant.
+fn normalize(path: &Path) -> PathBuf {
+	let mut normalized = PathBuf::new();
+
+	for component in path.components() {
+		match component {
+			std::path::Component::CurDir => {}
+			std::path::Component::ParentDir => {
+				normalized.pop();
+			}
+			other => normalized.push(other),
+		}
+	}
+
+	normalized
 }
 
 /// Finds the section that applies to `path`.

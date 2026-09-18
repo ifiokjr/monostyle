@@ -48,42 +48,7 @@ pub fn blank_line_before_control_flow(file: &LexedFile, config: &RulesConfig) ->
 	let mut findings = Vec::new();
 
 	for (index, line) in file.lines.iter().enumerate() {
-		if !line.is_code() || line.decisions.is_empty() {
-			continue;
-		}
-
-		// A line that opens a block is a declaration, not a statement, so it is exempt: the
-		// space belongs before the statements inside it, not before the declaration itself.
-		if is_block_declaration(line) {
-			continue;
-		}
-
-		// A continuation line is part of the statement above it, so a keyword inside it is an expression
-		// rather than a new decision. An inline conditional in an argument list — `path / "x" if flag else
-		// "y"` — was reported as a missing blank line before a branch, which asked for a blank line inside a
-		// single expression.
-		if inside_expression(line, &file.lines, index) {
-			continue;
-		}
-
-		// Separation is a property of the immediately preceding physical line. A blank line or
-		// a comment above the statement already gives the reader the break this rule asks for,
-		// which is why the check is on the physical neighbour rather than the previous code
-		// line: a comment between two statements is a deliberate separator, not a violation.
-		if has_separation_above(
-			&file.lines,
-			index,
-			config.min_blank_lines_between_control_flow,
-		) {
-			continue;
-		}
-
-		let Some(previous) = previous_code_line(&file.lines, index) else {
-			continue;
-		};
-
-		// The first statement inside a block has nothing above it to separate from.
-		if previous.opens_block() || is_block_declaration(previous) {
+		if !needs_blank_line(&file.lines, index, line, config) {
 			continue;
 		}
 
@@ -118,6 +83,50 @@ pub fn blank_line_before_control_flow(file: &LexedFile, config: &RulesConfig) ->
 	}
 
 	findings
+}
+
+/// Decides whether a line is a control-flow statement missing the blank line above it.
+///
+/// Every exemption this rule has lives here, so the loop body stays a filter and a builder. Each one
+/// is a case where a blank line would be wrong rather than merely absent.
+fn needs_blank_line(
+	lines: &[LexedLine],
+	index: usize,
+	line: &LexedLine,
+	config: &RulesConfig,
+) -> bool {
+	if !line.is_code() || line.decisions.is_empty() {
+		return false;
+	}
+
+	// A line that opens a block is a declaration, not a statement, so it is exempt: the space
+	// belongs before the statements inside it, not before the declaration itself.
+	if is_block_declaration(line) {
+		return false;
+	}
+
+	// A continuation line is part of the statement above it, so a keyword inside it is an expression
+	// rather than a new decision. An inline conditional in an argument list — `path / "x" if flag
+	// else "y"` — was reported as a missing blank line before a branch, which asked for a blank line
+	// inside a single expression.
+	if inside_expression(line, lines, index) {
+		return false;
+	}
+
+	// Separation is a property of the immediately preceding physical line. A blank line or a comment
+	// above the statement already gives the reader the break this rule asks for, which is why the
+	// check is on the physical neighbour rather than the previous code line: a comment between two
+	// statements is a deliberate separator, not a violation.
+	if has_separation_above(lines, index, config.min_blank_lines_between_control_flow) {
+		return false;
+	}
+
+	let Some(previous) = previous_code_line(lines, index) else {
+		return false;
+	};
+
+	// The first statement inside a block has nothing above it to separate from.
+	!(previous.opens_block() || is_block_declaration(previous))
 }
 
 /// Returns true when the lines above `index` already separate this statement.
@@ -257,65 +266,135 @@ pub fn group_separation(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> 
 	}
 
 	let mut findings = Vec::new();
-	let mut run_start: Option<usize> = None;
-	let mut run_length = 0;
-	let mut in_declaration = false;
-	let mut previous_was_doc = false;
+
+	let mut run = Run::default();
 
 	for (index, line) in file.lines.iter().enumerate() {
-		if line.is_blank() {
-			check_run(&file.lines, run_start, run_length, &mut findings);
-
-			run_start = None;
-			run_length = 0;
-			in_declaration = false;
-			previous_was_doc = false;
-
-			continue;
+		match classify(line, &run) {
+			// A blank line, a doc comment, or the start of a new item closes whatever run was open.
+			Disposition::Break {
+				declaration,
+				previous_was_doc,
+			} => run.break_with(&file.lines, &mut findings, declaration, previous_was_doc),
+			// A comment or literal is invisible to the rule: it neither extends a run nor ends one,
+			// except for a doc comment, which `Break` handles above.
+			Disposition::Skip => {}
+			Disposition::Extend => run.extend(index),
 		}
-
-		let is_doc = line.comment_intent == Some(CommentIntent::Documentation);
-
-		if line.is_comment() {
-			// A doc comment starts a new item, so it ends whatever run preceded it.
-			if is_doc {
-				check_run(&file.lines, run_start, run_length, &mut findings);
-
-				run_start = None;
-				run_length = 0;
-				previous_was_doc = true;
-			}
-
-			continue;
-		}
-
-		if line.is_literal() || !line.is_code() {
-			continue;
-		}
-
-		let starts_new_item = is_type_declaration(line)
-			|| is_function_declaration(line)
-			|| previous_was_doc
-			|| in_declaration;
-
-		previous_was_doc = false;
-
-		if starts_new_item {
-			check_run(&file.lines, run_start, run_length, &mut findings);
-
-			run_start = None;
-			run_length = 0;
-			in_declaration = is_type_declaration(line) || !ends_declaration_body(line);
-
-			continue;
-		}
-
-		run_start.get_or_insert(index);
-		run_length += 1;
 	}
 
-	check_run(&file.lines, run_start, run_length, &mut findings);
+	run.close(&file.lines, &mut findings);
 	findings
+}
+
+/// What the rule should do with one line.
+enum Disposition {
+	/// Close the open run.
+	Break {
+		/// `Some` records the declaration state for the next line; `None` leaves it unchanged, which
+		/// is what a doc comment does — it ends the statements before it without ending the
+		/// declaration body it sits inside.
+		declaration: Option<bool>,
+		/// True when this line was a doc comment, which makes the next code line a new item.
+		previous_was_doc: bool,
+	},
+	/// Neither extend the run nor end it.
+	Skip,
+	/// Count this line as part of the open run.
+	Extend,
+}
+
+/// Classifies one line for the group-separation rule.
+fn classify(line: &LexedLine, run: &Run) -> Disposition {
+	if line.is_blank() {
+		return Disposition::Break {
+			declaration: Some(false),
+			previous_was_doc: false,
+		};
+	}
+
+	let is_doc = line.comment_intent == Some(CommentIntent::Documentation);
+
+	if line.is_comment() {
+		// A doc comment starts a new item, so it ends whatever run preceded it. An ordinary comment
+		// belongs to the code around it and changes nothing.
+		if is_doc {
+			return Disposition::Break {
+				declaration: None,
+				previous_was_doc: true,
+			};
+		}
+
+		return Disposition::Skip;
+	}
+
+	if line.is_literal() || !line.is_code() {
+		return Disposition::Skip;
+	}
+
+	let starts_new_item = is_type_declaration(line)
+		|| is_function_declaration(line)
+		|| run.previous_was_doc
+		|| run.in_declaration;
+
+	if starts_new_item {
+		return Disposition::Break {
+			declaration: Some(is_type_declaration(line) || !ends_declaration_body(line)),
+			previous_was_doc: false,
+		};
+	}
+
+	Disposition::Extend
+}
+
+/// The sequence of statements currently being measured.
+#[derive(Default)]
+struct Run {
+	/// Index of the first line in the run, absent when no run is open.
+	start: Option<usize>,
+	length: usize,
+	/// True while inside a type body, whose members are one logical group rather than a statement
+	/// sequence.
+	in_declaration: bool,
+	/// True when the previous line was a doc comment, which makes the next line a new item.
+	previous_was_doc: bool,
+}
+
+impl Run {
+	/// Reports the current run as a finding when it is long enough, and clears it.
+	fn close(&mut self, lines: &[LexedLine], findings: &mut Vec<Finding>) {
+		check_run(lines, self.start, self.length, findings);
+
+		self.start = None;
+		self.length = 0;
+		self.previous_was_doc = false;
+	}
+
+	/// Closes the run and applies the state a break decided.
+	fn break_with(
+		&mut self,
+		lines: &[LexedLine],
+		findings: &mut Vec<Finding>,
+		declaration: Option<bool>,
+		previous_was_doc: bool,
+	) {
+		self.close(lines, findings);
+
+		// A doc comment carries the declaration state forward: it ends the statements before it
+		// without ending the declaration body it sits inside.
+		if let Some(in_declaration) = declaration {
+			self.in_declaration = in_declaration;
+		}
+
+		self.previous_was_doc = previous_was_doc;
+	}
+
+	/// Counts one line as part of the run.
+	fn extend(&mut self, index: usize) {
+		self.start.get_or_insert(index);
+		self.length += 1;
+		self.previous_was_doc = false;
+	}
 }
 
 /// Returns true when a line opens a type declaration whose members are one logical group.

@@ -345,7 +345,17 @@ jobs:
   ci-ok:
     name: ci ok
     if: always()
-    needs: [lint, test, lexer-correctness, coverage, dogfood, npm, docs, package-check, security]
+    needs: [
+      lint,
+      test,
+      lexer-correctness,
+      coverage,
+      dogfood,
+      npm,
+      docs,
+      package-check,
+      security,
+    ]
     runs-on: ubuntu-latest
     steps:
       - name: verify every job succeeded

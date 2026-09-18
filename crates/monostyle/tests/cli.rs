@@ -45,6 +45,28 @@ fn stdout(args: &[&str]) -> String {
 	String::from_utf8_lossy(&output.stdout).into_owned()
 }
 
+/// Runs the binary from `directory` and returns stdout as text.
+///
+/// A separate helper from `stdout` because section paths are relative to the configuration file while
+/// a command reports paths relative to its working directory. A test can only exercise section
+/// matching realistically by setting both to the same place.
+fn stdout_in(args: &[&str], directory: &std::path::Path) -> String {
+	let output = Command::new(env!("CARGO_BIN_EXE_monostyle"))
+		.args(args)
+		.current_dir(directory)
+		.output()
+		.expect("the binary should run");
+
+	assert!(
+		output.status.success(),
+		"the command failed: {}\n{}",
+		args.join(" "),
+		String::from_utf8_lossy(&output.stderr)
+	);
+
+	String::from_utf8_lossy(&output.stdout).into_owned()
+}
+
 /// Returns the path to a fixture.
 fn fixture(relative: &str) -> PathBuf {
 	PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -875,4 +897,63 @@ fn fix_on_an_empty_directory_is_not_an_error() {
 
 	assert!(output.status.success());
 	assert!(String::from_utf8_lossy(&output.stderr).contains("no analyzable files"));
+}
+
+#[test]
+fn a_discovered_config_file_changes_the_score() {
+	// A `monostyle.toml` in the analyzed tree has to take effect with no flag. It previously loaded
+	// only when `--config` was passed, so a repository's own thresholds were silently inert and the
+	// scores it produced could not be explained by the file it had committed.
+	let temp = tempfile::tempdir().expect("a temporary directory");
+	let source = temp.path().join("sample.rs");
+
+	std::fs::write(
+		&source,
+		"fn a() {\n    work();\n    if x {\n        work();\n    }\n}\n",
+	)
+	.expect("write");
+
+	let without = stdout(&["check", source.to_str().unwrap(), "--format", "json"]);
+	std::fs::write(
+		temp.path().join("monostyle.toml"),
+		"[rules]\ndisabled-rules = [\"readability/blank-line-before-control-flow\"]\n",
+	)
+	.expect("write");
+
+	let with = stdout(&["check", source.to_str().unwrap(), "--format", "json"]);
+
+	let before: serde_json::Value = serde_json::from_str(&without).expect("valid JSON");
+	let after: serde_json::Value = serde_json::from_str(&with).expect("valid JSON");
+
+	assert!(
+		before["readability"]["penalty"].as_f64().unwrap_or(0.0)
+			> after["readability"]["penalty"].as_f64().unwrap_or(0.0),
+		"a discovered config should lower the penalty: {before} vs {after}"
+	);
+}
+
+#[test]
+fn fix_leaves_an_ignored_section_alone() {
+	// The `fix` command has to honour an ignored section, or it rewrites files `check` deliberately
+	// skips. This is how the deliberately-bad scoring fixtures were silently rewritten by a `fix`
+	// run, changing the inputs the scoring tests assert against.
+	let temp = tempfile::tempdir().expect("a temporary directory");
+	let source = temp.path().join("scratch.rs");
+	let original = "fn a() {\n    work();\n    if x {\n        work();\n    }\n}\n";
+
+	std::fs::write(&source, original).expect("write");
+	std::fs::write(
+		temp.path().join("monostyle.toml"),
+		"[[section]]\npath = \"scratch.rs\"\nignore = true\n",
+	)
+	.expect("write");
+
+	// A section path is relative to the configuration file, and the reported paths are relative to
+	// the working directory, so the command runs from the directory holding both. That is how a real
+	// invocation behaves: `monostyle fix .` from the project root.
+	stdout_in(&["fix", "scratch.rs", "--no-color"], temp.path());
+
+	let after = std::fs::read_to_string(&source).expect("read");
+
+	assert_eq!(after, original, "an ignored file must not be rewritten");
 }

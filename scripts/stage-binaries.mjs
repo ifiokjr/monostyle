@@ -11,14 +11,14 @@ import process from "node:process";
 
 /** Maps a Rust target triple to its npm package suffix and binary name. */
 const TARGETS = {
-	"aarch64-apple-darwin": { package: "darwin-arm64", binary: "monostyle" },
-	"x86_64-apple-darwin": { package: "darwin-x64", binary: "monostyle" },
-	"aarch64-unknown-linux-gnu": { package: "linux-arm64-gnu", binary: "monostyle" },
-	"aarch64-unknown-linux-musl": { package: "linux-arm64-musl", binary: "monostyle" },
-	"x86_64-unknown-linux-gnu": { package: "linux-x64-gnu", binary: "monostyle" },
-	"x86_64-unknown-linux-musl": { package: "linux-x64-musl", binary: "monostyle" },
-	"aarch64-pc-windows-msvc": { package: "win32-arm64-msvc", binary: "monostyle.exe" },
-	"x86_64-pc-windows-msvc": { package: "win32-x64-msvc", binary: "monostyle.exe" },
+	"aarch64-apple-darwin": { package: "darwin_arm64", binary: "monostyle" },
+	"x86_64-apple-darwin": { package: "darwin_x64", binary: "monostyle" },
+	"aarch64-unknown-linux-gnu": { package: "linux_arm64_gnu", binary: "monostyle" },
+	"aarch64-unknown-linux-musl": { package: "linux_arm64_musl", binary: "monostyle" },
+	"x86_64-unknown-linux-gnu": { package: "linux_x64_gnu", binary: "monostyle" },
+	"x86_64-unknown-linux-musl": { package: "linux_x64_musl", binary: "monostyle" },
+	"aarch64-pc-windows-msvc": { package: "win32_arm64_msvc", binary: "monostyle.exe" },
+	"x86_64-pc-windows-msvc": { package: "win32_x64_msvc", binary: "monostyle.exe" },
 };
 
 const target = process.argv[2];
@@ -42,7 +42,7 @@ if (!fs.existsSync(source)) {
 	process.exit(1);
 }
 
-const destinationDirectory = path.join("packages", `monostyle__cli-${mapping.package}`, "bin");
+const destinationDirectory = path.join("packages", `monostyle__cli_${mapping.package}`, "bin");
 fs.mkdirSync(destinationDirectory, { recursive: true });
 
 const destination = path.join(destinationDirectory, mapping.binary);

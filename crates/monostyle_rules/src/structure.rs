@@ -213,6 +213,7 @@ fn argument_content(characters: &[char], open: usize) -> (Vec<char>, usize) {
 					break;
 				}
 			}
+
 			character if depth == 1 => content.push(character),
 			_ => {}
 		}

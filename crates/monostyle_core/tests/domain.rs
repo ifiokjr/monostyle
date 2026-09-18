@@ -298,6 +298,7 @@ fn strict_and_lenient_bracket_the_default() {
 	let default = ScoringConfig::default();
 
 	assert!(ScoringConfig::strict().half_life < default.half_life);
+
 	assert!(ScoringConfig::lenient().half_life > default.half_life);
 }
 

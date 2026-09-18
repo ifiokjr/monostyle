@@ -53,52 +53,66 @@ pub fn overlong_lines(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	}
 
 	let severe = config.severe_line_width();
-
 	let mut findings = Vec::new();
 
 	for line in &file.lines {
-		if !line.is_code() {
+		let Some(severity) = overlong_severity(line, limit, severe) else {
 			continue;
-		}
-
-		let width = display_width(line);
-
-		if width <= limit {
-			continue;
-		}
-
-		// A line with no breakable boundary has nowhere to wrap to. Reporting it would tell the
-		// reader to do something the language does not allow.
-		if !is_breakable(line) {
-			continue;
-		}
-
-		let severity = if width > severe {
-			Severity::Major
-		} else {
-			Severity::Minor
 		};
 
-		findings.push(
-			FindingBuilder::new(
-				"readability/overlong-line",
-				Category::Readability,
-				Span::new(line.start_byte, line.end_byte, line.number, line.number),
-			)
-			.severity(severity)
-			.weight(0.5)
-			.message(format!(
-				"this line is {width} columns wide, over the {limit} limit"
-			))
-			.suggestion(
-				"Break this line at a logical boundary, or extract part of the expression into \
-				 a named variable.",
-			)
-			.build(),
-		);
+		findings.push(overlong_finding(line, severity, limit));
 	}
 
 	findings
+}
+
+/// Returns the severity when a line is over the limit, or `None` when it is not reported.
+///
+/// Returning the severity rather than a boolean keeps the decision in one place: the loop no longer
+/// needs to re-derive why a line was skipped.
+fn overlong_severity(line: &LexedLine, limit: usize, severe: usize) -> Option<Severity> {
+	if !line.is_code() {
+		return None;
+	}
+
+	let width = display_width(line);
+
+	if width <= limit {
+		return None;
+	}
+
+	// A line with no breakable boundary has nowhere to wrap to. Reporting it would tell the reader to
+	// do something the language does not allow.
+	if !is_breakable(line) {
+		return None;
+	}
+
+	if width > severe {
+		return Some(Severity::Major);
+	}
+
+	Some(Severity::Minor)
+}
+
+/// Builds the finding for a line that is over the limit.
+fn overlong_finding(line: &LexedLine, severity: Severity, limit: usize) -> Finding {
+	let width = display_width(line);
+
+	FindingBuilder::new(
+		"readability/overlong-line",
+		Category::Readability,
+		Span::new(line.start_byte, line.end_byte, line.number, line.number),
+	)
+	.severity(severity)
+	.weight(0.5)
+	.message(format!(
+		"this line is {width} columns wide, over the {limit} limit"
+	))
+	.suggestion(
+		"Break this line at a logical boundary, or extract part of the expression into \
+		 a named variable.",
+	)
+	.build()
 }
 
 /// Returns a line's display width, with tabs expanded.

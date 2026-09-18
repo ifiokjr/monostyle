@@ -390,6 +390,7 @@ impl CachedLine {
 			end_byte: self.end_byte,
 			indent: self.indent,
 			indent_text: self.indent_text.clone(),
+
 			kind: match self.kind {
 				0 => LineKind::Blank,
 				1 => LineKind::Comment,

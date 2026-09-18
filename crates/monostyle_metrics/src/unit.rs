@@ -562,8 +562,10 @@ fn code_only(text: &str) -> String {
 			'"' | '\'' | '`' => {
 				in_string = Some(character);
 			}
+
 			'/' if characters.peek() == Some(&'/') => break,
 			'#' => break,
+
 			'-' if characters.peek() == Some(&'-') => break,
 			_ => result.push(character),
 		}

@@ -26,6 +26,7 @@ fn analyze(relative: &str) -> monostyle::analysis::ProjectReport {
 	let root = fixture(relative);
 	let options = AnalysisOptions {
 		cache: false,
+
 		..AnalysisOptions::default()
 	};
 	let paths = collect_paths(&root, true, &options.rules.ignore);
@@ -193,6 +194,7 @@ fn an_empty_report_renders_without_panicking() {
 	// A directory with no analyzable files reaches the renderer, so it must produce something.
 	let options = AnalysisOptions {
 		cache: false,
+
 		..AnalysisOptions::default()
 	};
 	let report_value = analyze_paths(&[], &options);
