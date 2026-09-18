@@ -42,7 +42,7 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0 # v4
         with:
           ref: ${{ env.RELEASE_TAG }}
           fetch-depth: 0
@@ -114,7 +114,7 @@ jobs:
           - target: x86_64-pc-windows-msvc
             os: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0 # v4
         with:
           ref: ${{ env.RELEASE_TAG }}
           persist-credentials: false
@@ -124,7 +124,7 @@ jobs:
           toolchain: nightly-2026-09-07
           targets: ${{ matrix.target }}
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2.9.2 # v2
         with:
           key: ${{ matrix.target }}
 
@@ -148,7 +148,7 @@ jobs:
         run: node scripts/stage-binaries.mjs "${{ matrix.target }}"
 
       - name: upload the release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2 # v4
         with:
           name: monostyle-${{ matrix.target }}
           path: |
@@ -159,7 +159,7 @@ jobs:
 
       - name: attest the binary's provenance
         if: inputs.dry_run != true
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@v2.4.0 # v2
         with:
           subject-path: |
             target/${{ matrix.target }}/release/monostyle
@@ -174,13 +174,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0 # v4
         with:
           ref: ${{ env.RELEASE_TAG }}
           persist-credentials: false
 
       - name: download every artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.3.0 # v4
         with:
           path: artifacts
 
@@ -216,7 +216,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0 # v4
         with:
           ref: ${{ env.RELEASE_TAG }}
           persist-credentials: false
@@ -225,9 +225,9 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2.9.2 # v2
 
-      - uses: rust-lang/crates-io-auth-action@v1
+      - uses: rust-lang/crates-io-auth-action@v1.0.5 # v1
         id: auth
 
       - name: publish in dependency order
@@ -274,17 +274,17 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0 # v4
         with:
           ref: ${{ env.RELEASE_TAG }}
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4.4.0 # v4
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v4.3.0 # v4
         with:
           path: artifacts
 

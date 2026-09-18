@@ -22,7 +22,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4.4.0 # v4
         with:
           persist-credentials: false
 
@@ -30,7 +30,7 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@v2.9.2 # v2
 
       - name: install mdbook
         uses: taiki-e/install-action@mdbook
@@ -51,7 +51,7 @@ jobs:
           echo '<meta http-equiv="refresh" content="0;url=monostyle/">' > combined/api/index.html
 
       - name: upload pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v3.0.1 # v3
         with:
           path: combined
 
@@ -64,4 +64,4 @@ jobs:
     steps:
       - name: deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v4.0.5 # v4
