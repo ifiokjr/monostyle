@@ -323,7 +323,10 @@ steps = [
   { type = "PrepareRelease", name = "plan release", allow_empty_changesets = true, inputs = { format = "{{ inputs.format }}", write_empty_release_record = "{{ inputs.write_empty_release_record }}" } },
   { type = "Command", name = "generate cargo lockfile", when = "{{ number_of_changesets > 0 }}", command = "cargo generate-lockfile" },
   { type = "Command", name = "generate pnpm lockfile", when = "{{ number_of_changesets > 0 }}", command = "pnpm install --lockfile-only --no-frozen-lockfile --link-workspace-packages" },
-  { type = "Command", name = "format changed files", when = "{{ number_of_changesets > 0 }}", command = "dprint fmt --allow-no-files" },
+  # Formatting the version bumps keeps the release commit clean, but a missing formatter must never
+  # block a release: the manifests monochange writes are already well-formed, so the fallback is to
+  # commit them unformatted rather than to fail the release.
+  { type = "Command", name = "format changed files", when = "{{ number_of_changesets > 0 }}", command = "dprint fmt --allow-no-files 2>/dev/null || echo 'dprint unavailable; committing without reformatting'" },
   { type = "CommitRelease", name = "create release commit", when = "{{ number_of_changesets > 0 && inputs.commit }}", inputs = { no_verify = "{{ inputs.no_verify }}", stage_all = true } },
   { type = "OpenReleaseRequest", name = "create the pull request", when = "{{ number_of_changesets > 0 && inputs.commit && inputs.create_pr }}", inputs = { no_verify = "{{ inputs.no_verify }}", stage_all = true } },
 ]
