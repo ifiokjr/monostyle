@@ -1,6 +1,5 @@
 [package]
 name = "monostyle_markdown"
-description = "Extracts and analyzes the code fences and prose structure of Markdown documents."
 version.workspace = true
 authors.workspace = true
 categories.workspace = true
@@ -10,6 +9,7 @@ license.workspace = true
 readme.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+description = "Extracts and analyzes the code fences and prose structure of Markdown documents."
 
 [dependencies]
 monostyle_core = { workspace = true }

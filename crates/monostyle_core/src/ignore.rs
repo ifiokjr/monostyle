@@ -406,36 +406,83 @@ fn match_segments(pattern: &[&str], path: &[&str]) -> bool {
 	}
 }
 
+/// What to do next while matching one glob segment.
+///
+/// Naming the three outcomes is what keeps the matcher's loop body flat: the decision is made once,
+/// in [`next_step`], and the loop only carries out what was decided.
+enum Step {
+	/// The pattern and the text both advance by one.
+	Advance,
+	/// A `*` was reached and is now the position to backtrack to.
+	Star,
+	/// A `*` recorded earlier consumes one more character.
+	Backtrack,
+	/// Nothing matches.
+	Fail,
+}
+
+/// Decides the next move for a glob match.
+fn next_step(
+	pattern: &[char],
+	text: &[char],
+	pattern_index: usize,
+	text_index: usize,
+	has_star: bool,
+) -> Step {
+	let literal_matches = pattern
+		.get(pattern_index)
+		.is_some_and(|c| *c == '?' || Some(c) == text.get(text_index));
+
+	if literal_matches {
+		return Step::Advance;
+	}
+
+	if pattern.get(pattern_index) == Some(&'*') {
+		return Step::Star;
+	}
+
+	// No literal match and no star here: the only way forward is to widen a star that matched
+	// earlier, and with no star on record the pattern cannot match at all.
+	if has_star {
+		return Step::Backtrack;
+	}
+
+	Step::Fail
+}
+
 /// Matches one pattern segment against one path segment, honouring `*` and `?`.
 fn matches_segment(pattern: &str, text: &str) -> bool {
 	let pattern: Vec<char> = pattern.chars().collect();
 	let text: Vec<char> = text.chars().collect();
 
 	// Iterative glob matching with backtracking, which avoids recursion depth proportional to the
-	// input length.
+	// input length. A `*` is remembered rather than recursed into: when a comparison fails, the scan
+	// rewinds to the last star and consumes one more character through it, which is what lets `*`
+	// match any run without exponential backtracking.
 	let (mut pattern_index, mut text_index) = (0, 0);
-	let (mut star_pattern, mut star_text): (Option<usize>, usize) = (None, 0);
+	// The index just past the star, and the text position the star has consumed up to.
+	let mut star: Option<(usize, usize)> = None;
 
 	while text_index < text.len() {
-		// The comparison reads through `get` on both sides, so neither index can be out of range even
-		// though the loop only checks the text length.
-		if pattern.get(pattern_index) == Some(&'?')
-			|| pattern
-				.get(pattern_index)
-				.is_some_and(|c| text.get(text_index) == Some(c))
-		{
-			pattern_index += 1;
-			text_index += 1;
-		} else if pattern.get(pattern_index) == Some(&'*') {
-			star_pattern = Some(pattern_index);
-			star_text = text_index;
-			pattern_index += 1;
-		} else if let Some(star) = star_pattern {
-			pattern_index = star + 1;
-			star_text += 1;
-			text_index = star_text;
-		} else {
-			return false;
+		match next_step(&pattern, &text, pattern_index, text_index, star.is_some()) {
+			Step::Advance => {
+				pattern_index += 1;
+				text_index += 1;
+			}
+			Step::Star => {
+				star = Some((pattern_index + 1, text_index));
+				pattern_index += 1;
+			}
+			Step::Backtrack => {
+				let (after_star, star_text) =
+					star.expect("`next_step` only backtracks when a star exists");
+				let widened = star_text + 1;
+
+				star = Some((after_star, widened));
+				pattern_index = after_star;
+				text_index = widened;
+			}
+			Step::Fail => return false,
 		}
 	}
 

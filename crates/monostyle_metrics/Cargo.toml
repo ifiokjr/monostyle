@@ -1,6 +1,5 @@
 [package]
 name = "monostyle_metrics"
-description = "Complexity and readability metrics computed over lexed source."
 version.workspace = true
 authors.workspace = true
 categories.workspace = true
@@ -10,6 +9,7 @@ license.workspace = true
 readme.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+description = "Complexity and readability metrics computed over lexed source."
 
 [dependencies]
 monostyle_core = { workspace = true }

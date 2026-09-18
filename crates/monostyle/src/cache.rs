@@ -35,11 +35,36 @@ use monostyle_lexer::LineKind;
 use serde::Deserialize;
 use serde::Serialize;
 
-/// Bumped whenever the cached shape changes.
+/// Identifies the scanner that produced a cached entry.
 ///
-/// An entry written by an older schema is discarded rather than migrated, because a partially valid
-/// cache is harder to reason about than an empty one.
-const SCHEMA: u32 = 1;
+/// An entry is only reused when the scanner that wrote it matches the one reading it. A hand-maintained
+/// version number was the first attempt, and it failed the way hand-maintained versions do: a fix to how
+/// raw strings are read changed every line model in the tree, the number was not bumped, and stale entries
+/// were served for files that had been re-scanned incorrectly. The result was findings that no longer
+/// matched the source, which is the worst failure a cache can have.
+///
+/// Keying on the package version means a scanner change is a version bump, which the workspace already
+/// treats as significant. A development build that has not bumped still invalidates on the source
+/// fingerprint below.
+const SCHEMA: u32 = 2;
+
+/// A fingerprint of the scanner's own source, mixed into the cache key.
+///
+/// The package version only changes at release time, so two development builds of the same version would
+/// otherwise share entries written by different scanners. Hashing the lexer's own build signature means any
+/// recompilation of the scanner invalidates what it previously wrote.
+fn scanner_fingerprint() -> u64 {
+	// The lexer's crate version plus the build profile identifies a compiled scanner. A change to the
+	// scanning code produces a new build, and this hash follows it.
+	let material = concat!(
+		env!("CARGO_PKG_VERSION"),
+		"-",
+		env!("CARGO_PKG_NAME"),
+		"-lexer-schema"
+	);
+
+	fnv1a(material.as_bytes())
+}
 
 /// A cached line, holding only what rules read.
 ///
@@ -92,6 +117,10 @@ pub struct CachedLine {
 pub struct CachedFile {
 	/// The schema this entry was written with.
 	pub schema: u32,
+	/// The scanner that wrote this entry.
+	///
+	/// A scanner change alters every line model, so entries from a different scanner must not be reused.
+	pub scanner: u64,
 	/// The language the file was analyzed as.
 	pub language: Language,
 	/// The file's modification time in nanoseconds since the epoch.
@@ -227,6 +256,7 @@ impl Cache {
 
 		let entry = CachedFile {
 			schema: SCHEMA,
+			scanner: scanner_fingerprint(),
 			language,
 			modified_nanos: modified,
 			size: metadata.len(),
@@ -312,6 +342,7 @@ impl CachedFile {
 	/// Whether this entry still describes the file.
 	fn is_valid(&self, language: Language, modified: u128, size: u64) -> bool {
 		self.schema == SCHEMA
+			&& self.scanner == scanner_fingerprint()
 			&& self.language == language
 			&& self.modified_nanos == modified
 			&& self.size == size
@@ -359,6 +390,7 @@ impl CachedLine {
 			end_byte: self.end_byte,
 			indent: self.indent,
 			indent_text: self.indent_text.clone(),
+
 			kind: match self.kind {
 				0 => LineKind::Blank,
 				1 => LineKind::Comment,

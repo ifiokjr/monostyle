@@ -30,6 +30,7 @@ fn lines_of(items: impl IntoIterator<Item = String>) -> String {
 fn uncached() -> AnalysisOptions {
 	AnalysisOptions {
 		cache: false,
+
 		..AnalysisOptions::default()
 	}
 }
@@ -118,6 +119,7 @@ fn collection_honours_the_ignore_patterns() {
 
 	let config = monostyle_core::IgnoreConfig {
 		patterns: vec!["skip.rs".to_string()],
+
 		..monostyle_core::IgnoreConfig::default()
 	};
 
@@ -145,6 +147,7 @@ fn a_cached_run_produces_the_same_report_as_an_uncached_one() {
 
 	let options = AnalysisOptions {
 		cache: true,
+
 		..AnalysisOptions::default()
 	};
 	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
@@ -175,6 +178,7 @@ fn a_cached_run_finds_the_same_rules() {
 
 	let options = AnalysisOptions {
 		cache: true,
+
 		..AnalysisOptions::default()
 	};
 	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
@@ -212,6 +216,7 @@ fn a_cached_run_reports_unit_scores_too() {
 
 	let options = AnalysisOptions {
 		cache: true,
+
 		..AnalysisOptions::default()
 	};
 	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
@@ -236,6 +241,7 @@ fn disabling_the_cache_skips_discovery() {
 
 	let options = AnalysisOptions {
 		cache: false,
+
 		..AnalysisOptions::default()
 	};
 	let paths = collect_paths(temp.path(), true, &options.rules.ignore);

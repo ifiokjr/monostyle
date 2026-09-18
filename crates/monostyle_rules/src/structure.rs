@@ -10,6 +10,7 @@ use monostyle_core::FindingBuilder;
 use monostyle_core::Severity;
 use monostyle_core::Span;
 use monostyle_lexer::LexedFile;
+use monostyle_lexer::LexedLine;
 
 use crate::config::RulesConfig;
 use crate::unit_measures;
@@ -82,16 +83,24 @@ pub fn long_parameter_list(file: &LexedFile, config: &RulesConfig) -> Vec<Findin
 	/// Columns of argument text that still fit comfortably on one line.
 	const MAX_INLINE_WIDTH: usize = 40;
 
-	/// Average columns per argument below which the arguments are trivial.
+	/// How many arguments past the limit a call may have before the count alone triggers a finding.
 	///
-	/// A single digit or a short constant is about one to three columns; a descriptive name is eight or
-	/// more. The threshold sits between them.
-	const TRIVIAL_ARGUMENT_WIDTH: usize = 4;
+	/// The grace exists because count alone is a poor signal: four short arguments read fine. Width is what
+	/// makes an argument list hard to scan, so a call that stays narrow is left alone however many arguments
+	/// it has, up to a few past the limit.
+	const COUNT_GRACE: usize = 2;
 
 	let mut findings = Vec::new();
 
 	for line in &file.lines {
 		if !line.is_code() {
+			continue;
+		}
+
+		// An attribute is a declaration rather than a call: `#[derive(Debug, Clone, Copy)]` lists traits,
+		// and reporting it asked for a derive list to be split across lines. The same applies to a decorator
+		// and to a Java annotation, which is why the check is on the leading marker.
+		if is_annotation(line) {
 			continue;
 		}
 
@@ -109,17 +118,17 @@ pub fn long_parameter_list(file: &LexedFile, config: &RulesConfig) -> Vec<Findin
 			continue;
 		};
 
-		if parameters <= config.max_parameters_inline {
-			continue;
-		}
+		// An argument list is hard to read when it is both long and wide. Either condition alone is a poor
+		// signal: `compute(a, b, c, d)` has four arguments and spans twenty columns, while a two-argument call
+		// whose arguments are long expressions can span sixty.
+		//
+		// Requiring both is what keeps the rule from firing on most calls in a real codebase. Testing width
+		// alone caught every call over forty columns including three-argument ones, which was the noise that
+		// made a reader stop trusting the finding.
+		let over_count = parameters > config.max_parameters_inline + COUNT_GRACE;
+		let too_wide = width > MAX_INLINE_WIDTH;
 
-		// The width check spares a call whose arguments are individually trivial, such as
-		// `Span::new(0, 0, 1, 1)`. It compares the *average* argument width rather than the total, because
-		// a total threshold of forty columns rejected five ordinary argument names — the exact case the
-		// rule exists for — while a per-argument average distinguishes names from single digits.
-		let average_width = width / parameters.max(1);
-
-		if average_width <= TRIVIAL_ARGUMENT_WIDTH && width <= MAX_INLINE_WIDTH {
+		if !(over_count && too_wide) {
 			continue;
 		}
 
@@ -153,65 +162,90 @@ pub fn long_parameter_list(file: &LexedFile, config: &RulesConfig) -> Vec<Findin
 /// as a function's own parameter list.
 fn widest_argument_list(masked: &str) -> Option<(usize, usize)> {
 	let characters: Vec<char> = masked.chars().collect();
-	let mut widest: Option<(usize, usize)> = None;
 	let mut index = 0;
+	let mut widest: Option<(usize, usize)> = None;
 
-	while index < characters.len() {
-		if characters.get(index) != Some(&'(') {
-			index += 1;
-			continue;
-		}
-
-		// Collect this group's contents, tracking nesting so a nested call is not split across groups.
-		let mut depth = 0;
-		let mut content = Vec::new();
-		let mut cursor = index;
-
-		while let Some(character) = characters.get(cursor).copied() {
-			match character {
-				'(' => {
-					depth += 1;
-				}
-				')' => {
-					depth -= 1;
-
-					if depth == 0 {
-						break;
-					}
-				}
-				character if depth == 1 => content.push(character),
-				_ => {}
-			}
-
-			cursor += 1;
-		}
+	while let Some(start) = next_open_paren(&characters, index) {
+		let (content, end) = argument_content(&characters, start);
 
 		// An empty pair has nothing to measure; a function's own parameter list is the common case.
 		if content.iter().any(|character| !character.is_whitespace()) {
-			let width = content.iter().collect::<String>().trim().len();
-			let commas = content
-				.iter()
-				.filter(|character| **character == ',')
-				.count();
-			let candidate = (commas + 1, width);
+			let candidate = measure(&content);
 
 			// Keep the widest group, because that is the one a reader has to parse.
-			if widest.is_none_or(|(current_count, current_width)| {
-				candidate.1 > current_width
-					|| (candidate.1 == current_width && candidate.0 > current_count)
-			}) {
+			if widest.is_none_or(|current| candidate.1 > current.1) {
 				widest = Some(candidate);
 			}
 		}
 
 		// Resume after this group, so nested groups are not measured a second time.
-		index = cursor + 1;
+		index = end;
 	}
 
 	widest
 }
 
-/// Reports files that are too long to navigate./// Reports files that are too long to navigate.
+/// Returns the index of the next opening parenthesis at or after `from`.
+fn next_open_paren(characters: &[char], from: usize) -> Option<usize> {
+	characters
+		.iter()
+		.skip(from)
+		.position(|character| *character == '(')
+		.map(|offset| from + offset)
+}
+
+/// Collects the content of the parenthesis group starting at `open`, and the index after its close.
+///
+/// Nesting is tracked so a nested call is not split across groups, and so the group's own commas are the
+/// ones counted.
+fn argument_content(characters: &[char], open: usize) -> (Vec<char>, usize) {
+	let mut depth = 0;
+	let mut content = Vec::new();
+	let mut cursor = open;
+
+	while let Some(character) = characters.get(cursor).copied() {
+		match character {
+			'(' => depth += 1,
+			')' => {
+				depth -= 1;
+
+				if depth == 0 {
+					break;
+				}
+			}
+
+			character if depth == 1 => content.push(character),
+			_ => {}
+		}
+
+		cursor += 1;
+	}
+
+	(content, cursor + 1)
+}
+
+/// Returns the argument count and rendered width of a parenthesis group's content.
+fn measure(content: &[char]) -> (usize, usize) {
+	let width = content.iter().collect::<String>().trim().len();
+	let commas = content
+		.iter()
+		.filter(|character| **character == ',')
+		.count();
+
+	(commas + 1, width)
+}
+
+/// Whether a line is an annotation rather than a call.
+///
+/// Rust attributes, Python decorators, and Java annotations all group a list of names under a marker. The
+/// list is not an argument list, so the width and count rules do not apply to it.
+fn is_annotation(line: &LexedLine) -> bool {
+	let trimmed = line.masked_code.trim_start();
+
+	trimmed.starts_with("#[") || trimmed.starts_with("#![") || trimmed.starts_with('@')
+}
+
+/// Reports files that are too long to navigate.
 pub fn oversized_file(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	// Zero disables the rule, matching how `max-line-width` behaves, so a project can turn off a size
 	// limit without disabling the rule by name.

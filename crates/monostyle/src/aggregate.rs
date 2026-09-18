@@ -26,6 +26,7 @@
 //! by how much of the total penalty each one accounts for. That is what turns a report into a
 //! worklist an agent or a person can act on in order.
 
+use std::path::Path;
 use std::path::PathBuf;
 
 use monostyle_core::Category;
@@ -154,61 +155,53 @@ fn category_penalty(file: &FileScore, category: Category) -> f64 {
 /// recover the most points.
 #[must_use]
 pub fn rank_rule_impact(findings: &[(PathBuf, Finding)], category: Category) -> Vec<RuleImpact> {
+	rank_impact(findings, |finding| finding.category == category)
+}
+
+/// Ranks rules across both categories by their share of the *total* penalty.
+///
+/// `rank_rule_impact` computes a share within one category, so its percentages are only comparable to other
+/// rules in that category. The "start here" line needs the single most valuable fix across everything, which
+/// requires one denominator: the total penalty of both categories together.
+///
+/// Reporting a per-category share as if it were a whole-project share would overstate the benefit of a fix —
+/// a rule holding 90% of the complexity penalty might hold only 30% of the total, so presenting 90% would
+/// promise a recovery three times larger than the fix can deliver.
+#[must_use]
+pub fn rank_overall_impact(findings: &[(PathBuf, Finding)]) -> Vec<RuleImpact> {
+	rank_impact(findings, |_| true)
+}
+
+/// Ranks rules by their share of the penalty from the findings `keep` selects.
+///
+/// One implementation for both the per-category and whole-project views. They differ only by which findings
+/// they count, and keeping two copies of this arithmetic is how the two views would come to disagree about
+/// the same penalty.
+fn rank_impact(
+	findings: &[(PathBuf, Finding)],
+	keep: impl Fn(&Finding) -> bool,
+) -> Vec<RuleImpact> {
 	let mut impacts: Vec<RuleImpact> = Vec::new();
 	let mut total: f64 = 0.0;
 
 	for (path, finding) in findings {
-		if finding.category != category {
-			continue;
-		}
-
 		let penalty = finding.penalty();
 
 		// Credit entries are not impacts: they raise the score rather than detracting from it.
-		if penalty <= 0.0 {
+		if penalty <= 0.0 || !keep(finding) {
 			continue;
 		}
 
 		total += penalty;
 
+		let location = offender(path, finding);
+
 		match impacts
 			.iter_mut()
 			.find(|impact| impact.rule == finding.rule)
 		{
-			Some(impact) => {
-				// The message kept is the one from the costliest finding, because that is what a
-				// reader should act on first. It is captured before the total is updated, so the
-				// comparison is against the previous worst rather than the new sum.
-				if penalty >= impact.worst_penalty {
-					impact.worst_penalty = penalty;
-					impact.message.clone_from(&finding.message);
-					impact.suggestion.clone_from(&finding.suggestion);
-					impact.worst_offender = Some(OffenderLocation {
-						path: path.clone(),
-						line: finding.span.start_line,
-						severity: finding.severity.label().to_string(),
-					});
-				}
-
-				impact.penalty += penalty;
-				impact.count += 1;
-			}
-			None => {
-				impacts.push(RuleImpact {
-					rule: finding.rule.clone(),
-					penalty,
-					count: 1,
-					share: 0.0,
-					worst_penalty: penalty,
-					worst_offender: Some(OffenderLocation {
-						path: path.clone(),
-						line: finding.span.start_line,
-						severity: finding.severity.label().to_string(),
-					}),
-					message: finding.message.clone(),
-					suggestion: finding.suggestion.clone(),
-				});
-			}
+			Some(impact) => impact.absorb(penalty, finding, location),
+			None => impacts.push(RuleImpact::new(finding, penalty, location)),
 		}
 	}
 
@@ -229,82 +222,46 @@ pub fn rank_rule_impact(findings: &[(PathBuf, Finding)], category: Category) -> 
 	impacts
 }
 
-/// Ranks rules across both categories by their share of the *total* penalty.
-///
-/// `rank_rule_impact` computes a share within one category, so its percentages are only comparable
-/// to other rules in that category. The "start here" line needs the single most valuable fix across
-/// everything, which requires one denominator: the total penalty of both categories together.
-///
-/// Reporting a per-category share as if it were a whole-project share would overstate the benefit of
-/// a fix — a rule holding 90% of the complexity penalty might hold only 30% of the total, so
-/// presenting 90% would promise a recovery three times larger than the fix can deliver.
-#[must_use]
-pub fn rank_overall_impact(findings: &[(PathBuf, Finding)]) -> Vec<RuleImpact> {
-	let mut impacts: Vec<RuleImpact> = Vec::new();
-	let mut total: f64 = 0.0;
+/// Builds the location a finding sits at.
+fn offender(path: &Path, finding: &Finding) -> OffenderLocation {
+	OffenderLocation {
+		path: path.to_path_buf(),
+		line: finding.span.start_line,
+		severity: finding.severity.label().to_string(),
+	}
+}
 
-	for (path, finding) in findings {
-		let penalty = finding.penalty();
-
-		if penalty <= 0.0 {
-			continue;
-		}
-
-		total += penalty;
-
-		match impacts
-			.iter_mut()
-			.find(|impact| impact.rule == finding.rule)
-		{
-			Some(impact) => {
-				if penalty >= impact.worst_penalty {
-					impact.worst_penalty = penalty;
-					impact.message.clone_from(&finding.message);
-					impact.suggestion.clone_from(&finding.suggestion);
-					impact.worst_offender = Some(OffenderLocation {
-						path: path.clone(),
-						line: finding.span.start_line,
-						severity: finding.severity.label().to_string(),
-					});
-				}
-
-				impact.penalty += penalty;
-				impact.count += 1;
-			}
-			None => {
-				impacts.push(RuleImpact {
-					rule: finding.rule.clone(),
-					penalty,
-					count: 1,
-					share: 0.0,
-					worst_penalty: penalty,
-					worst_offender: Some(OffenderLocation {
-						path: path.clone(),
-						line: finding.span.start_line,
-						severity: finding.severity.label().to_string(),
-					}),
-					message: finding.message.clone(),
-					suggestion: finding.suggestion.clone(),
-				});
-			}
+impl RuleImpact {
+	/// Starts an impact from a rule's first finding.
+	fn new(finding: &Finding, penalty: f64, location: OffenderLocation) -> Self {
+		Self {
+			rule: finding.rule.clone(),
+			penalty,
+			count: 1,
+			share: 0.0,
+			worst_penalty: penalty,
+			worst_offender: Some(location),
+			message: finding.message.clone(),
+			suggestion: finding.suggestion.clone(),
 		}
 	}
 
-	for impact in &mut impacts {
-		impact.share = if total > 0.0 {
-			impact.penalty / total
-		} else {
-			0.0
-		};
-	}
+	/// Folds another finding from the same rule into this impact.
+	///
+	/// The message kept is the one from the costliest finding, because that is what a reader should act on
+	/// first. The comparison is against the previous worst rather than the running total, so adding a small
+	/// finding does not displace a large one.
+	fn absorb(&mut self, penalty: f64, finding: &Finding, location: OffenderLocation) {
+		if penalty >= self.worst_penalty {
+			self.worst_penalty = penalty;
+			self.message.clone_from(&finding.message);
+			self.suggestion.clone_from(&finding.suggestion);
+			self.worst_offender = Some(location);
+		}
 
-	impacts.sort_by(|left, right| {
-		right
-			.penalty
-			.partial_cmp(&left.penalty)
-			.unwrap_or(std::cmp::Ordering::Equal)
-	});
-	impacts
+		self.penalty += penalty;
+		self.count += 1;
+	}
 }
 
 /// Ranks files by the penalty they contribute, most costly first.

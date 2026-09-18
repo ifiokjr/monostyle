@@ -201,6 +201,7 @@ fn fence_scoring_can_be_turned_off() {
 
 	let config = RulesConfig {
 		score_markdown_fences: false,
+
 		..RulesConfig::default()
 	};
 
@@ -320,10 +321,12 @@ fn a_prose_run_can_be_tuned() {
 
 	let strict = RulesConfig {
 		max_prose_run: 2,
+
 		..RulesConfig::default()
 	};
 	let relaxed = RulesConfig {
 		max_prose_run: 100,
+
 		..RulesConfig::default()
 	};
 

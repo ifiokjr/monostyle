@@ -13,7 +13,9 @@
     ".devenv/**",
     ".direnv/**",
     "**/node_modules/**",
-    "**/snapshots/**"
+    "**/snapshots/**",
+    "crates/monostyle/tests/fixtures/**",
+    "examples/**"
   ],
   "plugins": [
     "https://plugins.dprint.dev/markdown-0.17.8.wasm",

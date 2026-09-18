@@ -90,6 +90,7 @@ impl MaintainabilityIndex {
 	pub fn grade(&self) -> &'static str {
 		match self.value {
 			value if value >= 85.0 => "high",
+
 			value if value >= 65.0 => "moderate",
 			_ => "low",
 		}

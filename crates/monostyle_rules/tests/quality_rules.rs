@@ -86,6 +86,7 @@ fn digits_inside_an_identifier_are_not_literals() {
 fn magic_numbers_can_be_turned_off() {
 	let config = RulesConfig {
 		report_magic_numbers: false,
+
 		..RulesConfig::default()
 	};
 	let lexed = lex("fn a() { let d = elapsed * 86400; }\n", Language::Rust);
@@ -133,6 +134,7 @@ fn names_that_meet_the_length_are_ignored() {
 fn short_identifiers_can_be_turned_off() {
 	let config = RulesConfig {
 		report_short_identifiers: false,
+
 		..RulesConfig::default()
 	};
 	let lexed = lex("let ab = compute();\n", Language::Rust);
@@ -174,6 +176,7 @@ fn a_handler_that_acts_on_the_error_is_kept() {
 fn empty_handlers_can_be_turned_off() {
 	let config = RulesConfig {
 		report_empty_handlers: false,
+
 		..RulesConfig::default()
 	};
 	let lexed = lex(
@@ -236,6 +239,7 @@ fn a_single_commented_line_is_below_the_threshold() {
 fn commented_out_code_can_be_turned_off() {
 	let config = RulesConfig {
 		report_commented_out_code: false,
+
 		..RulesConfig::default()
 	};
 	let lexed = lex(
@@ -294,10 +298,12 @@ fn the_limit_is_configurable() {
 
 	let strict = RulesConfig {
 		max_line_width: 20,
+
 		..RulesConfig::default()
 	};
 	let relaxed = RulesConfig {
 		max_line_width: 400,
+
 		..RulesConfig::default()
 	};
 
@@ -317,6 +323,7 @@ fn the_limit_is_configurable() {
 fn a_limit_of_zero_disables_the_rule() {
 	let config = RulesConfig {
 		max_line_width: 0,
+
 		..RulesConfig::default()
 	};
 	let lexed = lex(
@@ -357,6 +364,7 @@ fn severe_width_never_equals_the_limit() {
 	let config = RulesConfig {
 		max_line_width: 100,
 		severe_line_width_ratio: 0.1,
+
 		..RulesConfig::default()
 	};
 

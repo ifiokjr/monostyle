@@ -97,6 +97,61 @@ pub fn apply(options: &AnalysisOptions, file: &ConfigFile) -> Result<AnalysisOpt
 	options.clone().apply_config(file)
 }
 
+/// Reads the sections a configuration file declares.
+///
+/// Sections live at the top level as `[[section]]` entries rather than inside `[rules]`, because a section
+/// holds a floor and an ignore flag as well as rule thresholds. Keeping them out of the rules namespace
+/// means the merge for `[rules]` stays a simple value overlay.
+fn read_sections(file: &toml::Value) -> Result<Vec<crate::section::Section>, ConfigError> {
+	let Some(sections) = file.get("section") else {
+		return Ok(Vec::new());
+	};
+
+	let parsed: Vec<crate::section::Section> = sections
+		.clone()
+		.try_into()
+		.map_err(ConfigError::Deserialize)?;
+
+	if let Some(problem) = crate::section::validate_sections(&parsed) {
+		return Err(ConfigError::InvalidSection(problem));
+	}
+
+	Ok(parsed)
+}
+
+/// Reads the repository-wide score floors.
+fn read_floor(file: &toml::Value) -> Result<crate::section::ScoreFloor, ConfigError> {
+	// `fail-under` may be a bare number, which sets both categories to the same floor.
+	if let Some(value) = file.get("fail-under") {
+		if let Some(number) = value
+			.as_float()
+			.or_else(|| value.as_integer().map(|i| i as f64))
+		{
+			let floor = crate::section::ScoreFloor {
+				readability: Some(number),
+				complexity: Some(number),
+			};
+
+			if let Some(problem) = floor.validate("fail-under") {
+				return Err(ConfigError::InvalidSection(problem));
+			}
+
+			return Ok(floor);
+		}
+
+		let floor: crate::section::ScoreFloor =
+			value.clone().try_into().map_err(ConfigError::Deserialize)?;
+
+		if let Some(problem) = floor.validate("fail-under") {
+			return Err(ConfigError::InvalidSection(problem));
+		}
+
+		return Ok(floor);
+	}
+
+	Ok(crate::section::ScoreFloor::default())
+}
+
 impl ConfigExt for AnalysisOptions {
 	fn apply_config(self, file: &ConfigFile) -> Result<Self, ConfigError> {
 		// The defaults are serialized so the overlay has something total to merge into. A failure here
@@ -108,10 +163,31 @@ impl ConfigExt for AnalysisOptions {
 			merge(&mut merged, rules);
 		}
 
+		// A section's rules are checked against the same defaults, so a typo inside a section is caught
+		// the same way one at the top level is.
+		for section in file
+			.get("section")
+			.and_then(|value| value.as_array())
+			.into_iter()
+			.flatten()
+		{
+			if let Some(rules) = section.get("rules") {
+				let name = section
+					.get("path")
+					.and_then(|path| path.as_str())
+					.unwrap_or("<unnamed>");
+				let label = format!("{name}.rules");
+
+				reject_unknown_keys(&merged, rules, &label)?;
+			}
+		}
+
 		// `[scoring]` is a sibling of `[rules]` on the options rather than inside it, so it is applied
 		// separately and keeps its own defaults.
 		let mut options = Self {
 			rules: merged.try_into().map_err(ConfigError::Deserialize)?,
+			fail_under: read_floor(file)?,
+			sections: read_sections(file)?,
 			..self
 		};
 
@@ -218,6 +294,8 @@ pub enum ConfigError {
 	Serialize(toml::ser::Error),
 	/// A merged configuration could not be read back into the typed form.
 	Deserialize(toml::de::Error),
+	/// A section is malformed or states an impossible floor.
+	InvalidSection(String),
 	/// The file names a key that does not exist.
 	UnknownKey {
 		/// The section the key was found in, as a dotted path.
@@ -251,6 +329,7 @@ impl std::fmt::Display for ConfigError {
 					"could not read the merged configuration: {source}"
 				)
 			}
+			Self::InvalidSection(problem) => write!(formatter, "{problem}"),
 			Self::UnknownKey { section, key } => {
 				write!(
 					formatter,

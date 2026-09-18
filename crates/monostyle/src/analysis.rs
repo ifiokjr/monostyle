@@ -73,13 +73,7 @@ impl UnitReport {
 	/// The unit's overall grade.
 	#[must_use]
 	pub fn grade(&self) -> &'static str {
-		match self.score() {
-			value if value >= 90.0 => "excellent",
-			value if value >= 75.0 => "good",
-			value if value >= 60.0 => "fair",
-			value if value >= 40.0 => "poor",
-			_ => "bad",
-		}
+		monostyle_core::score::grade(self.score())
 	}
 }
 
@@ -173,6 +167,76 @@ pub struct ProjectReport {
 	pub skipped: Vec<PathBuf>,
 	/// Detected workspace packages, when the analyzed path is a monorepo.
 	pub packages: Vec<crate::package::PackageReport>,
+	/// Paths whose scores fell below the floor that applies to them.
+	///
+	/// Reported per path rather than as one verdict, so a failure names what to fix. A single "below the
+	/// floor" message tells a reader nothing about where to look.
+	pub floor_violations: Vec<FloorViolation>,
+	/// Whether any floor was configured, so the report can say so when everything passes.
+	#[serde(skip)]
+	pub floor_configured: bool,
+}
+
+/// A path that scored below its floor.
+#[derive(Debug, Clone, Serialize)]
+pub struct FloorViolation {
+	/// The path that fell short.
+	pub path: PathBuf,
+	/// The readability score achieved.
+	pub readability: f64,
+	/// The complexity score achieved.
+	pub complexity: f64,
+	/// The readability floor that applied, when one did.
+	pub readability_floor: Option<f64>,
+	/// The complexity floor that applied, when one did.
+	pub complexity_floor: Option<f64>,
+	/// Why this path has its own floor, when a section explained itself.
+	pub reason: Option<String>,
+	/// The rules that cost the most points at this path, worst first.
+	///
+	/// This is what turns a failure into a worklist: the reader sees the floor, how far short it fell, and
+	/// which rules to address.
+	pub top_offenders: Vec<(String, f64)>,
+}
+
+impl FloorViolation {
+	/// Whether either category fell short.
+	#[must_use]
+	pub fn is_below(&self) -> bool {
+		self.readability_floor
+			.is_some_and(|floor| self.readability < floor)
+			|| self
+				.complexity_floor
+				.is_some_and(|floor| self.complexity < floor)
+	}
+
+	/// A one-line description of what fell short and by how much.
+	#[must_use]
+	pub fn summary(&self) -> String {
+		let mut parts = Vec::new();
+
+		if let Some(floor) = self.readability_floor
+			&& self.readability < floor
+		{
+			parts.push(format!(
+				"readability {:.1} is {:.1} below the {floor:.1} floor",
+				self.readability,
+				floor - self.readability
+			));
+		}
+
+		if let Some(floor) = self.complexity_floor
+			&& self.complexity < floor
+		{
+			parts.push(format!(
+				"complexity {:.1} is {:.1} below the {floor:.1} floor",
+				self.complexity,
+				floor - self.complexity
+			));
+		}
+
+		parts.join("; ")
+	}
 }
 
 impl ProjectReport {
@@ -213,6 +277,15 @@ impl ProjectReport {
 				.unwrap_or(std::cmp::Ordering::Equal)
 		});
 		ranked
+	}
+
+	/// Whether any floor was configured for this run.
+	///
+	/// Used to decide whether "every path meets its floor" is worth printing: saying so when no floor was
+	/// set would be misleading.
+	#[must_use]
+	pub fn has_any_floor(&self) -> bool {
+		!self.floor_violations.is_empty() || self.floor_configured
 	}
 
 	/// Findings paired with their paths, as owned values.
@@ -319,18 +392,71 @@ pub struct AnalysisOptions {
 	/// On by default. The cache is keyed by modification time and size, so a hit only occurs when the
 	/// file is genuinely unchanged.
 	pub cache: bool,
+	/// Score floors that apply across the repository.
+	///
+	/// Checked after scoring, so a run reports which paths fell short and by how much rather than only
+	/// that something did.
+	pub fail_under: crate::section::ScoreFloor,
+	/// Per-path sections, each with its own thresholds and floors.
+	///
+	/// The most specific section that matches a path wins, so a project can hold its core to one standard
+	/// and its tests to another without disabling a rule for everything.
+	pub sections: Vec<crate::section::Section>,
 }
 
 impl Default for AnalysisOptions {
 	fn default() -> Self {
 		Self {
 			rules: RulesConfig::default(),
+
 			scoring: ScoringConfig::default(),
 			// Written out rather than derived, because a derived `Default` would make every boolean
 			// false. That silently disabled the cache: the field existed, the code consulted it, and
 			// the whole feature was dead because the default was the opposite of the intent.
 			cache: true,
+
+			fail_under: crate::section::ScoreFloor::default(),
+			sections: Vec::new(),
 		}
+	}
+}
+
+impl AnalysisOptions {
+	/// Returns the rules that apply to `path`.
+	///
+	/// A section's rules are layered onto the repository-wide values, so a section only states what differs.
+	#[must_use]
+	pub fn rules_for(&self, path: &Path) -> RulesConfig {
+		let Some(section) = crate::section::section_for(&self.sections, path) else {
+			return self.rules.clone();
+		};
+
+		section.rules.clone()
+	}
+
+	/// Returns the floor that applies to `path`.
+	///
+	/// A more specific section replaces the repository-wide floor for the categories it sets and inherits
+	/// the rest, so a section can raise the bar for readability without restating complexity.
+	#[must_use]
+	pub fn floor_for(&self, path: &Path) -> crate::section::ScoreFloor {
+		let Some(section) = crate::section::section_for(&self.sections, path) else {
+			return self.fail_under;
+		};
+
+		crate::section::ScoreFloor {
+			readability: section
+				.fail_under
+				.readability
+				.or(self.fail_under.readability),
+			complexity: section.fail_under.complexity.or(self.fail_under.complexity),
+		}
+	}
+
+	/// Whether `path` is excluded by a section.
+	#[must_use]
+	pub fn is_ignored(&self, path: &Path) -> bool {
+		crate::section::section_for(&self.sections, path).is_some_and(|section| section.ignore)
 	}
 }
 
@@ -351,14 +477,17 @@ pub fn analyze_with_language(
 	options: &AnalysisOptions,
 ) -> FileReport {
 	let lexed = lex(source, language);
-	let findings = findings_for(&lexed, options);
+	let findings = findings_for(&lexed, path, options);
 
 	build_report(path, &lexed, findings, options)
 }
 
 /// Runs the rule set over a lexed file.
-fn findings_for(lexed: &LexedFile, options: &AnalysisOptions) -> Vec<Finding> {
-	monostyle_rules::run_rules(lexed, &options.rules)
+///
+/// The rules come from the section that matches the file's path, so a directory can hold a different bar
+/// from the rest of the repository without the rule being disabled everywhere.
+fn findings_for(lexed: &LexedFile, path: &Path, options: &AnalysisOptions) -> Vec<Finding> {
+	monostyle_rules::run_rules(lexed, &options.rules_for(path))
 }
 
 /// Builds a report from lines restored from the cache.
@@ -387,7 +516,7 @@ fn analyze_lines(
 		unterminated: Vec::new(),
 	};
 
-	let findings = findings_for(&lexed, options);
+	let findings = findings_for(&lexed, path, options);
 
 	build_report(path, &lexed, findings, options)
 }
@@ -551,6 +680,12 @@ pub fn aggregate(
 	);
 
 	let packages = score_packages(&files, options);
+	let floor_violations = find_floor_violations(&files, options);
+	let floor_configured = options.fail_under.is_set()
+		|| options
+			.sections
+			.iter()
+			.any(|section| section.fail_under.is_set());
 
 	ProjectReport {
 		files,
@@ -560,7 +695,89 @@ pub fn aggregate(
 		code_lines,
 		skipped,
 		packages,
+		floor_violations,
+		floor_configured,
 	}
+}
+
+/// Finds the files that scored below the floor that applies to them.
+///
+/// A file is only checked against the floor its own section sets, so a path with a lower bar is not held to
+/// the repository default. Each violation carries the rules that cost it the most points, which is what
+/// makes the result actionable rather than merely negative.
+fn find_floor_violations(files: &[FileReport], options: &AnalysisOptions) -> Vec<FloorViolation> {
+	let mut violations = Vec::new();
+
+	for file in files {
+		let floor = options.floor_for(&file.path);
+
+		if !floor.is_set() {
+			continue;
+		}
+
+		let violation = FloorViolation {
+			path: file.path.clone(),
+			readability: file.readability.value,
+			complexity: file.complexity.value,
+			readability_floor: floor.readability,
+			complexity_floor: floor.complexity,
+			reason: crate::section::section_for(&options.sections, &file.path)
+				.and_then(|section| section.reason.clone()),
+			top_offenders: top_offenders_for(file),
+		};
+
+		if violation.is_below() {
+			violations.push(violation);
+		}
+	}
+
+	// Worst shortfall first, measured against the floor that applied, so the report leads with the path
+	// furthest from where it should be.
+	violations.sort_by(|left, right| {
+		let shortfall = |violation: &FloorViolation| {
+			let read = violation
+				.readability_floor
+				.map_or(0.0, |floor| (floor - violation.readability).max(0.0));
+			let cplx = violation
+				.complexity_floor
+				.map_or(0.0, |floor| (floor - violation.complexity).max(0.0));
+
+			read + cplx
+		};
+
+		shortfall(right)
+			.partial_cmp(&shortfall(left))
+			.unwrap_or(std::cmp::Ordering::Equal)
+	});
+
+	violations
+}
+
+/// Returns the rules that cost a file the most points, worst first.
+fn top_offenders_for(file: &FileReport) -> Vec<(String, f64)> {
+	let mut totals: Vec<(String, f64)> = Vec::new();
+
+	for finding in &file.findings {
+		let penalty = finding.penalty();
+
+		if penalty <= 0.0 {
+			continue;
+		}
+
+		match totals.iter_mut().find(|(rule, _)| *rule == finding.rule) {
+			Some((_, total)) => *total += penalty,
+			None => totals.push((finding.rule.clone(), penalty)),
+		}
+	}
+
+	totals.sort_by(|left, right| {
+		right
+			.1
+			.partial_cmp(&left.1)
+			.unwrap_or(std::cmp::Ordering::Equal)
+	});
+	totals.truncate(3);
+	totals
 }
 
 /// Detects workspace packages and scores each one.
@@ -610,19 +827,7 @@ fn common_root(files: &[FileReport]) -> Option<PathBuf> {
 
 		root = Some(match root {
 			None => directory,
-			Some(current) => {
-				let mut shared = PathBuf::new();
-
-				for (left, right) in current.components().zip(directory.components()) {
-					if left != right {
-						break;
-					}
-
-					shared.push(left);
-				}
-
-				shared
-			}
+			Some(current) => shared_prefix(&current, &directory),
 		});
 	}
 
@@ -631,6 +836,21 @@ fn common_root(files: &[FileReport]) -> Option<PathBuf> {
 	// Returning the deepest shared directory meant workspace detection silently found nothing
 	// whenever the analyzed files lived below the manifest, which is the normal layout.
 	root.and_then(|deepest| nearest_manifest_root(&deepest))
+}
+
+/// Returns the leading path components that `left` and `right` have in common.
+fn shared_prefix(left: &Path, right: &Path) -> PathBuf {
+	let mut shared = PathBuf::new();
+
+	for (left, right) in left.components().zip(right.components()) {
+		if left != right {
+			break;
+		}
+
+		shared.push(left);
+	}
+
+	shared
 }
 
 /// Walks upward from `start` looking for a directory that declares a workspace.
@@ -733,6 +953,13 @@ pub fn analyze_paths(paths: &[PathBuf], options: &AnalysisOptions) -> ProjectRep
 	let results: Vec<(Option<FileReport>, Option<PathBuf>)> = paths
 		.par_iter()
 		.map(|path| {
+			// A section marked `ignore` excludes its path entirely, which is what a vendored directory or
+			// a set of deliberately bad fixtures warrants. Distinct from a floor of zero: an ignored path
+			// produces no findings and contributes nothing to any score.
+			if options.is_ignored(path) {
+				return (None, None);
+			}
+
 			let Some(language) = language_for_path(path) else {
 				return (None, Some(path.clone()));
 			};
@@ -757,7 +984,7 @@ pub fn analyze_paths(paths: &[PathBuf], options: &AnalysisOptions) -> ProjectRep
 					Some(build_report(
 						path,
 						&lexed,
-						findings_for(&lexed, options),
+						findings_for(&lexed, path, options),
 						options,
 					)),
 					None,

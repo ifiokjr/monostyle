@@ -53,7 +53,7 @@ impl NPath {
 }
 
 /// Where and how often a body exits.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize)]
 pub struct ExitCount {
 	/// Number of `return`, `yield`, and explicit exit statements.
 	pub exits: usize,
@@ -149,22 +149,12 @@ pub fn npath_of_lines(lines: &[LexedLine]) -> NPath {
 			continue;
 		}
 
-		let decisions = line.decision_count();
-
-		if decisions > 0 {
-			let multiplier = decisions + 1;
-
-			match total.checked_mul(multiplier) {
-				Some(value) if value <= NPath::CAP => total = value,
-				_ => {
-					total = NPath::CAP;
-					capped = true;
-				}
-			}
+		if line.decision_count() > 0 {
+			total = grow(total, line.decision_count() + 1, &mut capped);
 		}
 
-		// Each open block adds a nesting level; a nested branch multiplies rather than adds, which
-		// is the difference between this metric and cyclomatic complexity.
+		// Each open block adds a nesting level; a nested branch multiplies rather than adds, which is the
+		// difference between this metric and cyclomatic complexity.
 		depth = depth.saturating_add(line.masked_code.matches('{').count());
 		depth = depth.saturating_sub(line.masked_code.matches('}').count());
 	}
@@ -172,6 +162,21 @@ pub fn npath_of_lines(lines: &[LexedLine]) -> NPath {
 	NPath {
 		value: total,
 		capped,
+	}
+}
+
+/// Multiplies `total` by `factor`, stopping at the cap rather than overflowing.
+///
+/// The count grows faster than exponentially, so an uncapped multiplication overflows on realistic input.
+/// Reaching the cap is recorded because a caller reporting "10000000+" needs to know the figure is a floor.
+fn grow(total: usize, factor: usize, capped: &mut bool) -> usize {
+	match total.checked_mul(factor) {
+		Some(value) if value <= NPath::CAP => value,
+		_ => {
+			*capped = true;
+
+			NPath::CAP
+		}
 	}
 }
 
@@ -189,38 +194,29 @@ pub fn exit_count_of_lines(lines: &[LexedLine]) -> ExitCount {
 	/// Words that jump within a loop.
 	const JUMP_WORDS: &[&str] = &["break", "continue", "goto"];
 
-	let mut counts = ExitCount {
-		exits: 0,
-		throws: 0,
-		jumps: 0,
-	};
+	let mut counts = ExitCount::default();
 
 	for line in lines {
 		if !line.is_code() {
 			continue;
 		}
 
-		let words: Vec<&str> = line
-			.masked_code
-			.split(|character: char| !character.is_alphanumeric() && character != '_')
-			.collect();
-
 		if line.is_return {
 			counts.exits += 1;
 		}
 
-		for word in &words {
-			if THROW_WORDS.contains(word) {
-				counts.throws += 1;
-			}
-
-			if JUMP_WORDS.contains(word) {
-				counts.jumps += 1;
-			}
-		}
+		counts.throws += count_words(&line.masked_code, THROW_WORDS);
+		counts.jumps += count_words(&line.masked_code, JUMP_WORDS);
 	}
 
 	counts
+}
+
+/// Counts how many words in `text` appear in `words`.
+fn count_words(text: &str, words: &[&str]) -> usize {
+	text.split(|character: char| !character.is_alphanumeric() && character != '_')
+		.filter(|word| words.contains(word))
+		.count()
 }
 
 /// Computes the nesting profile for `file`.

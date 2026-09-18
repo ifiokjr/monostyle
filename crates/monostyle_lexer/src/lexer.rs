@@ -439,57 +439,37 @@ impl Scanner {
 		let mut index = 0;
 
 		while index < characters.len() {
-			let character = characters[index];
+			let Some(character) = characters.get(index).copied() else {
+				break;
+			};
 
-			if character == '\n' {
-				let number = line.number;
-				// A CR consumed by the CRLF branch is a terminator byte, not content, so the range ends
+			// A line break ends the current line. The two forms differ only in how many bytes they consume,
+			// so the handling is shared rather than repeated for each.
+			if let Some(consumed) = self.line_break_length(character, &characters, index) {
+				// A CR consumed by the CRLF form is a terminator byte rather than content, so the range ends
 				// before it while the offsets that follow still count it.
 				let end = if self.crlf_pending {
 					self.current_byte.saturating_sub(1)
 				} else {
 					self.current_byte
 				};
+				let number = line.number;
+
 				self.crlf_pending = false;
 				line.set_bytes(self.line_start_byte, end);
-				let finished = std::mem::replace(&mut line, LineBuilder::new(number + 1));
 
+				let finished = std::mem::replace(&mut line, LineBuilder::new(number + 1));
 				self.close_line(finished);
-				index += 1;
-				self.current_byte += 1;
+
+				index += consumed;
+				self.current_byte += consumed;
 				self.line_start_byte = self.current_byte;
 				continue;
 			}
 
-			// A carriage return is either skipped (CRLF) or treated as a line break (CR).
-			if character == '\r' {
-				let next = characters.get(index + 1).copied();
-
-				if next == Some('\n') {
-					// The carriage return is a real byte in the source even though it is not part of the
-					// line's text, so the offset advances past it and the pending range remembers to
-					// exclude it. Skipping without advancing left every later line's byte range one byte
-					// short of its actual position.
-					index += 1;
-					self.current_byte += 1;
-					self.crlf_pending = true;
-					continue;
-				}
-
-				let number = line.number;
-				line.set_bytes(self.line_start_byte, self.current_byte);
-				let finished = std::mem::replace(&mut line, LineBuilder::new(number + 1));
-
-				self.close_line(finished);
-				index += 1;
-				self.current_byte += 1;
-				self.line_start_byte = self.current_byte;
-				continue;
-			}
-
-			// A new line that begins inside an open literal is literal content until the closer
-			// is found, however many lines later. Recording that here is what keeps a Python
-			// snippet embedded in a Rust string from being measured as indented Rust code.
+			// A line that begins inside an open literal is literal content until the closer is found,
+			// however many lines later. Recording that here is what keeps a Python snippet embedded in a
+			// Rust string from being measured as indented Rust code.
 			if self.inside_multiline_construct() {
 				line.literal_only = true;
 			}
@@ -498,15 +478,16 @@ impl Scanner {
 
 			index = self.step(&characters, index, &mut line);
 
-			// The scanner consumes characters by index, so the byte offset is advanced by the width
-			// of every character it moved past. This is what turns an index into an addressable
-			// position in the source.
-			for character in &characters[before..index.min(characters.len())] {
+			// The scanner consumes characters by index, so the byte offset advances by the width of every
+			// character it moved past. This is what turns an index into an addressable position.
+			for character in characters
+				.get(before..index.min(characters.len()))
+				.unwrap_or_default()
+			{
 				self.current_byte += character.len_utf8();
 			}
 		}
 
-		line.set_bytes(self.line_start_byte, self.current_byte);
 		self.close_final_line(line);
 		records_for_open_constructs(
 			&mut self.unterminated,
@@ -519,15 +500,41 @@ impl Scanner {
 
 	/// Closes the last line, unless a trailing newline already terminated it.
 	///
-	/// A file ending in a newline leaves an empty builder behind. Emitting it would report one
-	/// more line than the file has, and would make every line count and density denominator
-	/// slightly wrong.
-	fn close_final_line(&mut self, line: LineBuilder) {
+	/// A file ending in a newline leaves an empty builder behind. Emitting it would report one more line than
+	/// the file has, which would make every line count and density denominator slightly wrong.
+	fn close_final_line(&mut self, mut line: LineBuilder) {
 		if line.raw.is_empty() && !self.lines.is_empty() {
 			return;
 		}
 
+		line.set_bytes(self.line_start_byte, self.current_byte);
 		self.close_line(line);
+	}
+
+	/// How many bytes a line break consumes here, or `None` when this character is not one.
+	///
+	/// A carriage return is a break on its own, but a carriage return followed by a newline is one CRLF break
+	/// rather than two. The consumed count is what advances both the index and the byte offset, and a CRLF
+	/// additionally records that the pending line range must exclude the carriage return.
+	fn line_break_length(
+		&mut self,
+		character: char,
+		characters: &[char],
+		index: usize,
+	) -> Option<usize> {
+		match character {
+			'\n' => Some(1),
+			'\r' => {
+				if characters.get(index + 1) == Some(&'\n') {
+					self.crlf_pending = true;
+
+					return Some(2);
+				}
+
+				Some(1)
+			}
+			_ => None,
+		}
 	}
 
 	/// Handles the construct that is currently open, or opens a new one.
@@ -921,6 +928,7 @@ impl Scanner {
 				rule,
 				opener_length: rule.open.chars().count(),
 				hashes: 0,
+				multiline: rule.multiline,
 			});
 		}
 
@@ -947,6 +955,8 @@ impl Scanner {
 					// The prefix, the hashes, and the opening quote are all consumed.
 					opener_length: 1 + hashes + 1,
 					hashes,
+					// A raw string spans lines whether or not it carries hashes.
+					multiline: true,
 				});
 			}
 		}
@@ -959,10 +969,13 @@ impl Scanner {
 		let remainder: String = after_prefix.iter().collect();
 		let rule = self.profile.string_at(&remainder)?;
 
+		// A prefixed form such as `r"..."` is a raw literal, which spans lines. Every language that defines a
+		// string prefix defines it for a raw or interpolated form, and both may be multiline.
 		Some(LiteralStart {
 			rule,
 			opener_length: 1 + rule.open.chars().count(),
 			hashes: 0,
+			multiline: true,
 		})
 	}
 
@@ -979,6 +992,7 @@ impl Scanner {
 			rule,
 			opener_length,
 			hashes,
+			multiline,
 		} = start;
 		let end = closing_delimiter(rule, hashes);
 
@@ -1008,7 +1022,7 @@ impl Scanner {
 		self.literals.push(Literal {
 			end,
 			escapes: rule.escapes,
-			multiline: rule.multiline || hashes > 0 || continues,
+			multiline: multiline || continues,
 			interpolation: rule.interpolates.then(|| {
 				// Every interpolating language in the profile table has a style; defaulting to
 				// a braced form keeps an unconfigured language from silently losing
@@ -1117,6 +1131,7 @@ impl Scanner {
 		} else {
 			stripped
 		};
+
 		let delimiter = match stripped.trim_start().chars().next() {
 			Some(quote @ ('"' | '\'')) => {
 				let body: String = stripped.trim_start()[1..]
@@ -1398,6 +1413,7 @@ fn find_regex_close(text: &str) -> Option<usize> {
 			}
 			'[' => in_class = true,
 			']' => in_class = false,
+
 			'/' if !in_class => return Some(index + 1),
 			'\n' => return None,
 			_ => {}
@@ -1418,6 +1434,12 @@ struct LiteralStart {
 	opener_length: usize,
 	/// How many hashes the opener carried, for Rust-style raw strings.
 	hashes: usize,
+	/// Whether this opener's literal spans lines.
+	///
+	/// A prefix changes the form: Rust's `r"..."` spans lines while its plain `"..."` does not, so the base
+	/// rule's own `multiline` flag does not apply. Reading a raw string as single-line closed it at the end
+	/// of its first line, which leaked the rest of its contents into the analysis as code.
+	multiline: bool,
 }
 
 /// Builds the delimiter that closes a literal opened with `hashes` hashes.

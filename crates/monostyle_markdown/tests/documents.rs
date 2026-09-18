@@ -248,6 +248,7 @@ fn structure_breaks_a_prose_run() {
 				text
 			});
 	source.push_str("\n## A heading\n\n");
+
 	for index in 0..10 {
 		let _ = writeln!(source, "More line {index}.");
 	}

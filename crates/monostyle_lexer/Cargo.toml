@@ -1,6 +1,5 @@
 [package]
 name = "monostyle_lexer"
-description = "Profile-driven tokenizer that extracts layout and complexity signals from source code."
 version.workspace = true
 authors.workspace = true
 categories.workspace = true
@@ -10,6 +9,7 @@ license.workspace = true
 readme.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+description = "Profile-driven tokenizer that extracts layout and complexity signals from source code."
 
 [dependencies]
 monostyle_core = { workspace = true }

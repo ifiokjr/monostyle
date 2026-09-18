@@ -38,38 +38,43 @@ pub fn magic_numbers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 			continue;
 		}
 
-		for literal in numeric_literals(&line.masked_code) {
-			if is_conventional(literal.value) {
-				continue;
-			}
+		// A literal in a constant declaration is already named by the declaration it sits in.
+		if is_constant_declaration(line) {
+			continue;
+		}
 
-			// A literal in a constant declaration is already named by the declaration it sits in.
-			if is_constant_declaration(line) {
-				continue;
-			}
-
-			findings.push(
-				FindingBuilder::new(
-					"readability/magic-number",
-					Category::Readability,
-					Span::new(line.start_byte, line.end_byte, line.number, line.number),
-				)
-				.severity(Severity::Minor)
-				.weight(0.5)
-				.message(format!(
-					"the literal `{}` carries meaning without a name",
-					literal.text
-				))
-				.suggestion(
-					"Name this value as a constant so the reader knows what it represents and where \
-					 else it is used.",
-				)
-				.build(),
-			);
+		for literal in unnamed_literals(line) {
+			findings.push(magic_number_finding(line, &literal.text));
 		}
 	}
 
 	findings
+}
+
+/// Returns the numeric literals on a line that carry meaning without a name.
+fn unnamed_literals(line: &LexedLine) -> Vec<NumericLiteral> {
+	numeric_literals(&line.masked_code)
+		.into_iter()
+		.filter(|literal| !is_conventional(literal.value))
+		.collect()
+}
+
+/// Builds the finding for one unnamed literal.
+fn magic_number_finding(line: &LexedLine, text: &str) -> Finding {
+	FindingBuilder::new(
+		"readability/magic-number",
+		Category::Readability,
+		Span::new(line.start_byte, line.end_byte, line.number, line.number),
+	)
+	.severity(Severity::Minor)
+	.weight(0.5)
+	.message(format!(
+		"the literal `{text}` carries meaning without a name"
+	))
+	.suggestion(
+		"Name this value as a constant so the reader knows what it represents and where else it is used.",
+	)
+	.build()
 }
 
 /// Reports identifiers too short to carry meaning.
@@ -90,17 +95,7 @@ pub fn short_identifiers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding>
 			continue;
 		}
 
-		for name in binding_names(&line.masked_code, file.language) {
-			if name.chars().count() >= config.min_identifier_length {
-				continue;
-			}
-
-			// Conventional short names are idiomatic in the positions they appear in, and a
-			// coordinate or loop index named `x` or `i` is clearer than a long alternative.
-			if is_conventional_name(&name) {
-				continue;
-			}
-
+		for name in unclear_names(line, file.language, config.min_identifier_length) {
 			findings.push(
 				FindingBuilder::new(
 					"readability/short-identifier",
@@ -122,6 +117,19 @@ pub fn short_identifiers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding>
 	findings
 }
 
+/// Returns the names on a line that are too short to carry meaning.
+///
+/// Two kinds are kept: names at or above the minimum length, and the conventional short names that are
+/// idiomatic where they appear. A loop index named `i` or a coordinate named `x` is clearer than any longer
+/// alternative, so reporting those would be wrong.
+fn unclear_names(line: &LexedLine, language: Language, minimum: usize) -> Vec<String> {
+	binding_names(&line.masked_code, language)
+		.into_iter()
+		.filter(|name| name.chars().count() < minimum)
+		.filter(|name| !is_conventional_name(name))
+		.collect()
+}
+
 /// Reports exception handlers that discard the error.
 ///
 /// An empty handler is almost always a bug rather than a decision: it turns a failure into silence,
@@ -130,14 +138,6 @@ pub fn short_identifiers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding>
 /// sometimes swallowing is correct.
 #[must_use]
 pub fn empty_handlers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
-	/// Keywords that introduce an error handler.
-	///
-	/// Rust has no such keyword: it handles errors with a `match` arm whose pattern is `Err`. That arm
-	/// is checked separately below, because without it the rule never fired on Rust at all.
-	const HANDLER_KEYWORDS: &[&str] = &["catch", "except", "rescue"];
-	/// Bodies that do nothing.
-	const EMPTY_BODIES: &[&str] = &["pass", "{}", "continue", "return;", "..."];
-
 	if !config.report_empty_handlers {
 		return Vec::new();
 	}
@@ -145,52 +145,11 @@ pub fn empty_handlers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	let mut findings = Vec::new();
 
 	for (index, line) in file.lines.iter().enumerate() {
-		if !line.is_code() {
+		if !line.is_code() || !introduces_handler(line) {
 			continue;
 		}
 
-		let words: Vec<&str> = line
-			.masked_code
-			.split(|character: char| !character.is_alphanumeric() && character != '_')
-			.collect();
-
-		// A Rust error arm is `Err(..) => {`, which has no handler keyword. The check is on the
-		// pattern followed by a fat arrow so that an `Err` in an expression is not mistaken for a
-		// handler.
-		let trimmed = line.masked_code.trim_start();
-		let is_rust_error_arm = trimmed.starts_with("Err")
-			&& line.masked_code.contains("=>")
-			&& line.masked_code.trim_end().ends_with('{');
-
-		if !words.iter().any(|word| HANDLER_KEYWORDS.contains(word)) && !is_rust_error_arm {
-			continue;
-		}
-
-		// The handler's body is the following code line, since a brace or an indent follows.
-		let Some(body) = file
-			.lines
-			.iter()
-			.skip(index + 1)
-			.find(|candidate| candidate.is_code())
-		else {
-			continue;
-		};
-
-		// A handler on the same line as its body, as in `catch (e) {}`.
-		let inline_body = line
-			.masked_code
-			.split_once('{')
-			.map(|(_head, tail)| tail.trim());
-
-		let body_text = inline_body.unwrap_or_else(|| body.masked_code.trim());
-
-		// A single closing brace on the next line means the body was empty.
-		let is_empty = EMPTY_BODIES.contains(&body_text)
-			|| body_text.is_empty()
-			|| body_text == "}"
-			|| body.masked_code.trim() == "}";
-
-		if !is_empty {
+		if !handler_discards_its_error(file, index, line) {
 			continue;
 		}
 
@@ -212,6 +171,112 @@ pub fn empty_handlers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	}
 
 	findings
+}
+
+/// Whether a line opens an error handler.
+///
+/// Two forms qualify: a language with a handler keyword (`catch`, `except`, `rescue`), and Rust, which has
+/// none and instead uses a `match` arm whose pattern is `Err`.
+fn introduces_handler(line: &LexedLine) -> bool {
+	/// Keywords that introduce an error handler.
+	const HANDLER_KEYWORDS: &[&str] = &["catch", "except", "rescue"];
+
+	if opens_with_handler_keyword(&line.masked_code, HANDLER_KEYWORDS) {
+		return true;
+	}
+
+	// The check is on the pattern followed by a fat arrow so an `Err` in an expression is not mistaken for a
+	// handler.
+	let trimmed = line.masked_code.trim_start();
+
+	trimmed.starts_with("Err")
+		&& line.masked_code.contains("=>")
+		&& line.masked_code.trim_end().ends_with('{')
+}
+
+/// Whether a line opens a handler block with one of `keywords`.
+///
+/// The keyword has to be a word of its own, not a fragment of a longer identifier. Matching any
+/// occurrence of the text reported every function whose *name* contained one:
+/// `fn complexity_rules_catch_a_hard_function()` opens no handler, and was reported as discarding an
+/// error it never caught.
+///
+/// The keyword may sit mid-line, because JavaScript writes `} catch (error) {` after the closing brace
+/// of the `try` body. Requiring the line to begin with it would miss every such handler.
+fn opens_with_handler_keyword(code: &str, keywords: &[&str]) -> bool {
+	keywords
+		.iter()
+		.filter(|keyword| !keyword.is_empty())
+		.any(|keyword| has_word(code, keyword))
+}
+
+/// Whether `code` contains `word` delimited by non-identifier characters on both sides.
+fn has_word(code: &str, word: &str) -> bool {
+	let mut from = 0;
+
+	while let Some(offset) = code.get(from..).and_then(|rest| rest.find(word)) {
+		let start = from + offset;
+		let end = start + word.len();
+		let before = code.get(..start).and_then(|head| head.chars().next_back());
+		let after = code.get(end..).and_then(|tail| tail.chars().next());
+
+		// Both sides must be word boundaries, which is what a bare `find` does not give: without
+		// this, `rescue_all` matches `rescue` and a name like `catches` matches `catch`.
+		if !is_identifier_char(before) && !is_identifier_char(after) {
+			return true;
+		}
+
+		from = end;
+	}
+
+	false
+}
+
+/// Whether a character can appear inside an identifier.
+fn is_identifier_char(character: Option<char>) -> bool {
+	character.is_some_and(|value| value.is_alphanumeric() || value == '_')
+}
+
+/// Whether a handler's body does nothing with the error.
+fn handler_discards_its_error(file: &LexedFile, index: usize, line: &LexedLine) -> bool {
+	// A handler on the same line as its body, as in `catch (e) {}` or `Err(_) => {}`.
+	if let Some(inline) = line
+		.masked_code
+		.split_once('{')
+		.map(|(_head, tail)| tail.trim())
+		&& body_is_empty(inline)
+	{
+		return true;
+	}
+
+	// Otherwise the body is the next code line, since a brace or an indent follows the handler.
+	let Some(body) = file
+		.lines
+		.iter()
+		.skip(index + 1)
+		.find(|candidate| candidate.is_code())
+	else {
+		return false;
+	};
+
+	body_is_empty(body.masked_code.trim())
+}
+
+/// Whether a handler body contains nothing.
+///
+/// A body that closes immediately contains only a brace, which is the shape an empty block produces whether
+/// it was written on one line or two.
+fn body_is_empty(text: &str) -> bool {
+	/// Bodies that do nothing while looking deliberate.
+	///
+	/// A bare `pass` or `continue` is how a deliberate no-op is written in each language.
+	const EMPTY_BODIES: &[&str] = &["pass", "continue", "return;", "..."];
+
+	if text.is_empty() || text == "}" {
+		return true;
+	}
+
+	EMPTY_BODIES.contains(&text)
 }
 
 /// Reports blocks of code that were commented out rather than deleted.
@@ -412,66 +477,94 @@ fn is_constant_declaration(line: &LexedLine) -> bool {
 /// Only declarations and assignments are considered, because those are where a name is chosen rather
 /// than reused. A short parameter name in a closure is idiomatic in a way a short variable is not.
 fn binding_names(text: &str, language: Language) -> Vec<String> {
-	let mut names: Vec<String> = Vec::new();
-
 	// An import alias is the imported module's name, not a name the author chose: `import typing as T`
-	// carries whatever the library is called, so reporting `T` asks for a rename the author cannot make.
+	// carries whatever the library is called, so reporting `T` asks for a rename nobody can make.
+	if is_import(text) {
+		return Vec::new();
+	}
+
+	let mut names = Vec::new();
+
+	// `push_name` deduplicates, because a name can be found by both the assignment path and the declaration
+	// path — `let ab = x` matches both — and reporting it twice inflates the count for one problem.
+	push_name(&mut names, assigned_name(text));
+	push_unique(&mut names, declared_names(text, language));
+
+	names
+}
+
+/// Whether a line is an import, whose aliases are not the author's naming choice.
+fn is_import(text: &str) -> bool {
 	let trimmed = text.trim_start();
 
-	if trimmed.starts_with("import ") || trimmed.starts_with("use ") || trimmed.starts_with("from ")
-	{
-		return names;
+	trimmed.starts_with("import ") || trimmed.starts_with("use ") || trimmed.starts_with("from ")
+}
+
+/// Returns the name being assigned to, when the line is an assignment.
+///
+/// A comparison is skipped, because `a == b` binds nothing.
+fn assigned_name(text: &str) -> Option<String> {
+	let (head, _value) = text.split_once('=')?;
+
+	// Strip the operator itself and any compound form such as `+=`.
+	let head = head
+		.trim_end_matches(['=', '!', '<', '>', ':', '+', '-', '*', '/', '%'])
+		.trim_end();
+
+	if head.ends_with(['!', '<', '>']) {
+		return None;
 	}
 
-	// `push_name` deduplicates, because a name can be found by both the assignment path and the
-	// declaration path — `let ab = x` matches both — and reporting it twice inflates the finding count
-	// for one problem.
-	let push_name = |names: &mut Vec<String>, name: String| {
-		if !names.contains(&name) {
-			names.push(name);
-		}
-	};
+	last_identifier(head)
+}
 
-	// The token before an assignment is being bound.
-	if let Some((head, _tail)) = text.split_once('=') {
-		// Skip comparisons, which are not bindings.
-		let head = head.trim_end_matches(['=', '!', '<', '>', ':', '+', '-', '*', '/', '%']);
+/// Returns the names introduced by declaration keywords on a line.
+fn declared_names(text: &str, language: Language) -> Vec<String> {
+	let words = words_of(text);
+	let keywords = declaration_keywords(language);
 
-		let head = head.trim_end();
+	words
+		.iter()
+		.enumerate()
+		.filter(|(_index, word)| keywords.contains(&word.to_ascii_lowercase().as_str()))
+		.filter_map(|(index, _word)| words.get(index + 1))
+		.filter(|name| !keywords.contains(&name.to_ascii_lowercase().as_str()))
+		.map(|name| (*name).to_string())
+		.collect()
+}
 
-		if !head.ends_with(['!', '<', '>'])
-			&& let Some(name) = last_identifier(head)
-		{
-			push_name(&mut names, name);
-		}
-	}
-
-	// A declaration keyword introduces the name that follows it.
-	let words: Vec<&str> = text
-		.split(|character: char| !character.is_alphanumeric() && character != '_')
-		.filter(|word| !word.is_empty())
-		.collect();
-
-	let declaration_words: &[&str] = match language {
+/// The words that introduce a binding in `language`.
+fn declaration_keywords(language: Language) -> &'static [&'static str] {
+	match language {
 		Language::Python | Language::Ruby | Language::Elixir | Language::Haskell => {
 			&["def", "class", "for", "as"]
 		}
 		Language::Dart => &["var", "final", "const", "late", "for"],
 		_ => &["let", "const", "var", "fn", "def", "function", "for", "val"],
-	};
+	}
+}
 
-	for (index, word) in words.iter().enumerate() {
-		if declaration_words.contains(word) {
-			// The name is the next word, unless the next word is a type-like keyword.
-			if let Some(name) = words.get(index + 1)
-				&& !declaration_words.contains(name)
-			{
-				push_name(&mut names, (*name).to_string());
-			}
+/// Splits a line into its identifier-like words.
+fn words_of(text: &str) -> Vec<&str> {
+	text.split(|character: char| !character.is_alphanumeric() && character != '_')
+		.filter(|word| !word.is_empty())
+		.collect()
+}
+
+/// Adds a name to `names` when there is one.
+fn push_name(names: &mut Vec<String>, name: Option<String>) {
+	if let Some(name) = name {
+		push_unique(names, std::iter::once(name));
+	}
+}
+
+/// Adds names to `names`, skipping those already present.
+fn push_unique(names: &mut Vec<String>, candidates: impl IntoIterator<Item = String>) {
+	for name in candidates {
+		if !names.contains(&name) {
+			names.push(name);
 		}
 	}
-
-	names
 }
 
 /// Returns the last identifier in `text`.

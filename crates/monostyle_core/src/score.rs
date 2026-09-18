@@ -69,6 +69,7 @@ impl ScoringConfig {
 	pub fn lenient() -> Self {
 		Self {
 			half_life: DEFAULT_HALF_LIFE * 2.0,
+
 			..Self::default()
 		}
 	}
@@ -78,6 +79,7 @@ impl ScoringConfig {
 	pub fn strict() -> Self {
 		Self {
 			half_life: DEFAULT_HALF_LIFE / 2.0,
+
 			..Self::default()
 		}
 	}
@@ -170,13 +172,42 @@ impl Score {
 	/// A short qualitative band for the score, useful in reports and CI output.
 	#[must_use]
 	pub fn grade(&self) -> &'static str {
-		match self.value {
-			value if value >= 90.0 => "excellent",
-			value if value >= 75.0 => "good",
-			value if value >= 60.0 => "fair",
-			value if value >= 40.0 => "poor",
-			_ => "bad",
-		}
+		grade(self.value)
+	}
+}
+
+/// The score at or above which a score is `excellent`.
+pub const EXCELLENT_FLOOR: f64 = 90.0;
+
+/// The score at or above which a score is `good`.
+pub const GOOD_FLOOR: f64 = 75.0;
+
+/// The score at or above which a score is `fair`.
+pub const FAIR_FLOOR: f64 = 60.0;
+
+/// The score at or above which a score is `poor`.
+pub const POOR_FLOOR: f64 = 40.0;
+
+/// The qualitative band for a score out of 100.
+///
+/// A free function as well as a method, because the bands are also needed for values that are not a
+/// [`Score`] — a unit's combined figure, for instance. Two copies of these thresholds existed before, which
+/// meant a change to one would have silently disagreed with the other.
+///
+/// The thresholds are exported as constants so a renderer that colours by band reads the same numbers
+/// rather than repeating them. A colour that disagreed with the word beside it would make the band
+/// invisible, which is the one job the colour has.
+#[must_use]
+pub fn grade(value: f64) -> &'static str {
+	match value {
+		value if value >= EXCELLENT_FLOOR => "excellent",
+
+		value if value >= GOOD_FLOOR => "good",
+
+		value if value >= FAIR_FLOOR => "fair",
+
+		value if value >= POOR_FLOOR => "poor",
+		_ => "bad",
 	}
 }
 

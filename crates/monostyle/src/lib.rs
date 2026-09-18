@@ -11,4 +11,5 @@ pub mod config;
 pub mod fix;
 pub mod package;
 pub mod report;
+pub mod section;
 pub mod style;

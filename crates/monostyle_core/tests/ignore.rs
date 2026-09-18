@@ -22,6 +22,7 @@ fn config(patterns: &[&str], include: &[&str]) -> IgnoreConfig {
 			.iter()
 			.map(|pattern| (*pattern).to_string())
 			.collect(),
+
 		..IgnoreConfig::default()
 	}
 }
@@ -98,6 +99,7 @@ fn ordinary_source_paths_are_allowed() {
 fn defaults_can_be_disabled() {
 	let config = IgnoreConfig {
 		defaults: false,
+
 		..IgnoreConfig::default()
 	};
 
@@ -185,6 +187,7 @@ fn generated_detection_is_case_insensitive() {
 fn generated_files_can_be_included() {
 	let config = IgnoreConfig {
 		generated: false,
+
 		..IgnoreConfig::default()
 	};
 

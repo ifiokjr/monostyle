@@ -147,6 +147,7 @@ fn a_corrupt_entry_is_discarded_rather_than_reported() {
 	// Overwrite every entry with nonsense.
 	for entry in std::fs::read_dir(directory.path().join("cache")).expect("read") {
 		let entry = entry.expect("entry");
+
 		for shard in std::fs::read_dir(entry.path()).expect("read shard") {
 			std::fs::write(shard.expect("file").path(), b"not a cache entry").expect("write");
 		}

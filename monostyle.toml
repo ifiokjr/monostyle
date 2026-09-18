@@ -1,8 +1,47 @@
 # monostyle's own configuration.
 #
-# Everything below is the default except the ignore patterns, which are specific to this repository.
+# This file is both the project's settings and a working example of the sections feature: the
+# repository is held to one bar, tests to another, and the deliberately-bad examples are ignored
+# entirely.
+#
+# # Two different numbers, and why
+#
+# The *target* is the project score: `monostyle check crates` reports 91.8 readability and 94.0
+# complexity, and CI shows that number on every run. The *floor* below is a safety net rather than the
+# target. A floor of 90 would fail on every file that is fine but not exceptional — 23 of 47 source
+# files sit between 70 and 90, and none of them are a problem worth blocking a merge over. A floor of
+# 70 catches the case that actually matters: a file that has become genuinely unpleasant to read.
 
-[rules.ignore]
-# The fixtures hold the deliberately bad examples that the scoring tests assert against. Measuring them
-# would report the quality of code written specifically to be bad, which says nothing about this project.
-patterns = ["crates/monostyle/tests/fixtures/**"]
+[rules]
+max-line-width = 100
+
+# The bar for code that ships. Any single file dropping below this is a signal that something went
+# wrong, so CI fails and names it.
+[[section]]
+path = "crates"
+fail-under = { readability = 70.0, complexity = 70.0 }
+
+# Tests may be structurally noisier than the code they exercise: a table-driven test builds data
+# inline, and a fixture that reads as deeply nested is often the clearest way to express the case it
+# covers. The floor is lower for the same reason the nesting limit is higher.
+[[section]]
+path = "crates/monostyle/tests"
+reason = "tests build data inline, so nesting and long lines read differently than in source"
+max-nesting-depth = 8
+max-parameters-inline = 8
+max-unit-lines = 200
+fail-under = { readability = 60.0, complexity = 60.0 }
+
+# The test inputs themselves, which must not be measured at all. This section is the most specific of
+# the three, so it wins for everything beneath it — including `fixtures/bad/rust.rs`, which scores 0
+# because the scoring tests assert that it does.
+[[section]]
+path = "crates/monostyle/tests/fixtures"
+ignore = true
+reason = "these are test inputs; bad/rust.rs scores 0 by design"
+
+# The worked examples at the repository root, which include another deliberately-bad file.
+[[section]]
+path = "examples"
+ignore = true
+reason = "bad/rust.rs scores 0 by design; the scoring tests assert against it"

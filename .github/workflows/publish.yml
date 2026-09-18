@@ -7,6 +7,18 @@ name: publish
 # this workflow does the rest. `workflow_dispatch` exists as a retry path for a partial publish,
 # because a registry that accepted some packages and then failed needs a way to finish rather than
 # a new release.
+#
+# # Authentication
+#
+# Publishing prefers trusted publishing and falls back to a long-lived token. Both registries are
+# asked for an OIDC credential first, because that is the stronger guarantee: the credential is
+# short-lived, bound to this workflow, and the registry records which run produced the package. The
+# token path exists because a package has to exist in a registry before it can be enrolled with a
+# trusted publisher, so the first publish of anything always uses a token.
+#
+# Set the `NPM_TOKEN` and `CARGO_REGISTRY_TOKEN` repository secrets to enable the fallback. Leaving
+# them unset is fine once every package is enrolled: the workflow then runs the trusted path only,
+# and fails early with a clear message if OIDC is unavailable.
 
 on:
   push:
@@ -23,6 +35,14 @@ on:
         required: false
         type: boolean
         default: false
+      force_token_auth:
+        description: "Skip trusted publishing and use the registry token secrets"
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
 
 concurrency:
   group: publish-${{ inputs.tag || github.ref_name }}
@@ -39,10 +59,12 @@ jobs:
     name: validate
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
     outputs:
       version: ${{ steps.version.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ env.RELEASE_TAG }}
           fetch-depth: 0
@@ -61,7 +83,7 @@ jobs:
         # not accept a corrected version at the same number.
         run: |
           set -euo pipefail
-          version="${{ steps.version.outputs.version }}"
+          version="${STEPS_VERSION_OUTPUTS_VERSION}"
           failed=0
 
           while IFS= read -r manifest; do
@@ -81,6 +103,8 @@ jobs:
           done
 
           exit $failed
+        env:
+          STEPS_VERSION_OUTPUTS_VERSION: ${{ steps.version.outputs.version }}
 
   build:
     name: build ${{ matrix.target }}
@@ -114,23 +138,26 @@ jobs:
           - target: x86_64-pc-windows-msvc
             os: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ env.RELEASE_TAG }}
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
           targets: ${{ matrix.target }}
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           key: ${{ matrix.target }}
+          lookup-only: true
 
       - name: install cross
         if: matrix.cross
-        uses: taiki-e/install-action@cross
+        uses: taiki-e/install-action@8ed95cf4ff55afeb4411ad3165fa10f7ca9e7a62 # v2
+        with:
+          tool: cross
 
       - name: build
         shell: bash
@@ -148,7 +175,7 @@ jobs:
         run: node scripts/stage-binaries.mjs "${{ matrix.target }}"
 
       - name: upload the release artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: monostyle-${{ matrix.target }}
           path: |
@@ -159,7 +186,7 @@ jobs:
 
       - name: attest the binary's provenance
         if: inputs.dry_run != true
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2.4.0
         with:
           subject-path: |
             target/${{ matrix.target }}/release/monostyle
@@ -174,13 +201,13 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ env.RELEASE_TAG }}
           persist-credentials: false
 
       - name: download every artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts
 
@@ -216,27 +243,67 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ env.RELEASE_TAG }}
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+        with:
+          lookup-only: true
 
-      - uses: rust-lang/crates-io-auth-action@v1
+      - name: request a crates.io credential via OIDC
+        id: oidc
+        # A crate that is not yet enrolled with a trusted publisher makes this fail, and that is not
+        # an error worth stopping for: the token fallback below covers exactly that case.
+        continue-on-error: true
+        uses: rust-lang/crates-io-auth-action@c6f97d42243bad5fab37ca0427f495c86d5b1a18 # v1.0.5
+
+      - name: resolve crates.io authentication
         id: auth
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          STEPS_OIDC_OUTPUTS_TOKEN: ${{ steps.oidc.outputs.token }}
+        run: |
+          set -euo pipefail
+
+          force_token="${{ inputs.force_token_auth || false }}"
+          oidc_token="${STEPS_OIDC_OUTPUTS_TOKEN}"
+
+          if [ "$force_token" != "true" ] && [ -n "$oidc_token" ]; then
+            echo "path=trusted" >> "$GITHUB_OUTPUT"
+            echo "Using trusted publishing for crates.io."
+            exit 0
+          fi
+
+          if [ -n "${CARGO_REGISTRY_TOKEN:-}" ]; then
+            echo "path=token" >> "$GITHUB_OUTPUT"
+            echo "::notice::Using CARGO_REGISTRY_TOKEN for crates.io; at least one crate is not enrolled for trusted publishing."
+            exit 0
+          fi
+
+          echo "::error::No crates.io credential: the OIDC exchange failed and CARGO_REGISTRY_TOKEN is unset."
+          exit 1
 
       - name: publish in dependency order
         # The order matters: crates.io rejects a crate whose dependencies are not yet published, so
         # the leaves go first and the CLI last.
         env:
-          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+          TOKEN_SECRET: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          AUTH_PATH: ${{ steps.auth.outputs.path }}
         run: |
           set -euo pipefail
+
+          if [ "$AUTH_PATH" = "trusted" ]; then
+            export CARGO_REGISTRY_TOKEN="$OIDC_TOKEN"
+          else
+            export CARGO_REGISTRY_TOKEN="$TOKEN_SECRET"
+          fi
 
           for package in \
             monostyle_core \
@@ -272,19 +339,25 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: read
+      # Provenance attestations are signed through OIDC whether the package is published with a
+      # trusted publisher or a token, so this is required either way.
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           ref: ${{ env.RELEASE_TAG }}
           persist-credentials: false
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 24
           registry-url: https://registry.npmjs.org
+          # No package-manager cache in a publish job. A cache entry written by a pull request could
+          # otherwise be restored here and change what gets published, which is the one job where the
+          # input has to be exactly the tagged commit.
+          package-manager-cache: false
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           path: artifacts
 
@@ -292,39 +365,101 @@ jobs:
         run: |
           set -euo pipefail
 
+          # `find` rather than `ls`: the artifact directory is named from a target triple and holds a
+          # single binary, and `ls` would word-split a path containing spaces.
           for directory in artifacts/monostyle-*; do
             target="${directory#artifacts/monostyle-}"
-            node scripts/stage-binaries.mjs "$target" "$(ls "$directory"/monostyle* | head -1)"
+            binary=$(find "$directory" -maxdepth 1 -type f -name 'monostyle*' -print -quit)
+
+            if [ -z "$binary" ]; then
+              echo "::error::no binary found in $directory"
+              exit 1
+            fi
+
+            node scripts/stage-binaries.mjs "$target" "$binary"
           done
 
       - name: check the package set
         run: node scripts/check-packages.mjs
 
-      - name: publish platform packages
+      - name: resolve npm authentication
+        id: auth
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           set -euo pipefail
+
+          force_token="${{ inputs.force_token_auth || false }}"
+
+          # Trusted publishing exchanges the job's OIDC identity for a short-lived credential, so no
+          # long-lived token is involved. The token path covers a package that has not been enrolled
+          # with a trusted publisher yet, which is the state every package starts in.
+          if [ "$force_token" != "true" ] && [ -n "${ACTIONS_ID_TOKEN_REQUEST_URL:-}" ]; then
+            echo "path=trusted" >> "$GITHUB_OUTPUT"
+            echo "Using trusted publishing for npm."
+            exit 0
+          fi
+
+          if [ -n "${NPM_TOKEN:-}" ]; then
+            echo "path=token" >> "$GITHUB_OUTPUT"
+            echo "::notice::Using NPM_TOKEN for npm; at least one package is not enrolled for trusted publishing."
+            exit 0
+          fi
+
+          echo "::error::No npm credential: OIDC is unavailable and NPM_TOKEN is unset."
+          exit 1
+
+      - name: publish platform packages
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          AUTH_PATH: ${{ steps.auth.outputs.path }}
+        run: |
+          set -euo pipefail
+
+          # Trusted publishing must not have a token in the environment: npm prefers the token when
+          # one is present, and an empty string still counts as present, so the variable is unset
+          # rather than blanked.
+          if [ "$AUTH_PATH" = "token" ]; then
+            export NODE_AUTH_TOKEN="$NPM_TOKEN"
+          else
+            unset NODE_AUTH_TOKEN || true
+          fi
 
           # Platform packages publish first: the launcher declares them as dependencies, and npm
           # rejects a publish whose dependencies are not yet resolvable.
           for suffix in \
-            darwin-arm64 darwin-x64 \
-            linux-arm64-gnu linux-arm64-musl \
-            linux-x64-gnu linux-x64-musl \
-            win32-arm64-msvc win32-x64-msvc
+            darwin_arm64 darwin_x64 \
+            linux_arm64_gnu linux_arm64_musl \
+            linux_x64_gnu linux_x64_musl \
+            win32_arm64_msvc win32_x64_msvc
           do
-            echo "publishing @monostyle-rs/cli-$suffix"
-            npm publish --provenance --access public "packages/monostyle__cli-$suffix" || {
-              echo "::warning::@monostyle-rs/cli-$suffix may already be published"
-            }
+            package="@monostyle_rs/cli_${suffix}"
+            echo "publishing ${package}"
+
+            # A retry after a partial publish finds some packages already present, which is not an
+            # error. Any other failure is, so the check is on the message rather than the exit code.
+            if npm publish --provenance --access public "packages/monostyle__cli_${suffix}" 2>&1 | tee publish.log; then
+              echo "${package} published"
+            elif grep -qi "cannot publish over\|already exists\|EPUBLISHCONFLICT\|previously published" publish.log; then
+              echo "${package} is already published; continuing"
+            else
+              echo "::error::Failed to publish ${package}"
+              exit 1
+            fi
           done
 
       - name: publish the launcher and the skill
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          AUTH_PATH: ${{ steps.auth.outputs.path }}
         run: |
           set -euo pipefail
+
+          if [ "$AUTH_PATH" = "token" ]; then
+            export NODE_AUTH_TOKEN="$NPM_TOKEN"
+          else
+            unset NODE_AUTH_TOKEN || true
+          fi
 
           npm publish --provenance --access public packages/monostyle__cli
           npm publish --provenance --access public packages/monostyle__skill
