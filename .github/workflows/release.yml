@@ -73,6 +73,16 @@ jobs:
       - name: install monochange
         run: cargo binstall monochange --no-confirm || cargo install monochange --locked
 
+      - name: configure the release commit identity
+        # A fresh runner has no git identity, and the release commit fails with "Author identity
+        # unknown" without one. The identity is the release bot rather than a person, so the commit
+        # says which automated run produced it.
+        run: |
+          set -euo pipefail
+
+          git config user.name "monostyle release bot"
+          git config user.email "release@monostyle.dev"
+
       - name: validate the release configuration
         run: monochange step validate
 
