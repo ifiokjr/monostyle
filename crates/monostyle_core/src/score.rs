@@ -170,13 +170,23 @@ impl Score {
 	/// A short qualitative band for the score, useful in reports and CI output.
 	#[must_use]
 	pub fn grade(&self) -> &'static str {
-		match self.value {
-			value if value >= 90.0 => "excellent",
-			value if value >= 75.0 => "good",
-			value if value >= 60.0 => "fair",
-			value if value >= 40.0 => "poor",
-			_ => "bad",
-		}
+		grade(self.value)
+	}
+}
+
+/// The qualitative band for a score out of 100.
+///
+/// A free function as well as a method, because the bands are also needed for values that are not a
+/// [`Score`] — a unit's combined figure, for instance. Two copies of these thresholds existed before, which
+/// meant a change to one would have silently disagreed with the other.
+#[must_use]
+pub fn grade(value: f64) -> &'static str {
+	match value {
+		value if value >= 90.0 => "excellent",
+		value if value >= 75.0 => "good",
+		value if value >= 60.0 => "fair",
+		value if value >= 40.0 => "poor",
+		_ => "bad",
 	}
 }
 

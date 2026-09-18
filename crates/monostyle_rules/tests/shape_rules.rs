@@ -173,13 +173,27 @@ fn a() {
 
 #[test]
 fn a_wide_argument_list_is_reported() {
-	let source = "fn a() { let value = compute(first, second, third, fourth, fifth); }\n";
+	// The rule reports on count past a grace margin or on width. This call trips the count: six arguments
+	// against a limit of three is two past the margin.
+	let source = "fn a() { let value = compute(first, second, third, fourth, fifth, sixth); }\n";
 	let findings = run(structure::long_parameter_list, source);
 
 	assert_eq!(
 		findings.len(),
 		1,
-		"five arguments is over the limit of three"
+		"six arguments is past the limit and its margin"
+	);
+}
+
+#[test]
+fn a_call_with_a_few_short_arguments_is_accepted() {
+	// Four short arguments span about thirty columns and read fine. The margin exists so the rule does not
+	// fire on almost every call in a real codebase, which is what made a reader stop trusting it.
+	let source = "fn a() { let value = compute(first, second, third, fourth); }\n";
+
+	assert_eq!(
+		run(structure::long_parameter_list, source),
+		[] as [monostyle_core::Finding; 0]
 	);
 }
 

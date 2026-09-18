@@ -496,6 +496,13 @@ pub fn mixed_indentation(file: &LexedFile) -> Vec<Finding> {
 /// Two shapes count: a line that opens a delimiter which has not closed yet, and a line whose own text
 /// begins inside one. In both cases the keyword it carries belongs to an expression.
 fn inside_expression(line: &LexedLine, lines: &[LexedLine], index: usize) -> bool {
+	// A control-flow keyword used as a value is part of an expression rather than a statement. `let after =
+	// if flag { a } else { b }` has an `if` on the line, and reporting it asked for a blank line in the middle
+	// of a binding.
+	if is_expression_branch(line) {
+		return true;
+	}
+
 	// The line itself starts inside an unclosed delimiter from an earlier line.
 	let mut depth: isize = 0;
 
@@ -519,6 +526,30 @@ fn inside_expression(line: &LexedLine, lines: &[LexedLine], index: usize) -> boo
 	let closes = line.masked_code.matches(')').count() + line.masked_code.matches(']').count();
 
 	opens > closes
+}
+
+/// Returns true when a line's control-flow keyword introduces a value rather than a statement.
+///
+/// The signal is an assignment before the keyword, which is how Rust, Kotlin, Scala, and Python all write a
+/// conditional expression.
+fn is_expression_branch(line: &LexedLine) -> bool {
+	let code = &line.masked_code;
+	let Some(assignment) = code.find('=') else {
+		return false;
+	};
+
+	// A comparison is not an assignment, so the operator itself is excluded.
+	let operator = code.get(assignment..).unwrap_or_default();
+
+	if operator.starts_with("==") || operator.starts_with("=>") {
+		return false;
+	}
+
+	let Some(keyword) = code.find(" if ") else {
+		return false;
+	};
+
+	assignment < keyword
 }
 
 /// Returns true when a line declares a block rather than being a statement inside one.

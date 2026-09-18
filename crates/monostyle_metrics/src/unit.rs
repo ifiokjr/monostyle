@@ -59,84 +59,141 @@ pub fn find_units(file: &LexedFile) -> Vec<CodeUnit> {
 /// closures, and blocks inside a function all belong to the enclosing unit instead of each
 /// ending it early.
 fn find_brace_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
-	let mut units = Vec::new();
-	let mut depth: usize = 0;
-	let mut pending: Option<(String, usize, usize)> = None;
-	let mut body_opened = false;
+	let mut scan = BraceScan::default();
 
 	for line in lines {
-		if line.kind == LineKind::Blank || line.kind == LineKind::Comment {
+		// Literal content is not code, so a line inside a multi-line string is skipped rather than scanned
+		// for braces and keywords. Without this, a test fixture holding sample source was parsed as a
+		// declaration with a cognitive complexity of 43.
+		if matches!(
+			line.kind,
+			LineKind::Blank | LineKind::Comment | LineKind::Literal
+		) {
 			continue;
 		}
 
-		let code = code_only(&line.text);
+		scan.visit(line);
+	}
+
+	scan.finish(lines)
+}
+
+/// Tracks the state of one brace-delimited scan.
+///
+/// The scan needs four facts at once — the current depth, which unit is open, the depth it was declared at,
+/// and whether its body has begun — and holding them in a struct is what keeps the per-line logic to a few
+/// lines instead of a nest of interacting conditions.
+#[derive(Default)]
+struct BraceScan {
+	/// Every unit found so far.
+	units: Vec<CodeUnit>,
+	/// The current brace depth.
+	depth: usize,
+	/// The declaration awaiting its body, if one is open.
+	pending: Option<PendingUnit>,
+}
+
+/// A declaration whose body has not closed yet.
+#[derive(Clone)]
+struct PendingUnit {
+	/// The unit's name.
+	name: String,
+	/// The line the declaration is on.
+	start_line: usize,
+	/// The depth the declaration was found at.
+	depth: usize,
+	/// Whether the body has begun, which distinguishes a nested unit from a one-line body.
+	body_opened: bool,
+}
+
+impl BraceScan {
+	/// Advances the scan by one line.
+	fn visit(&mut self, line: &LexedLine) {
+		let code = code_only(&line.masked_code);
 		let opens = code.matches('{').count();
 		let closes = code.matches('}').count();
-		let before = depth;
+		let depth_before = self.depth;
 
-		if pending.is_none()
-			&& let Some(name) = unit_name(&code)
-		{
-			// A declaration is recorded along with the depth it was declared at, which is
-			// the depth before its own braces open.
-			pending = Some((name, line.number, depth));
-			body_opened = false;
+		if self.pending.is_none() {
+			self.pending = unit_name(&code).map(|name| {
+				PendingUnit {
+					name,
+					start_line: line.number,
+					depth: depth_before,
+					body_opened: false,
+				}
+			});
 		}
 
-		depth = depth.saturating_add(opens).saturating_sub(closes);
+		self.depth = self.depth.saturating_add(opens).saturating_sub(closes);
 
-		let Some((name, start, declaration_depth)) = pending.clone() else {
-			continue;
+		self.close_if_finished(line, opens, closes, depth_before);
+	}
+
+	/// Closes the open unit when this line completes it.
+	///
+	/// A unit completes in one of two ways. If its body opened at some point, it ends on the line where the
+	/// depth returns to the declaration's own level. If it never opened — a one-line body, or an
+	/// expression-bodied function with no braces at all — it ends on the declaration line itself.
+	fn close_if_finished(
+		&mut self,
+		line: &LexedLine,
+		opens: usize,
+		closes: usize,
+		depth_before: usize,
+	) {
+		let Some(pending) = self.pending.clone() else {
+			return;
 		};
 
-		if depth > declaration_depth {
-			// The body has begun; everything until the depth returns belongs to this unit.
-			body_opened = true;
+		// Still inside the body, so nothing closes yet.
+		if self.depth > pending.depth {
+			if let Some(open) = self.pending.as_mut() {
+				open.body_opened = true;
+			}
 
-			continue;
+			return;
 		}
 
-		// A one-line body opens and closes on the declaration line itself.
-		let one_liner = !body_opened && opens > 0 && closes > 0 && before == declaration_depth;
-
-		// An expression-bodied function has no braces at all: `const f = (x) => x + 1`. The unit is
-		// the declaration line, and without this case the `pending` entry is never resolved and the
-		// function is dropped from the report entirely.
-		let expression_body = !body_opened
-			&& opens == 0
-			&& closes == 0
-			&& line.masked_code.contains("=>")
-			&& before == declaration_depth;
-
-		if body_opened || one_liner || expression_body {
-			units.push(CodeUnit {
-				name,
-				start_line: start,
-				end_line: line.number,
-				depth: declaration_depth,
-			});
-
-			pending = None;
-			body_opened = false;
+		if !pending.body_opened
+			&& !completes_immediately(&pending, line, opens, closes, depth_before)
+		{
+			return;
 		}
-	}
 
-	// An unterminated unit still gets reported so its complexity is not silently dropped.
-	if let Some((name, start, depth)) = pending {
-		let last = lines.last().map_or(start, |line| line.number);
-
-		units.push(CodeUnit {
-			name,
-			start_line: start,
-			end_line: last,
-			depth,
+		self.units.push(CodeUnit {
+			name: pending.name,
+			start_line: pending.start_line,
+			end_line: line.number,
+			depth: pending.depth,
 		});
+
+		self.pending = None;
 	}
 
-	units
+	/// Reports a unit that was still open when the file ended, so its complexity is not silently dropped.
+	fn finish(self, lines: &[LexedLine]) -> Vec<CodeUnit> {
+		let mut units = self.units;
+
+		if let Some(pending) = self.pending {
+			let last = lines.last().map_or(pending.start_line, |line| line.number);
+
+			units.push(CodeUnit {
+				name: pending.name,
+				start_line: pending.start_line,
+				end_line: last,
+				depth: pending.depth,
+			});
+		}
+
+		units
+	}
 }
 
 /// Finds units in indentation-based languages such as Python and Haskell.
+///
+/// A declaration's body is everything indented further than the declaration itself, so the scan for each
+/// unit stops at the first line that returns to the declaration's own level.
 fn find_indentation_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
 	let mut units = Vec::new();
 	let mut index = 0;
@@ -146,47 +203,74 @@ fn find_indentation_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
 			break;
 		};
 
-		if !line.is_code() {
+		let name = line
+			.is_code()
+			.then(|| unit_name(&code_only(&line.masked_code)))
+			.flatten();
+
+		let Some(name) = name else {
 			index += 1;
 			continue;
-		}
+		};
 
-		let code = code_only(&line.text);
+		let (end, cursor) = indented_body(lines, index, line.indent);
 
-		if let Some(name) = unit_name(&code) {
-			let body_indent = line.indent;
-			let mut end = line.number;
-			let mut cursor = index + 1;
+		units.push(CodeUnit {
+			name,
+			start_line: line.number,
+			end_line: end,
+			depth: line.indent / 4,
+		});
 
-			while let Some(candidate) = lines.get(cursor) {
-				if candidate.is_blank() {
-					cursor += 1;
-					continue;
-				}
-
-				if candidate.indent <= body_indent {
-					break;
-				}
-
-				end = candidate.number;
-				cursor += 1;
-			}
-
-			units.push(CodeUnit {
-				name,
-				start_line: line.number,
-				end_line: end,
-				depth: body_indent / 4,
-			});
-
-			index = cursor;
-			continue;
-		}
-
-		index += 1;
+		index = cursor;
 	}
 
 	units
+}
+
+/// Whether a declaration completes without ever opening a body.
+///
+/// Two shapes qualify: a body that opens and closes on the declaration line, and an expression-bodied
+/// function with no braces at all such as `const f = (x) => x + 1`. Without the second, the declaration is
+/// never resolved and the function is dropped from the report.
+fn completes_immediately(
+	pending: &PendingUnit,
+	line: &LexedLine,
+	opens: usize,
+	closes: usize,
+	depth_before: usize,
+) -> bool {
+	// The declaration's own line only: a later line at the same depth belongs to the enclosing scope.
+	if depth_before != pending.depth {
+		return false;
+	}
+
+	let one_liner = opens > 0 && closes > 0;
+	let expression_body = opens == 0 && closes == 0 && line.masked_code.contains("=>");
+
+	one_liner || expression_body
+}
+
+/// Returns the last line of an indented body and the index to resume from.
+fn indented_body(lines: &[LexedLine], start: usize, body_indent: usize) -> (usize, usize) {
+	let mut end = lines.get(start).map_or(0, |line| line.number);
+	let mut cursor = start + 1;
+
+	while let Some(candidate) = lines.get(cursor) {
+		if candidate.is_blank() {
+			cursor += 1;
+			continue;
+		}
+
+		if candidate.indent <= body_indent {
+			break;
+		}
+
+		end = candidate.number;
+		cursor += 1;
+	}
+
+	(end, cursor)
 }
 
 /// Finds units in `end`-terminated languages such as Ruby, Lua, and Shell.
@@ -200,7 +284,7 @@ fn find_end_keyword_units(file: &LexedFile) -> Vec<CodeUnit> {
 			continue;
 		}
 
-		let code = code_only(&line.text);
+		let code = code_only(&line.masked_code);
 
 		if let Some(name) = unit_name(&code) {
 			stack.push((name, line.number, stack.len()));
@@ -452,6 +536,9 @@ fn is_declaration_prefix(before: &str) -> bool {
 }
 
 /// Returns the line with comments removed, for structural inspection.
+///
+/// The input is already masked, so string contents are blank. This removes the comment that may still be
+/// present, for the case where a declaration and a trailing comment share a line.
 fn code_only(text: &str) -> String {
 	let mut result = String::with_capacity(text.len());
 	let mut in_string: Option<char> = None;

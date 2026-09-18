@@ -98,80 +98,88 @@ impl PackageReport {
 /// repository without declared packages rather than as an error.
 #[must_use]
 pub fn detect_packages(root: &Path) -> Vec<Package> {
-	let mut packages = Vec::new();
-
-	// A Cargo workspace declares its members explicitly, and those members are the packages. A member
-	// may be a glob (`crates/*`), which needs expanding for the same reason the npm form does: joining
-	// it onto the root produced a path containing a literal asterisk, which never held a manifest.
-	if let Some(cargo) = read_workspace_manifest(root.join("Cargo.toml")) {
-		for member in cargo {
-			for directory in expand_member(root, &member) {
-				if let Some(name) = cargo_package_name(&directory) {
-					packages.push(Package {
-						name,
-						directory,
-						ecosystem: Ecosystem::Cargo,
-					});
-				}
-			}
-		}
-	}
-
-	// npm and pnpm both express a workspace as glob patterns over package directories, so each member
-	// is expanded rather than joined directly. Joining `packages/*` onto the root produced a path with a
-	// literal asterisk, which never contained a manifest, so workspace members were silently missed.
-	for member in npm_workspace_members(root) {
-		for directory in expand_member(root, &member) {
-			if let Some(name) = npm_package_name(&directory) {
-				packages.push(Package {
-					name,
-					directory,
-					ecosystem: Ecosystem::Npm,
-				});
-			}
-		}
-	}
-
-	// Dart's workspace field lists member directories, which may also be globs.
-	for member in dart_workspace_members(root) {
-		for directory in expand_member(root, &member) {
-			if let Some(name) = dart_package_name(&directory) {
-				packages.push(Package {
-					name,
-					directory,
-					ecosystem: Ecosystem::Dart,
-				});
-			}
-		}
-	}
+	let mut packages = members_of_every_ecosystem(root);
 
 	// A repository with a single manifest and no member list is one package at its root.
 	if packages.is_empty() {
-		if let Some(name) = cargo_package_name(root) {
-			packages.push(Package {
-				name,
-				directory: root.to_path_buf(),
-				ecosystem: Ecosystem::Cargo,
-			});
-		} else if let Some(name) = npm_package_name(root) {
-			packages.push(Package {
-				name,
-				directory: root.to_path_buf(),
-				ecosystem: Ecosystem::Npm,
-			});
-		} else if let Some(name) = dart_package_name(root) {
-			packages.push(Package {
-				name,
-				directory: root.to_path_buf(),
-				ecosystem: Ecosystem::Dart,
-			});
-		}
+		packages.extend(root_package(root));
 	}
 
 	packages.sort_by(|left, right| left.directory.cmp(&right.directory));
 	packages.dedup_by(|left, right| left.directory == right.directory);
 	packages
 }
+
+/// Finds the packages declared as workspace members across every ecosystem.
+///
+/// Each ecosystem is a table entry rather than a repeated loop, so a fix to the scanning reaches all of
+/// them and adding an ecosystem is one line.
+fn members_of_every_ecosystem(root: &Path) -> Vec<Package> {
+	let mut packages = Vec::new();
+
+	for detector in DETECTORS {
+		for member in (detector.members)(root) {
+			for directory in expand_member(root, &member) {
+				let Some(name) = (detector.name_at)(&directory) else {
+					continue;
+				};
+
+				packages.push(Package {
+					name,
+					directory,
+					ecosystem: detector.ecosystem,
+				});
+			}
+		}
+	}
+
+	packages
+}
+
+/// Finds the single package at the repository root, if one is declared.
+fn root_package(root: &Path) -> Option<Package> {
+	DETECTORS.iter().find_map(|detector| {
+		let name = (detector.name_at)(root)?;
+
+		Some(Package {
+			name,
+			directory: root.to_path_buf(),
+			ecosystem: detector.ecosystem,
+		})
+	})
+}
+
+/// How to find the packages one ecosystem declares.
+struct Detector {
+	/// The ecosystem this describes.
+	ecosystem: Ecosystem,
+	/// Reads the workspace member list, which may be glob patterns.
+	members: fn(&Path) -> Vec<String>,
+	/// Reads a package's name from its manifest in `directory`, if there is one.
+	name_at: fn(&Path) -> Option<String>,
+}
+
+/// Every ecosystem monostyle detects packages in.
+///
+/// A table rather than a chain of loops so adding an ecosystem is one entry, and so the same code handles
+/// workspace members and the single-manifest fallback.
+const DETECTORS: &[Detector] = &[
+	Detector {
+		ecosystem: Ecosystem::Cargo,
+		members: |root| read_workspace_manifest(root.join("Cargo.toml")).unwrap_or_default(),
+		name_at: |directory| cargo_package_name(directory),
+	},
+	Detector {
+		ecosystem: Ecosystem::Npm,
+		members: npm_workspace_members,
+		name_at: |directory| npm_package_name(directory),
+	},
+	Detector {
+		ecosystem: Ecosystem::Dart,
+		members: dart_workspace_members,
+		name_at: |directory| dart_package_name(directory),
+	},
+];
 
 /// Attributes each file to the package whose directory contains it.
 ///
@@ -360,8 +368,19 @@ fn npm_workspace_members(root: &Path) -> Vec<String> {
 /// be a large dependency for one field. Returning nothing on an unrecognized shape is the safe
 /// failure: the repository simply reports no packages rather than the wrong ones.
 fn parse_workspace_yaml(contents: &str) -> Vec<String> {
+	glob_list_under(contents, "packages:")
+}
+
+/// Reads the list of quoted values under `key` in a small YAML document.
+///
+/// Used for both `pnpm-workspace.yaml`'s `packages:` and `pubspec.yaml`'s `workspace:`. They differ only by
+/// key name, so one scanner serves both: the shape is a single key followed by a dash-prefixed list, and a
+/// full YAML parser would be a large dependency for one field.
+///
+/// A new top-level key ends the list, which is what keeps a sibling field from being read as a member.
+fn glob_list_under(contents: &str, key: &str) -> Vec<String> {
 	let mut members = Vec::new();
-	let mut in_packages = false;
+	let mut in_list = false;
 
 	for line in contents.lines() {
 		let trimmed = line.trim();
@@ -370,26 +389,30 @@ fn parse_workspace_yaml(contents: &str) -> Vec<String> {
 			continue;
 		}
 
-		if trimmed.starts_with("packages:") {
-			in_packages = true;
+		if trimmed.starts_with(key) {
+			in_list = true;
 			continue;
 		}
 
-		// A new top-level key ends the packages list.
-		if in_packages && !line.starts_with(' ') && !line.starts_with('\t') && !trimmed.is_empty() {
+		if !in_list || trimmed.is_empty() {
+			continue;
+		}
+
+		// A line that is not indented starts a new top-level key, which ends the list.
+		let indented = line.starts_with(' ') || line.starts_with('\t');
+
+		if !indented {
 			break;
 		}
 
-		if !in_packages || trimmed.is_empty() {
+		let Some(entry) = trimmed.strip_prefix("- ") else {
 			continue;
-		}
+		};
 
-		if let Some(entry) = trimmed.strip_prefix("- ") {
-			let value = entry.trim().trim_matches(['"', '\'']);
+		let value = entry.trim().trim_matches(['"', '\'']);
 
-			if !value.is_empty() {
-				members.push(value.to_string());
-			}
+		if !value.is_empty() {
+			members.push(value.to_string());
 		}
 	}
 
@@ -410,36 +433,7 @@ fn dart_workspace_members(root: &Path) -> Vec<String> {
 		return Vec::new();
 	};
 
-	let mut members = Vec::new();
-	let mut in_workspace = false;
-
-	for line in contents.lines() {
-		let trimmed = line.trim();
-
-		if trimmed.starts_with("workspace:") {
-			in_workspace = true;
-			continue;
-		}
-
-		if in_workspace && !line.starts_with(' ') && !line.starts_with('\t') && !trimmed.is_empty()
-		{
-			break;
-		}
-
-		if !in_workspace || trimmed.is_empty() {
-			continue;
-		}
-
-		if let Some(entry) = trimmed.strip_prefix("- ") {
-			let value = entry.trim().trim_matches(['"', '\'']);
-
-			if !value.is_empty() {
-				members.push(value.to_string());
-			}
-		}
-	}
-
-	members
+	glob_list_under(&contents, "workspace:")
 }
 
 /// Reads a package name from a Dart manifest.

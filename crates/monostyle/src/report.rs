@@ -52,8 +52,57 @@ pub fn render_project(report: &ProjectReport, explain: bool, show_units: bool) -
 	}
 
 	render_unterminated(&mut output, report);
+	render_floors(&mut output, report);
 	render_next_step(&mut output, report);
 	output
+}
+
+/// Writes the paths that fell below their floor, with what to fix.
+///
+/// This is the actionable half of a score: a reader learns which path missed its bar, by how much, and
+/// which rules account for the shortfall.
+fn render_floors(output: &mut String, report: &ProjectReport) {
+	if report.floor_violations.is_empty() {
+		if report.has_any_floor() {
+			let _ = writeln!(output, "{}", style::green("Every path meets its floor."));
+			let _ = writeln!(output);
+		}
+
+		return;
+	}
+
+	let _ = writeln!(
+		output,
+		"{}",
+		style::yellow(&format!(
+			"below the floor ({} path{})",
+			report.floor_violations.len(),
+			plural(report.floor_violations.len())
+		))
+	);
+	let _ = writeln!(output);
+
+	for violation in &report.floor_violations {
+		let _ = writeln!(output, "  {}", style::cyan(&display_path(&violation.path)));
+		let _ = writeln!(output, "    {}", style::red(&violation.summary()));
+
+		// A section's stated reason travels with the number, so a reader knows why this path has its own bar.
+		if let Some(reason) = &violation.reason {
+			let _ = writeln!(output, "    {}", style::dim(reason));
+		}
+
+		if violation.top_offenders.is_empty() {
+			continue;
+		}
+
+		let _ = writeln!(output, "    {}:", style::dim("costing the most points"));
+
+		for (rule, penalty) in &violation.top_offenders {
+			let _ = writeln!(output, "      {:>6.1}  {}", penalty, style::magenta(rule));
+		}
+	}
+
+	let _ = writeln!(output);
 }
 
 /// Writes the headline scores.
@@ -486,14 +535,10 @@ fn format_number(value: usize) -> String {
 }
 
 /// Maps a score to a qualitative grade.
+///
+/// The bands live in one place so a report cannot disagree with the type it is describing.
 fn grade(value: f64) -> &'static str {
-	match value {
-		value if value >= 90.0 => "excellent",
-		value if value >= 75.0 => "good",
-		value if value >= 60.0 => "fair",
-		value if value >= 40.0 => "poor",
-		_ => "bad",
-	}
+	monostyle_core::score::grade(value)
 }
 
 /// Returns an empty string or an `s`, for pluralization.
