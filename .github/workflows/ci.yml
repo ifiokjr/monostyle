@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7.0.1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -36,7 +36,7 @@ jobs:
           toolchain: nightly-2026-09-07
           components: rustfmt, clippy
 
-      - uses: Swatinem/rust-cache@v2.9.2 # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: check formatting
         run: cargo fmt --all --check
@@ -55,7 +55,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v7.0.1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -63,10 +63,10 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@v2.9.2 # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: install nextest
-        uses: taiki-e/install-action@nextest
+        uses: taiki-e/install-action@9874fc3fbcb156695ec7e9bfb472e60e9d2370e9 # nextest
 
       - name: run tests
         run: cargo nextest run --workspace --all-features --no-fail-fast
@@ -81,7 +81,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7.0.1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -89,7 +89,7 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@v2.9.2 # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: run the trivia suite
         run: cargo test --package monostyle_lexer --test trivia -- --nocapture
@@ -99,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v7.0.1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -108,9 +108,9 @@ jobs:
           toolchain: nightly-2026-09-07
           components: llvm-tools-preview
 
-      - uses: Swatinem/rust-cache@v2.9.2 # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
-      - uses: taiki-e/install-action@cargo-llvm-cov
+      - uses: taiki-e/install-action@868747438ea8f2c3701d0cf6fe59dcfebbdb06a2 # cargo-llvm-cov
 
       - name: measure coverage
         run: |
@@ -122,7 +122,7 @@ jobs:
         run: cargo llvm-cov report --summary-only --fail-under-lines 70
 
       - name: upload coverage
-        uses: codecov/codecov-action@v7.1.1 # v7
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
         continue-on-error: true
         with:
           files: lcov.info
@@ -135,7 +135,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7.0.1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -143,7 +143,7 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@v2.9.2 # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: build monostyle
         run: cargo build --release --package monostyle
@@ -162,11 +162,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7.0.1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v7.0.0 # v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
 
@@ -183,7 +183,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7.0.1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -191,7 +191,7 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@v2.9.2 # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: check documentation builds
         run: cargo doc --workspace --all-features --no-deps
@@ -220,7 +220,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v7.0.1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -228,7 +228,7 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@v2.9.2 # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: verify every crate packages cleanly
         # `--list` rather than a full package. A complete `cargo package` resolves each crate's path
@@ -259,7 +259,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v7.0.1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -267,16 +267,16 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@v2.9.2 # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: install cargo-deny
-        uses: taiki-e/install-action@cargo-deny
+        uses: taiki-e/install-action@20dbe8975311291f4d8dc8bbf4c4dd67b25920d5 # cargo-deny
 
       - name: check advisories, licenses, and bans
         run: cargo deny check
 
       - name: scan workflows for security issues
-        uses: zizmorcore/zizmor-action@v0.6.4 # v0
+        uses: zizmorcore/zizmor-action@cc914d7f3750a2d13d75c7f184a1060aa0e9d482 # v0.6.4
         continue-on-error: true
 
   # The whole point of the tool is that it works on real repositories, so this job runs it against
@@ -301,7 +301,7 @@ jobs:
           - name: monochange
             repository: monochange/monochange
     steps:
-      - uses: actions/checkout@v7.0.1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -309,7 +309,7 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@v2.9.2 # v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: build monostyle
         run: cargo build --release --package monostyle
@@ -318,7 +318,7 @@ jobs:
         # Checked out beside the build output rather than inside it. The previous path was
         # `target/${{ matrix.repo.name }}`, which wrote the clone into Cargo's build directory and
         # made the two fights over the same path.
-        uses: actions/checkout@v7.0.1 # v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: ${{ matrix.repo.repository }}
           path: subject/${{ matrix.repo.name }}
