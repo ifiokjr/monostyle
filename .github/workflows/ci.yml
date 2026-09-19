@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@v7.0.1 # v7
         with:
           persist-credentials: false
 
@@ -55,7 +55,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@v7.0.1 # v7
         with:
           persist-credentials: false
 
@@ -81,7 +81,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@v7.0.1 # v7
         with:
           persist-credentials: false
 
@@ -99,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@v7.0.1 # v7
         with:
           persist-credentials: false
 
@@ -122,7 +122,7 @@ jobs:
         run: cargo llvm-cov report --summary-only --fail-under-lines 70
 
       - name: upload coverage
-        uses: codecov/codecov-action@v4.6.0 # v4
+        uses: codecov/codecov-action@v7.1.1 # v7
         continue-on-error: true
         with:
           files: lcov.info
@@ -135,7 +135,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@v7.0.1 # v7
         with:
           persist-credentials: false
 
@@ -162,11 +162,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@v7.0.1 # v7
         with:
           persist-credentials: false
 
-      - uses: actions/setup-node@v4.4.0 # v4
+      - uses: actions/setup-node@v7.0.0 # v7
         with:
           node-version: 24
 
@@ -183,7 +183,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@v7.0.1 # v7
         with:
           persist-credentials: false
 
@@ -220,7 +220,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@v7.0.1 # v7
         with:
           persist-credentials: false
 
@@ -259,7 +259,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@v7.0.1 # v7
         with:
           persist-credentials: false
 
@@ -301,7 +301,7 @@ jobs:
           - name: monochange
             repository: monochange/monochange
     steps:
-      - uses: actions/checkout@v4.4.0 # v4
+      - uses: actions/checkout@v7.0.1 # v7
         with:
           persist-credentials: false
 
@@ -318,7 +318,7 @@ jobs:
         # Checked out beside the build output rather than inside it. The previous path was
         # `target/${{ matrix.repo.name }}`, which wrote the clone into Cargo's build directory and
         # made the two fights over the same path.
-        uses: actions/checkout@v4.4.0 # v4
+        uses: actions/checkout@v7.0.1 # v7
         with:
           repository: ${{ matrix.repo.repository }}
           path: subject/${{ matrix.repo.name }}
