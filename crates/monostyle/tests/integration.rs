@@ -457,6 +457,9 @@ fn analysis_is_deterministic() {
 }
 
 #[test]
+// Every fixture is walked and every finding inspected because this is the test that keeps the
+// rest honest: a finding without a message cannot be explained to the user who has to act on it,
+// so it walks all of them rather than sampling.
 fn every_finding_explains_itself() {
 	for fixture_name in ["good", "bad", "languages", "markdown", "workspace"] {
 		let report = analyze(fixture_name);

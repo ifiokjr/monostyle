@@ -194,6 +194,10 @@ const DIRECTIVE_PREFIXES: &[&str] = &[
 /// `is_doc_style` should be true when the block uses the language's documentation syntax. It
 /// short-circuits to [`CommentIntent::Documentation`], because a documented public API is
 /// expected rather than suspicious and should never be keyword-judged.
+///
+/// The remaining branches walk intent from most to least certain, because a comment can carry
+/// several markers at once and the first decisive one is the verdict: a TODO inside reasoning is
+/// still reasoning someone left behind.
 #[must_use]
 pub fn classify(block: &str, is_doc_style: bool) -> CommentIntent {
 	if is_doc_style {

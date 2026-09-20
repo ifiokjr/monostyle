@@ -100,6 +100,11 @@ pub struct SkippedHeading {
 }
 
 /// Analyzes `source` as Markdown.
+///
+/// One pass collects all three structural features because they interleave in the source: a fence
+/// ends a prose run, a heading interrupts one, and prose can resume inside what looked like a list.
+/// The branching is the price of handling that interleaving in a single scan rather than re-walking
+/// the line list once per feature.
 #[must_use]
 pub fn analyze(source: &str) -> Document {
 	let lines: Vec<&str> = source.lines().collect();

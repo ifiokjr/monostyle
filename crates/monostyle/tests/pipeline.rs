@@ -530,13 +530,7 @@ fn a_report_with_many_findings_truncates_the_list() {
 
 	// A file with many independent problems produces more findings than the limit.
 	let body: String = (0..120)
-		.map(|index| {
-			format!(
-				"    let v{index} = work();
-    if x{index} {{ work(); }}
-"
-			)
-		})
+		.map(|index| format!("\tlet v{index} = work();\n\tif x{index} {{ work(); }}\n"))
 		.fold(String::new(), |mut text, line| {
 			text.push_str(&line);
 
@@ -563,13 +557,7 @@ fn a_report_with_many_rules_truncates_the_impact_table() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
 
 	let body: String = (0..120)
-		.map(|index| {
-			format!(
-				"    let v{index} = work();
-    if x{index} {{ work(); }}
-"
-			)
-		})
+		.map(|index| format!("\tlet v{index} = work();\n\tif x{index} {{ work(); }}\n"))
 		.fold(String::new(), |mut text, line| {
 			text.push_str(&line);
 

@@ -541,35 +541,38 @@ fn is_declaration_prefix(before: &str) -> bool {
 /// present, for the case where a declaration and a trailing comment share a line.
 fn code_only(text: &str) -> String {
 	let mut result = String::with_capacity(text.len());
-	let mut in_string: Option<char> = None;
 	let mut characters = text.chars().peekable();
 
 	while let Some(character) = characters.next() {
-		if let Some(delimiter) = in_string {
-			if character == '\\' {
-				characters.next();
-				continue;
-			}
-
-			if character == delimiter {
-				in_string = None;
-			}
-
-			continue;
-		}
-
 		match character {
-			'"' | '\'' | '`' => {
-				in_string = Some(character);
-			}
+			'"' | '\'' | '`' => skip_quoted(&mut characters, character),
 
-			'/' if characters.peek() == Some(&'/') => break,
 			'#' => break,
 
+			'/' if characters.peek() == Some(&'/') => break,
+
 			'-' if characters.peek() == Some(&'-') => break,
+
 			_ => result.push(character),
 		}
 	}
 
 	result
+}
+
+/// Consumes characters until the closing `delimiter`, so string contents never reach the caller.
+///
+/// An unterminated string consumes the rest of the line, which matches the lexer's own treatment of a
+/// string that runs to end of line. A backslash consumes the following character so an escaped
+/// delimiter cannot end the string early.
+fn skip_quoted(characters: &mut std::iter::Peekable<std::str::Chars<'_>>, delimiter: char) {
+	while let Some(character) = characters.next() {
+		if character == '\\' {
+			characters.next();
+		}
+
+		if character == delimiter {
+			return;
+		}
+	}
 }

@@ -25,9 +25,53 @@ use monostyle_core::Severity;
 use monostyle_core::Span;
 use monostyle_lexer::CommentIntent;
 use monostyle_lexer::LexedFile;
+use monostyle_lexer::LexedLine;
 
 use crate::config::RulesConfig;
 use crate::unit_measures;
+
+/// The first line of the lead-in above a unit declared at `start_line`.
+///
+/// The lead-in covers the doc block directly above the declaration, extended across the attribute
+/// chain between them: Rust idiom places `#[must_use]` between a doc comment and the `fn` it
+/// decorates, and a rule that cannot see through an attribute asks a fully documented function for
+/// a comment. The walk stops at the first line that extends no further, so it cannot climb into a
+/// comment belonging to an earlier unit.
+fn lead_in_starts_at(file: &LexedFile, start_line: usize) -> usize {
+	// The lead-in begins directly above the declaration, then extends across attributes and the
+	// doc block above them in turn. Attribute lines are reached first because they sit closest to
+	// the declaration; the comment walk only runs once the line above is a comment, which is how
+	// the whole doc block is included rather than only its last line.
+	let mut top = start_line.saturating_sub(1).max(1);
+
+	top = walk_while(file, top, |line| {
+		line.is_code() && line.masked_code.trim_start().starts_with("#[")
+	});
+	top = walk_while(file, top, LexedLine::is_comment);
+
+	top
+}
+
+/// Walks `top` upward while the line above it satisfies `extends`.
+///
+/// The predicate is asked about the line *above* the current top, so the walk stops before
+/// consuming a line that extends nothing. Indexing is `number - 2` because line numbers are
+/// 1-based while the vector is 0-based.
+fn walk_while(file: &LexedFile, mut top: usize, extends: impl Fn(&LexedLine) -> bool) -> usize {
+	while top > 1 {
+		let Some(line) = file.lines.get(top - 2) else {
+			break;
+		};
+
+		if !extends(line) {
+			break;
+		}
+
+		top -= 1;
+	}
+
+	top
+}
 
 /// Reports complex units that carry no explanatory comment.
 ///
@@ -50,14 +94,19 @@ pub fn comment_required_on_complex_units(file: &LexedFile, config: &RulesConfig)
 			continue;
 		}
 
-		// A unit counts as documented when a why-comment or a doc comment appears on it or immediately
-		// above it. The doc comment sits *above* the declaration line, so it falls outside the unit's
-		// span: checking only the span meant a fully documented function was still asked for a comment,
-		// which is the most confusing thing this tool could say.
+		// A unit counts as documented when a why-comment or a doc comment appears on it or in the
+		// lead-in above its declaration. The doc comment sits *above* the declaration line, so it
+		// falls outside the unit's span: checking only the span meant a fully documented function was
+		// still asked for a comment, which is the most confusing thing this tool could say.
+		let lead_in = lead_in_starts_at(file, unit.start_line);
+
 		let documented = file
 			.lines
 			.iter()
-			.filter(|line| unit.contains(line.number) || line.number + 1 == unit.start_line)
+			.filter(|line| {
+				unit.contains(line.number)
+					|| (line.number >= lead_in && line.number < unit.start_line)
+			})
 			.filter_map(|line| line.comment_intent)
 			.any(|intent| matches!(intent, CommentIntent::Why | CommentIntent::Documentation));
 

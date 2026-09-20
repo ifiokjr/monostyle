@@ -933,6 +933,10 @@ fn has_ignored_component(path: &Path) -> bool {
 }
 
 /// Analyzes a set of paths in parallel.
+///
+/// The closure body lives in `analyze_one` so this function holds only the two things that are
+/// easier to follow when they are apart: the parallel dispatch, and the partitioning of results
+/// into analyzed files and skipped paths.
 #[must_use]
 pub fn analyze_paths(paths: &[PathBuf], options: &AnalysisOptions) -> ProjectReport {
 	use rayon::prelude::*;
@@ -952,50 +956,7 @@ pub fn analyze_paths(paths: &[PathBuf], options: &AnalysisOptions) -> ProjectRep
 
 	let results: Vec<(Option<FileReport>, Option<PathBuf>)> = paths
 		.par_iter()
-		.map(|path| {
-			// A section marked `ignore` excludes its path entirely, which is what a vendored directory or
-			// a set of deliberately bad fixtures warrants. Distinct from a floor of zero: an ignored path
-			// produces no findings and contributes nothing to any score.
-			if options.is_ignored(path) {
-				return (None, None);
-			}
-
-			let Some(language) = language_for_path(path) else {
-				return (None, Some(path.clone()));
-			};
-
-			let Ok(source) = std::fs::read_to_string(path) else {
-				// A file that cannot be read as UTF-8 is reported as skipped rather than failing the
-				// run, because one binary blob in a tree should not stop the analysis.
-				return (None, Some(path.clone()));
-			};
-
-			// A cache hit skips the scanner, which is the expensive half of an analysis. The rules
-			// still run, because thresholds and configuration change far more often than source does.
-			if let Some(cache) = &cache {
-				if let Some(lines) = cache.get(path, language) {
-					return (Some(analyze_lines(path, &lines, language, options)), None);
-				}
-
-				let lexed = lex(&source, language);
-				cache.put(path, language, &lexed.lines);
-
-				return (
-					Some(build_report(
-						path,
-						&lexed,
-						findings_for(&lexed, path, options),
-						options,
-					)),
-					None,
-				);
-			}
-
-			(
-				Some(analyze_with_language(path, &source, language, options)),
-				None,
-			)
-		})
+		.map(|path| analyze_one(path, cache.as_ref(), options))
 		.collect();
 
 	let mut files = Vec::new();
@@ -1014,4 +975,57 @@ pub fn analyze_paths(paths: &[PathBuf], options: &AnalysisOptions) -> ProjectRep
 	files.sort_by(|left, right| left.path.cmp(&right.path));
 
 	aggregate(files, skipped, options)
+}
+
+/// Analyzes one path, or reports why it was skipped.
+///
+/// The `cache` argument is optional because the caller may have been unable to discover a cache
+/// directory; without one the scanner runs and its output is simply not stored.
+fn analyze_one(
+	path: &Path,
+	cache: Option<&crate::cache::Cache>,
+	options: &AnalysisOptions,
+) -> (Option<FileReport>, Option<PathBuf>) {
+	// A section marked `ignore` excludes its path entirely, which is what a vendored directory or
+	// a set of deliberately bad fixtures warrants. Distinct from a floor of zero: an ignored path
+	// produces no findings and contributes nothing to any score.
+	if options.is_ignored(path) {
+		return (None, None);
+	}
+
+	let Some(language) = language_for_path(path) else {
+		return (None, Some(path.to_path_buf()));
+	};
+
+	let Ok(source) = std::fs::read_to_string(path) else {
+		// A file that cannot be read as UTF-8 is reported as skipped rather than failing the
+		// run, because one binary blob in a tree should not stop the analysis.
+		return (None, Some(path.to_path_buf()));
+	};
+
+	// A cache hit skips the scanner, which is the expensive half of an analysis. The rules
+	// still run, because thresholds and configuration change far more often than source does.
+	if let Some(cache) = cache {
+		if let Some(lines) = cache.get(path, language) {
+			return (Some(analyze_lines(path, &lines, language, options)), None);
+		}
+
+		let lexed = lex(&source, language);
+		cache.put(path, language, &lexed.lines);
+
+		return (
+			Some(build_report(
+				path,
+				&lexed,
+				findings_for(&lexed, path, options),
+				options,
+			)),
+			None,
+		);
+	}
+
+	(
+		Some(analyze_with_language(path, &source, language, options)),
+		None,
+	)
 }

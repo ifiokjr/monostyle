@@ -173,6 +173,21 @@ fn a_handler_that_acts_on_the_error_is_kept() {
 }
 
 #[test]
+fn a_multiline_handler_that_acts_on_the_error_is_kept() {
+	// The arm opens a brace and continues on later lines. Reading the empty opening tail as an
+	// inline body once reported every multi-line handler as discarding its error.
+	let findings = run(
+		quality::empty_handlers,
+		"fn a() {\n    match run() {\n        Err(error) => {\n            log_error(error);\n        }\n        Ok(v) => use_it(v),\n    }\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"the error is handled across lines: {findings:?}"
+	);
+}
+
+#[test]
 fn empty_handlers_can_be_turned_off() {
 	let config = RulesConfig {
 		report_empty_handlers: false,

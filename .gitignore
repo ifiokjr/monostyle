@@ -36,3 +36,9 @@ docs/book/
 
 # mdt cache
 .mdt/cache/
+
+# devenv-generated pre-commit config (nix store symlink)
+.pre-commit-config.yaml
+
+# video-agent-kit local plugin state
+.video_agent/
