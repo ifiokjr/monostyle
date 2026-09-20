@@ -94,9 +94,16 @@ jobs:
         run: |
           set -euo pipefail
 
-          # An empty changeset directory is the normal state right after a release, and it should
-          # refresh the release PR rather than fail.
-          count=$(find .changeset -name '*.md' -type f 2>/dev/null | wc -l | tr -d ' ')
+          # A missing or empty changeset directory is the normal state right after a release, and
+          # it should refresh the release PR rather than fail. The directory is checked rather than
+          # having its absence ignored: `find` exits non-zero on a missing directory, and `pipefail`
+          # turns that into a failing assignment, which failed the workflow on the first push after
+          # the v0.1.0 release consumed every changeset.
+          if [ -d .changeset ]; then
+            count=$(find .changeset -name '*.md' -type f | wc -l | tr -d ' ')
+          else
+            count=0
+          fi
 
           # Normalized to a bare integer so the comparison below is numeric rather than string-wise,
           # which is what shellcheck's SC2170 objects to.
