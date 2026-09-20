@@ -18,7 +18,11 @@ serde = { workspace = true }
 
 [dev-dependencies]
 insta = { workspace = true }
-monostyle_metrics = { workspace = true }
+# Path-only on purpose. A versioned dev-dependency would be resolved when this crate is packaged,
+# and monostyle_metrics depends on monostyle_lexer at runtime — a cycle that makes neither
+# publishable, in either order. Cargo drops a path-only dev-dependency from the packaged manifest,
+# so the unit-detection test still runs here while the published crate carries no such edge.
+monostyle_metrics = { path = "../monostyle_metrics" }
 
 [lints]
 workspace = true
