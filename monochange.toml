@@ -191,11 +191,17 @@ enabled = true
 # make local and manual publishing fail before any registry mutation, which is
 # the wrong default here: the very first publish of a package has to happen
 # before its registry-side trust relationship can be configured.
+#
+# `environment` names the GitHub environment the publish jobs declare in
+# .github/workflows/publish.yml. A registry's trusted-publisher enrollment pins
+# the whole trust context — repository, workflow, *and* environment — so the
+# two have to stay in lockstep or the registry rejects a claim that matches
+# everything except the environment.
 [ecosystems.cargo.publish]
-trusted_publishing = { enabled = true, mode = "preferred", repository = "ifiokjr/monostyle", workflow = "publish.yml" }
+trusted_publishing = { enabled = true, mode = "preferred", repository = "ifiokjr/monostyle", workflow = "publish.yml", environment = "publisher" }
 
 [ecosystems.npm.publish]
-trusted_publishing = { enabled = true, mode = "preferred", repository = "ifiokjr/monostyle", workflow = "publish.yml" }
+trusted_publishing = { enabled = true, mode = "preferred", repository = "ifiokjr/monostyle", workflow = "publish.yml", environment = "publisher" }
 
 # Both registries can attest that a published artifact came from this workflow.
 # Requiring it means a package that loses provenance fails the release rather than
