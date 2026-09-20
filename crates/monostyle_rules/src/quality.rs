@@ -25,6 +25,9 @@ use crate::config::RulesConfig;
 /// A `3` in an expression forces the reader to work out what it counts. The rule stays quiet on the
 /// values where a bare literal is universal — `0`, `1`, `2`, and the common round numbers — because
 /// flagging those is noise, and noise is what makes people stop reading findings.
+///
+/// The walk is deliberately line-by-line rather than unit-scoped: a magic number costs the reader
+/// at the line it sits on, wherever it sits, so scope would only add bookkeeping.
 #[must_use]
 pub fn magic_numbers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	if !config.report_magic_numbers {
@@ -82,6 +85,10 @@ fn magic_number_finding(line: &LexedLine, text: &str) -> Finding {
 /// Short names are conventional in a few positions — a loop index, a coordinate, a lambda parameter
 /// — so those are recognized rather than reported. The rule targets names in binding positions where
 /// a reader has to hold the meaning in mind for more than a line.
+///
+/// Each convention exception is a separate branch rather than one pattern, because the exceptions
+/// are what a reader of this rule will argue about: one branch per exception keeps the argument
+/// local to the position it defends.
 #[must_use]
 pub fn short_identifiers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	if !config.report_short_identifiers {
@@ -136,6 +143,11 @@ fn unclear_names(line: &LexedLine, language: Language, minimum: usize) -> Vec<St
 /// which is the hardest kind of problem to diagnose. The rule fires on a handler whose body is empty
 /// or is a bare pass, and the suggestion asks for the reason rather than for a change, because
 /// sometimes swallowing is correct.
+///
+/// The two helper calls — opens-a-handler, then discards-the-error — are kept separate because
+/// they answer different questions in different languages: Rust writes handlers as match arms
+/// while Python writes `except`, and one predicate that handled both shapes was the hardest thing
+/// here to reason about.
 #[must_use]
 pub fn empty_handlers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	if !config.report_empty_handlers {
@@ -239,11 +251,14 @@ fn is_identifier_char(character: Option<char>) -> bool {
 
 /// Whether a handler's body does nothing with the error.
 fn handler_discards_its_error(file: &LexedFile, index: usize, line: &LexedLine) -> bool {
-	// A handler on the same line as its body, as in `catch (e) {}` or `Err(_) => {}`.
+	// A handler on the same line as its body, as in `catch (e) {}` or `Err(_) => {}`. The brace has
+	// to close on the same line: an arm like `Err(error) => {` opens a multi-line block, and reading
+	// its empty opening tail as an inline body reported every multi-line handler as empty.
 	if let Some(inline) = line
 		.masked_code
 		.split_once('{')
 		.map(|(_head, tail)| tail.trim())
+		&& inline.contains('}')
 		&& body_is_empty(inline)
 	{
 		return true;

@@ -399,6 +399,38 @@ fn tangled(x: i32) -> i32 {
 }
 
 #[test]
+fn a_doc_comment_behind_an_attribute_still_counts() {
+	// Rust places attributes between a doc comment and the declaration it decorates. Reading only
+	// the line directly above the declaration once asked such a function for a comment it already
+	// had.
+	let source = "\
+/// Why this exists: the upstream client fails transiently, and one retry policy
+/// here is better than scattering error handling across every call site.
+#[must_use]
+fn tangled(x: i32) -> i32 {
+    if x > 0 {
+        if x > 1 {
+            if x > 2 {
+                if x > 3 {
+                    return x;
+                }
+            }
+        } else if x < 0 {
+            if x < -1 {
+                return -x;
+            }
+        }
+    }
+    x
+}
+";
+	assert!(
+		run(comments::comment_required_on_complex_units, source).is_empty(),
+		"a doc comment behind an attribute should still count as documentation"
+	);
+}
+
+#[test]
 fn an_explanation_earns_credit() {
 	let source =
 		"// This exists because the upstream client fails transiently under load.\nfn a() {}\n";

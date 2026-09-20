@@ -81,6 +81,10 @@ pub fn cyclomatic_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Findin
 /// The suggestion distinguishes the two ways to reduce it. When the score is driven by nesting, the
 /// advice is to flatten — extraction resets the nesting penalty without removing any branch. When it
 /// is not, the advice is to split along responsibilities, because there is nothing to flatten.
+///
+/// The loop body branches on the three ways a unit can clear its limit — total, nesting share,
+/// or worst single unit — because each drives a different suggestion, and folding them into one
+/// condition would lose which advice the reader should take.
 #[must_use]
 pub fn cognitive_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	let units = unit_measures::UnitSet::new(file);
@@ -191,6 +195,9 @@ pub fn npath_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 /// Early returns are preferred to nesting, so this only fires well past the point where guards are
 /// idiomatic. A function with many exits is hard to reason about because the reader must hold every
 /// escape in mind to know what it guarantees.
+///
+/// The counter is structural rather than syntactic — it counts exit *shapes* a lexer can see, so a
+/// language without a `return` keyword is still measured; the branches enumerate the shapes.
 #[must_use]
 pub fn exits_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	let units = unit_measures::UnitSet::new(file);
