@@ -473,9 +473,14 @@ jobs:
             package="@monostyle_rs/cli_${suffix}"
             echo "publishing ${package}"
 
+            # The `./` prefix is load-bearing: npm reads a bare `owner/name` argument as a GitHub
+            # shorthand, so `packages/monostyle__cli_<suffix>` was fetched as
+            # `ssh://git@github.com/packages/monostyle__cli_<suffix>.git` and failed on a missing
+            # SSH key instead of publishing the directory.
+            #
             # A retry after a partial publish finds some packages already present, which is not an
             # error. Any other failure is, so the check is on the message rather than the exit code.
-            if npm publish --provenance --access public "packages/monostyle__cli_${suffix}" 2>&1 | tee publish.log; then
+            if npm publish --provenance --access public "./packages/monostyle__cli_${suffix}" 2>&1 | tee publish.log; then
               echo "${package} published"
             elif grep -qi "cannot publish over\|already exists\|EPUBLISHCONFLICT\|previously published" publish.log; then
               echo "${package} is already published; continuing"
@@ -498,8 +503,8 @@ jobs:
             unset NODE_AUTH_TOKEN || true
           fi
 
-          npm publish --provenance --access public packages/monostyle__cli
-          npm publish --provenance --access public packages/monostyle__skill
+          npm publish --provenance --access public ./packages/monostyle__cli
+          npm publish --provenance --access public ./packages/monostyle__skill
 
   # The release was created as a draft by the release workflow so a half-published release is
   # never visible. Both registries have now accepted every package, so this is the step that makes
