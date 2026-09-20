@@ -16,6 +16,12 @@
 [rules]
 max-line-width = 100
 
+[rules.ignore]
+# The release changelogs, written by monochange when a release PR is prepared. They are generated
+# output: version numbers read as magic numbers and entry lists as unseparated statement runs, and
+# improving that score would mean editing what the tool produced.
+patterns = ["changelog.md"]
+
 # The bar for code that ships. Any single file dropping below this is a signal that something went
 # wrong, so CI fails and names it.
 [[section]]
