@@ -1,7 +1,7 @@
 {
-  "name": "@monostyle_rs/cli_win32_arm64_msvc",
+  "name": "@monostyle-rs/cli-linux-x64-gnu",
   "version": "0.1.0",
-  "description": "Prebuilt monostyle binary for Windows arm64",
+  "description": "Prebuilt monostyle binary for Linux x64 (glibc)",
   "homepage": "https://github.com/ifiokjr/monostyle",
   "bugs": {
     "url": "https://github.com/ifiokjr/monostyle/issues"
@@ -15,10 +15,10 @@
     "bin"
   ],
   "os": [
-    "win32"
+    "linux"
   ],
   "cpu": [
-    "arm64"
+    "x64"
   ],
   "publishConfig": {
     "access": "public",

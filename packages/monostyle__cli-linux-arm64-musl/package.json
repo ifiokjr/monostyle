@@ -1,7 +1,7 @@
 {
-  "name": "@monostyle_rs/cli_darwin_x64",
+  "name": "@monostyle-rs/cli-linux-arm64-musl",
   "version": "0.1.0",
-  "description": "Prebuilt monostyle binary for macOS x64",
+  "description": "Prebuilt monostyle binary for Linux arm64 (musl)",
   "homepage": "https://github.com/ifiokjr/monostyle",
   "bugs": {
     "url": "https://github.com/ifiokjr/monostyle/issues"
@@ -15,10 +15,10 @@
     "bin"
   ],
   "os": [
-    "darwin"
+    "linux"
   ],
   "cpu": [
-    "x64"
+    "arm64"
   ],
   "publishConfig": {
     "access": "public",

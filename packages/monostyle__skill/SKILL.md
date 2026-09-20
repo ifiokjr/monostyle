@@ -3,7 +3,7 @@ name: "monostyle"
 description: "Use when scoring or improving the readability and complexity of code. Measures whether complex sections are given room, whether sequential control flow is separated, how deeply logic nests, and whether comments explain why. Use for reviewing a codebase, a file, or a single function, and for checking your own output before finishing."
 ---
 
-# @monostyle_rs/skill
+# @monostyle-rs/skill
 
 Scores code for **readability** and **complexity**, out of 100 each, and explains every point lost
 as a named rule with a location and a suggested fix.

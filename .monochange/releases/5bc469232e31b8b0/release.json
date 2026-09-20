@@ -24,30 +24,30 @@
         "monostyle_markdown",
         "monostyle_metrics",
         "monostyle_rules",
-        "@monostyle_rs/cli",
-        "@monostyle_rs/cli_darwin_arm64",
-        "@monostyle_rs/cli_darwin_x64",
-        "@monostyle_rs/cli_linux_arm64_gnu",
-        "@monostyle_rs/cli_linux_arm64_musl",
-        "@monostyle_rs/cli_linux_x64_gnu",
-        "@monostyle_rs/cli_linux_x64_musl",
-        "@monostyle_rs/cli_win32_arm64_msvc",
-        "@monostyle_rs/cli_win32_x64_msvc",
-        "@monostyle_rs/skill"
+        "@monostyle-rs/cli",
+        "@monostyle-rs/cli-darwin-arm64",
+        "@monostyle-rs/cli-darwin-x64",
+        "@monostyle-rs/cli-linux-arm64-gnu",
+        "@monostyle-rs/cli-linux-arm64-musl",
+        "@monostyle-rs/cli-linux-x64-gnu",
+        "@monostyle-rs/cli-linux-x64-musl",
+        "@monostyle-rs/cli-win32-arm64-msvc",
+        "@monostyle-rs/cli-win32-x64-msvc",
+        "@monostyle-rs/skill"
       ]
     }
   ],
   "released_packages": [
-    "@monostyle_rs/cli",
-    "@monostyle_rs/cli_darwin_arm64",
-    "@monostyle_rs/cli_darwin_x64",
-    "@monostyle_rs/cli_linux_arm64_gnu",
-    "@monostyle_rs/cli_linux_arm64_musl",
-    "@monostyle_rs/cli_linux_x64_gnu",
-    "@monostyle_rs/cli_linux_x64_musl",
-    "@monostyle_rs/cli_win32_arm64_msvc",
-    "@monostyle_rs/cli_win32_x64_msvc",
-    "@monostyle_rs/skill",
+    "@monostyle-rs/cli",
+    "@monostyle-rs/cli-darwin-arm64",
+    "@monostyle-rs/cli-darwin-x64",
+    "@monostyle-rs/cli-linux-arm64-gnu",
+    "@monostyle-rs/cli-linux-arm64-musl",
+    "@monostyle-rs/cli-linux-x64-gnu",
+    "@monostyle-rs/cli-linux-x64-musl",
+    "@monostyle-rs/cli-win32-arm64-msvc",
+    "@monostyle-rs/cli-win32-x64-msvc",
+    "@monostyle-rs/skill",
     "monostyle",
     "monostyle_core",
     "monostyle_languages",
@@ -76,28 +76,28 @@
     "crates/monostyle_rules/changelog.md",
     "packages/monostyle__cli/changelog.md",
     "packages/monostyle__cli/package.json",
-    "packages/monostyle__cli_darwin_arm64/changelog.md",
-    "packages/monostyle__cli_darwin_arm64/package.json",
-    "packages/monostyle__cli_darwin_x64/changelog.md",
-    "packages/monostyle__cli_darwin_x64/package.json",
-    "packages/monostyle__cli_linux_arm64_gnu/changelog.md",
-    "packages/monostyle__cli_linux_arm64_gnu/package.json",
-    "packages/monostyle__cli_linux_arm64_musl/changelog.md",
-    "packages/monostyle__cli_linux_arm64_musl/package.json",
-    "packages/monostyle__cli_linux_x64_gnu/changelog.md",
-    "packages/monostyle__cli_linux_x64_gnu/package.json",
-    "packages/monostyle__cli_linux_x64_musl/changelog.md",
-    "packages/monostyle__cli_linux_x64_musl/package.json",
-    "packages/monostyle__cli_win32_arm64_msvc/changelog.md",
-    "packages/monostyle__cli_win32_arm64_msvc/package.json",
-    "packages/monostyle__cli_win32_x64_msvc/changelog.md",
-    "packages/monostyle__cli_win32_x64_msvc/package.json",
+    "packages/monostyle__cli-darwin-arm64/changelog.md",
+    "packages/monostyle__cli-darwin-arm64/package.json",
+    "packages/monostyle__cli-darwin-x64/changelog.md",
+    "packages/monostyle__cli-darwin-x64/package.json",
+    "packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+    "packages/monostyle__cli-linux-arm64-gnu/package.json",
+    "packages/monostyle__cli-linux-arm64-musl/changelog.md",
+    "packages/monostyle__cli-linux-arm64-musl/package.json",
+    "packages/monostyle__cli-linux-x64-gnu/changelog.md",
+    "packages/monostyle__cli-linux-x64-gnu/package.json",
+    "packages/monostyle__cli-linux-x64-musl/changelog.md",
+    "packages/monostyle__cli-linux-x64-musl/package.json",
+    "packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+    "packages/monostyle__cli-win32-arm64-msvc/package.json",
+    "packages/monostyle__cli-win32-x64-msvc/changelog.md",
+    "packages/monostyle__cli-win32-x64-msvc/package.json",
     "packages/monostyle__skill/changelog.md",
     "packages/monostyle__skill/package.json"
   ],
   "package_publications": [
     {
-      "package": "@monostyle_rs/cli",
+      "package": "@monostyle-rs/cli",
       "ecosystem": "npm",
       "registry": "npm",
       "version": "0.1.0",
@@ -114,7 +114,7 @@
       }
     },
     {
-      "package": "@monostyle_rs/cli_darwin_arm64",
+      "package": "@monostyle-rs/cli-darwin-arm64",
       "ecosystem": "npm",
       "registry": "npm",
       "version": "0.1.0",
@@ -131,7 +131,7 @@
       }
     },
     {
-      "package": "@monostyle_rs/cli_darwin_x64",
+      "package": "@monostyle-rs/cli-darwin-x64",
       "ecosystem": "npm",
       "registry": "npm",
       "version": "0.1.0",
@@ -148,7 +148,7 @@
       }
     },
     {
-      "package": "@monostyle_rs/cli_linux_arm64_gnu",
+      "package": "@monostyle-rs/cli-linux-arm64-gnu",
       "ecosystem": "npm",
       "registry": "npm",
       "version": "0.1.0",
@@ -165,7 +165,7 @@
       }
     },
     {
-      "package": "@monostyle_rs/cli_linux_arm64_musl",
+      "package": "@monostyle-rs/cli-linux-arm64-musl",
       "ecosystem": "npm",
       "registry": "npm",
       "version": "0.1.0",
@@ -182,7 +182,7 @@
       }
     },
     {
-      "package": "@monostyle_rs/cli_linux_x64_gnu",
+      "package": "@monostyle-rs/cli-linux-x64-gnu",
       "ecosystem": "npm",
       "registry": "npm",
       "version": "0.1.0",
@@ -199,7 +199,7 @@
       }
     },
     {
-      "package": "@monostyle_rs/cli_linux_x64_musl",
+      "package": "@monostyle-rs/cli-linux-x64-musl",
       "ecosystem": "npm",
       "registry": "npm",
       "version": "0.1.0",
@@ -216,7 +216,7 @@
       }
     },
     {
-      "package": "@monostyle_rs/cli_win32_arm64_msvc",
+      "package": "@monostyle-rs/cli-win32-arm64-msvc",
       "ecosystem": "npm",
       "registry": "npm",
       "version": "0.1.0",
@@ -233,7 +233,7 @@
       }
     },
     {
-      "package": "@monostyle_rs/cli_win32_x64_msvc",
+      "package": "@monostyle-rs/cli-win32-x64-msvc",
       "ecosystem": "npm",
       "registry": "npm",
       "version": "0.1.0",
@@ -250,7 +250,7 @@
       }
     },
     {
-      "package": "@monostyle_rs/skill",
+      "package": "@monostyle-rs/skill",
       "ecosystem": "npm",
       "registry": "npm",
       "version": "0.1.0",
@@ -396,14 +396,14 @@
     "crates/monostyle_metrics/changelog.md",
     "crates/monostyle_rules/changelog.md",
     "packages/monostyle__cli/changelog.md",
-    "packages/monostyle__cli_darwin_arm64/changelog.md",
-    "packages/monostyle__cli_darwin_x64/changelog.md",
-    "packages/monostyle__cli_linux_arm64_gnu/changelog.md",
-    "packages/monostyle__cli_linux_arm64_musl/changelog.md",
-    "packages/monostyle__cli_linux_x64_gnu/changelog.md",
-    "packages/monostyle__cli_linux_x64_musl/changelog.md",
-    "packages/monostyle__cli_win32_arm64_msvc/changelog.md",
-    "packages/monostyle__cli_win32_x64_msvc/changelog.md",
+    "packages/monostyle__cli-darwin-arm64/changelog.md",
+    "packages/monostyle__cli-darwin-x64/changelog.md",
+    "packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+    "packages/monostyle__cli-linux-arm64-musl/changelog.md",
+    "packages/monostyle__cli-linux-x64-gnu/changelog.md",
+    "packages/monostyle__cli-linux-x64-musl/changelog.md",
+    "packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+    "packages/monostyle__cli-win32-x64-msvc/changelog.md",
     "packages/monostyle__skill/changelog.md"
   ],
   "deleted_changesets": [
@@ -472,7 +472,7 @@
           "change_type": "major"
         },
         {
-          "id": "@monostyle_rs/cli",
+          "id": "@monostyle-rs/cli",
           "kind": "package",
           "bump": "major",
           "origin": "direct-change",
@@ -480,7 +480,7 @@
           "change_type": "major"
         },
         {
-          "id": "@monostyle_rs/cli_darwin_arm64",
+          "id": "@monostyle-rs/cli-darwin-arm64",
           "kind": "package",
           "bump": "major",
           "origin": "direct-change",
@@ -488,7 +488,7 @@
           "change_type": "major"
         },
         {
-          "id": "@monostyle_rs/cli_darwin_x64",
+          "id": "@monostyle-rs/cli-darwin-x64",
           "kind": "package",
           "bump": "major",
           "origin": "direct-change",
@@ -496,7 +496,7 @@
           "change_type": "major"
         },
         {
-          "id": "@monostyle_rs/cli_linux_arm64_gnu",
+          "id": "@monostyle-rs/cli-linux-arm64-gnu",
           "kind": "package",
           "bump": "major",
           "origin": "direct-change",
@@ -504,7 +504,7 @@
           "change_type": "major"
         },
         {
-          "id": "@monostyle_rs/cli_linux_arm64_musl",
+          "id": "@monostyle-rs/cli-linux-arm64-musl",
           "kind": "package",
           "bump": "major",
           "origin": "direct-change",
@@ -512,7 +512,7 @@
           "change_type": "major"
         },
         {
-          "id": "@monostyle_rs/cli_linux_x64_gnu",
+          "id": "@monostyle-rs/cli-linux-x64-gnu",
           "kind": "package",
           "bump": "major",
           "origin": "direct-change",
@@ -520,7 +520,7 @@
           "change_type": "major"
         },
         {
-          "id": "@monostyle_rs/cli_linux_x64_musl",
+          "id": "@monostyle-rs/cli-linux-x64-musl",
           "kind": "package",
           "bump": "major",
           "origin": "direct-change",
@@ -528,7 +528,7 @@
           "change_type": "major"
         },
         {
-          "id": "@monostyle_rs/cli_win32_arm64_msvc",
+          "id": "@monostyle-rs/cli-win32-arm64-msvc",
           "kind": "package",
           "bump": "major",
           "origin": "direct-change",
@@ -536,7 +536,7 @@
           "change_type": "major"
         },
         {
-          "id": "@monostyle_rs/cli_win32_x64_msvc",
+          "id": "@monostyle-rs/cli-win32-x64-msvc",
           "kind": "package",
           "bump": "major",
           "origin": "direct-change",
@@ -544,7 +544,7 @@
           "change_type": "major"
         },
         {
-          "id": "@monostyle_rs/skill",
+          "id": "@monostyle-rs/skill",
           "kind": "package",
           "bump": "major",
           "origin": "direct-change",
@@ -586,12 +586,12 @@
             "title": "Breaking changes",
             "collapsed": false,
             "entries": [
-              "#### First release\n\n_Packages:_ 🔴 _monostyle_, 🔴 _monostyle_core_, 🔴 _monostyle_languages_, 🔴 _monostyle_lexer_, 🔴 _monostyle_markdown_, 🔴 _monostyle_metrics_, 🔴 _monostyle_rules_, 🔴 _@monostyle_rs/cli_, 🔴 _@monostyle_rs/cli_darwin_arm64_, 🔴 _@monostyle_rs/cli_darwin_x64_, 🔴 _@monostyle_rs/cli_linux_arm64_gnu_, 🔴 _@monostyle_rs/cli_linux_arm64_musl_, 🔴 _@monostyle_rs/cli_linux_x64_gnu_, 🔴 _@monostyle_rs/cli_linux_x64_musl_, 🔴 _@monostyle_rs/cli_win32_arm64_msvc_, 🔴 _@monostyle_rs/cli_win32_x64_msvc_, 🔴 _@monostyle_rs/skill_\n\nmonostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.\nEvery point lost is traced to a named rule with an explanation and a suggested fix, so a report is a\nworklist rather than a grade.\n\n**Two scores.** Readability measures how the code looks: whether complex sections have room to\nbreathe, whether sequential control flow is separated, how deeply logic nests, and whether comments\nexplain the hard parts. Complexity measures how hard the code is to follow and to test, using\ncyclomatic complexity, cognitive complexity, NPath, exit counts, and a maintainability index.\n\n**Twenty-three languages**, described by data profiles rather than parsers, so adding one is a data\nedit.\n\n**Per-path cutoffs.** A repository is not one uniform standard, so `[[section]]` entries hold tests,\nvendored code, and generated clients to their own bars.\n\n**Actionable output.** Findings rank by the share of penalty each accounts for, name their worst\noffender as `path:line`, and carry a suggested fix. `monostyle fix` applies the one edit that is\nsafe to automate.\n\n**Fast.** A 2,198-file repository with 232,000 lines of code completes in about a second."
+              "#### First release\n\n_Packages:_ 🔴 _monostyle_, 🔴 _monostyle_core_, 🔴 _monostyle_languages_, 🔴 _monostyle_lexer_, 🔴 _monostyle_markdown_, 🔴 _monostyle_metrics_, 🔴 _monostyle_rules_, 🔴 _@monostyle-rs/cli-, 🔴 _@monostyle-rs/cli-darwin-arm64-, 🔴 _@monostyle-rs/cli-darwin-x64-, 🔴 _@monostyle-rs/cli-linux-arm64-gnu-, 🔴 _@monostyle-rs/cli-linux-arm64-musl-, 🔴 _@monostyle-rs/cli-linux-x64-gnu-, 🔴 _@monostyle-rs/cli-linux-x64-musl-, 🔴 _@monostyle-rs/cli-win32-arm64-msvc-, 🔴 _@monostyle-rs/cli-win32-x64-msvc-, 🔴 _@monostyle-rs/skill-\n\nmonostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.\nEvery point lost is traced to a named rule with an explanation and a suggested fix, so a report is a\nworklist rather than a grade.\n\n**Two scores.** Readability measures how the code looks: whether complex sections have room to\nbreathe, whether sequential control flow is separated, how deeply logic nests, and whether comments\nexplain the hard parts. Complexity measures how hard the code is to follow and to test, using\ncyclomatic complexity, cognitive complexity, NPath, exit counts, and a maintainability index.\n\n**Twenty-three languages**, described by data profiles rather than parsers, so adding one is a data\nedit.\n\n**Per-path cutoffs.** A repository is not one uniform standard, so `[[section]]` entries hold tests,\nvendored code, and generated clients to their own bars.\n\n**Actionable output.** Findings rank by the share of penalty each accounts for, name their worst\noffender as `path:line`, and carry a suggested fix. `monostyle fix` applies the one edit that is\nsafe to automate.\n\n**Fast.** A 2,198-file repository with 232,000 lines of code completes in about a second."
             ]
           }
         ]
       },
-      "rendered": "## [0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)\n\nGrouped release for `release`.\n\n### Breaking changes\n\n#### First release\n\n_Packages:_ 🔴 _monostyle_, 🔴 _monostyle_core_, 🔴 _monostyle_languages_, 🔴 _monostyle_lexer_, 🔴 _monostyle_markdown_, 🔴 _monostyle_metrics_, 🔴 _monostyle_rules_, 🔴 _@monostyle_rs/cli_, 🔴 _@monostyle_rs/cli_darwin_arm64_, 🔴 _@monostyle_rs/cli_darwin_x64_, 🔴 _@monostyle_rs/cli_linux_arm64_gnu_, 🔴 _@monostyle_rs/cli_linux_arm64_musl_, 🔴 _@monostyle_rs/cli_linux_x64_gnu_, 🔴 _@monostyle_rs/cli_linux_x64_musl_, 🔴 _@monostyle_rs/cli_win32_arm64_msvc_, 🔴 _@monostyle_rs/cli_win32_x64_msvc_, 🔴 _@monostyle_rs/skill_\n\nmonostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.\nEvery point lost is traced to a named rule with an explanation and a suggested fix, so a report is a\nworklist rather than a grade.\n\n**Two scores.** Readability measures how the code looks: whether complex sections have room to\nbreathe, whether sequential control flow is separated, how deeply logic nests, and whether comments\nexplain the hard parts. Complexity measures how hard the code is to follow and to test, using\ncyclomatic complexity, cognitive complexity, NPath, exit counts, and a maintainability index.\n\n**Twenty-three languages**, described by data profiles rather than parsers, so adding one is a data\nedit.\n\n**Per-path cutoffs.** A repository is not one uniform standard, so `[[section]]` entries hold tests,\nvendored code, and generated clients to their own bars.\n\n**Actionable output.** Findings rank by the share of penalty each accounts for, name their worst\noffender as `path:line`, and carry a suggested fix. `monostyle fix` applies the one edit that is\nsafe to automate.\n\n**Fast.** A 2,198-file repository with 232,000 lines of code completes in about a second."
+      "rendered": "## [0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)\n\nGrouped release for `release`.\n\n### Breaking changes\n\n#### First release\n\n_Packages:_ 🔴 _monostyle_, 🔴 _monostyle_core_, 🔴 _monostyle_languages_, 🔴 _monostyle_lexer_, 🔴 _monostyle_markdown_, 🔴 _monostyle_metrics_, 🔴 _monostyle_rules_, 🔴 _@monostyle-rs/cli-, 🔴 _@monostyle-rs/cli-darwin-arm64-, 🔴 _@monostyle-rs/cli-darwin-x64-, 🔴 _@monostyle-rs/cli-linux-arm64-gnu-, 🔴 _@monostyle-rs/cli-linux-arm64-musl-, 🔴 _@monostyle-rs/cli-linux-x64-gnu-, 🔴 _@monostyle-rs/cli-linux-x64-musl-, 🔴 _@monostyle-rs/cli-win32-arm64-msvc-, 🔴 _@monostyle-rs/cli-win32-x64-msvc-, 🔴 _@monostyle-rs/skill-\n\nmonostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.\nEvery point lost is traced to a named rule with an explanation and a suggested fix, so a report is a\nworklist rather than a grade.\n\n**Two scores.** Readability measures how the code looks: whether complex sections have room to\nbreathe, whether sequential control flow is separated, how deeply logic nests, and whether comments\nexplain the hard parts. Complexity measures how hard the code is to follow and to test, using\ncyclomatic complexity, cognitive complexity, NPath, exit counts, and a maintainability index.\n\n**Twenty-three languages**, described by data profiles rather than parsers, so adding one is a data\nedit.\n\n**Per-path cutoffs.** A repository is not one uniform standard, so `[[section]]` entries hold tests,\nvendored code, and generated clients to their own bars.\n\n**Actionable output.** Findings rank by the share of penalty each accounts for, name their worst\noffender as `path:line`, and carry a suggested fix. `monostyle fix` applies the one edit that is\nsafe to automate.\n\n**Fast.** A 2,198-file repository with 232,000 lines of code completes in about a second."
     },
     {
       "owner_id": "monostyle",
@@ -748,7 +748,7 @@
       "rendered": "## [0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)\n\n### Breaking changes\n\n#### First release\n\nmonostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.\nEvery point lost is traced to a named rule with an explanation and a suggested fix, so a report is a\nworklist rather than a grade.\n\n**Two scores.** Readability measures how the code looks: whether complex sections have room to\nbreathe, whether sequential control flow is separated, how deeply logic nests, and whether comments\nexplain the hard parts. Complexity measures how hard the code is to follow and to test, using\ncyclomatic complexity, cognitive complexity, NPath, exit counts, and a maintainability index.\n\n**Twenty-three languages**, described by data profiles rather than parsers, so adding one is a data\nedit.\n\n**Per-path cutoffs.** A repository is not one uniform standard, so `[[section]]` entries hold tests,\nvendored code, and generated clients to their own bars.\n\n**Actionable output.** Findings rank by the share of penalty each accounts for, name their worst\noffender as `path:line`, and carry a suggested fix. `monostyle fix` applies the one edit that is\nsafe to automate.\n\n**Fast.** A 2,198-file repository with 232,000 lines of code completes in about a second."
     },
     {
-      "owner_id": "@monostyle_rs/cli",
+      "owner_id": "@monostyle-rs/cli",
       "owner_kind": "package",
       "output": "default",
       "stream": "default",
@@ -770,11 +770,11 @@
       "rendered": "## [0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)\n\n### Breaking changes\n\n#### First release\n\nmonostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.\nEvery point lost is traced to a named rule with an explanation and a suggested fix, so a report is a\nworklist rather than a grade.\n\n**Two scores.** Readability measures how the code looks: whether complex sections have room to\nbreathe, whether sequential control flow is separated, how deeply logic nests, and whether comments\nexplain the hard parts. Complexity measures how hard the code is to follow and to test, using\ncyclomatic complexity, cognitive complexity, NPath, exit counts, and a maintainability index.\n\n**Twenty-three languages**, described by data profiles rather than parsers, so adding one is a data\nedit.\n\n**Per-path cutoffs.** A repository is not one uniform standard, so `[[section]]` entries hold tests,\nvendored code, and generated clients to their own bars.\n\n**Actionable output.** Findings rank by the share of penalty each accounts for, name their worst\noffender as `path:line`, and carry a suggested fix. `monostyle fix` applies the one edit that is\nsafe to automate.\n\n**Fast.** A 2,198-file repository with 232,000 lines of code completes in about a second."
     },
     {
-      "owner_id": "@monostyle_rs/cli_darwin_arm64",
+      "owner_id": "@monostyle-rs/cli-darwin-arm64",
       "owner_kind": "package",
       "output": "default",
       "stream": "default",
-      "path": "packages/monostyle__cli_darwin_arm64/changelog.md",
+      "path": "packages/monostyle__cli-darwin-arm64/changelog.md",
       "format": "keep_a_changelog",
       "notes": {
         "title": "[0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)",
@@ -792,11 +792,11 @@
       "rendered": "## [0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)\n\n### Breaking changes\n\n#### First release\n\nmonostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.\nEvery point lost is traced to a named rule with an explanation and a suggested fix, so a report is a\nworklist rather than a grade.\n\n**Two scores.** Readability measures how the code looks: whether complex sections have room to\nbreathe, whether sequential control flow is separated, how deeply logic nests, and whether comments\nexplain the hard parts. Complexity measures how hard the code is to follow and to test, using\ncyclomatic complexity, cognitive complexity, NPath, exit counts, and a maintainability index.\n\n**Twenty-three languages**, described by data profiles rather than parsers, so adding one is a data\nedit.\n\n**Per-path cutoffs.** A repository is not one uniform standard, so `[[section]]` entries hold tests,\nvendored code, and generated clients to their own bars.\n\n**Actionable output.** Findings rank by the share of penalty each accounts for, name their worst\noffender as `path:line`, and carry a suggested fix. `monostyle fix` applies the one edit that is\nsafe to automate.\n\n**Fast.** A 2,198-file repository with 232,000 lines of code completes in about a second."
     },
     {
-      "owner_id": "@monostyle_rs/cli_darwin_x64",
+      "owner_id": "@monostyle-rs/cli-darwin-x64",
       "owner_kind": "package",
       "output": "default",
       "stream": "default",
-      "path": "packages/monostyle__cli_darwin_x64/changelog.md",
+      "path": "packages/monostyle__cli-darwin-x64/changelog.md",
       "format": "keep_a_changelog",
       "notes": {
         "title": "[0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)",
@@ -814,11 +814,11 @@
       "rendered": "## [0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)\n\n### Breaking changes\n\n#### First release\n\nmonostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.\nEvery point lost is traced to a named rule with an explanation and a suggested fix, so a report is a\nworklist rather than a grade.\n\n**Two scores.** Readability measures how the code looks: whether complex sections have room to\nbreathe, whether sequential control flow is separated, how deeply logic nests, and whether comments\nexplain the hard parts. Complexity measures how hard the code is to follow and to test, using\ncyclomatic complexity, cognitive complexity, NPath, exit counts, and a maintainability index.\n\n**Twenty-three languages**, described by data profiles rather than parsers, so adding one is a data\nedit.\n\n**Per-path cutoffs.** A repository is not one uniform standard, so `[[section]]` entries hold tests,\nvendored code, and generated clients to their own bars.\n\n**Actionable output.** Findings rank by the share of penalty each accounts for, name their worst\noffender as `path:line`, and carry a suggested fix. `monostyle fix` applies the one edit that is\nsafe to automate.\n\n**Fast.** A 2,198-file repository with 232,000 lines of code completes in about a second."
     },
     {
-      "owner_id": "@monostyle_rs/cli_linux_arm64_gnu",
+      "owner_id": "@monostyle-rs/cli-linux-arm64-gnu",
       "owner_kind": "package",
       "output": "default",
       "stream": "default",
-      "path": "packages/monostyle__cli_linux_arm64_gnu/changelog.md",
+      "path": "packages/monostyle__cli-linux-arm64-gnu/changelog.md",
       "format": "keep_a_changelog",
       "notes": {
         "title": "[0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)",
@@ -836,11 +836,11 @@
       "rendered": "## [0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)\n\n### Breaking changes\n\n#### First release\n\nmonostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.\nEvery point lost is traced to a named rule with an explanation and a suggested fix, so a report is a\nworklist rather than a grade.\n\n**Two scores.** Readability measures how the code looks: whether complex sections have room to\nbreathe, whether sequential control flow is separated, how deeply logic nests, and whether comments\nexplain the hard parts. Complexity measures how hard the code is to follow and to test, using\ncyclomatic complexity, cognitive complexity, NPath, exit counts, and a maintainability index.\n\n**Twenty-three languages**, described by data profiles rather than parsers, so adding one is a data\nedit.\n\n**Per-path cutoffs.** A repository is not one uniform standard, so `[[section]]` entries hold tests,\nvendored code, and generated clients to their own bars.\n\n**Actionable output.** Findings rank by the share of penalty each accounts for, name their worst\noffender as `path:line`, and carry a suggested fix. `monostyle fix` applies the one edit that is\nsafe to automate.\n\n**Fast.** A 2,198-file repository with 232,000 lines of code completes in about a second."
     },
     {
-      "owner_id": "@monostyle_rs/cli_linux_arm64_musl",
+      "owner_id": "@monostyle-rs/cli-linux-arm64-musl",
       "owner_kind": "package",
       "output": "default",
       "stream": "default",
-      "path": "packages/monostyle__cli_linux_arm64_musl/changelog.md",
+      "path": "packages/monostyle__cli-linux-arm64-musl/changelog.md",
       "format": "keep_a_changelog",
       "notes": {
         "title": "[0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)",
@@ -858,11 +858,11 @@
       "rendered": "## [0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)\n\n### Breaking changes\n\n#### First release\n\nmonostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.\nEvery point lost is traced to a named rule with an explanation and a suggested fix, so a report is a\nworklist rather than a grade.\n\n**Two scores.** Readability measures how the code looks: whether complex sections have room to\nbreathe, whether sequential control flow is separated, how deeply logic nests, and whether comments\nexplain the hard parts. Complexity measures how hard the code is to follow and to test, using\ncyclomatic complexity, cognitive complexity, NPath, exit counts, and a maintainability index.\n\n**Twenty-three languages**, described by data profiles rather than parsers, so adding one is a data\nedit.\n\n**Per-path cutoffs.** A repository is not one uniform standard, so `[[section]]` entries hold tests,\nvendored code, and generated clients to their own bars.\n\n**Actionable output.** Findings rank by the share of penalty each accounts for, name their worst\noffender as `path:line`, and carry a suggested fix. `monostyle fix` applies the one edit that is\nsafe to automate.\n\n**Fast.** A 2,198-file repository with 232,000 lines of code completes in about a second."
     },
     {
-      "owner_id": "@monostyle_rs/cli_linux_x64_gnu",
+      "owner_id": "@monostyle-rs/cli-linux-x64-gnu",
       "owner_kind": "package",
       "output": "default",
       "stream": "default",
-      "path": "packages/monostyle__cli_linux_x64_gnu/changelog.md",
+      "path": "packages/monostyle__cli-linux-x64-gnu/changelog.md",
       "format": "keep_a_changelog",
       "notes": {
         "title": "[0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)",
@@ -880,11 +880,11 @@
       "rendered": "## [0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)\n\n### Breaking changes\n\n#### First release\n\nmonostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.\nEvery point lost is traced to a named rule with an explanation and a suggested fix, so a report is a\nworklist rather than a grade.\n\n**Two scores.** Readability measures how the code looks: whether complex sections have room to\nbreathe, whether sequential control flow is separated, how deeply logic nests, and whether comments\nexplain the hard parts. Complexity measures how hard the code is to follow and to test, using\ncyclomatic complexity, cognitive complexity, NPath, exit counts, and a maintainability index.\n\n**Twenty-three languages**, described by data profiles rather than parsers, so adding one is a data\nedit.\n\n**Per-path cutoffs.** A repository is not one uniform standard, so `[[section]]` entries hold tests,\nvendored code, and generated clients to their own bars.\n\n**Actionable output.** Findings rank by the share of penalty each accounts for, name their worst\noffender as `path:line`, and carry a suggested fix. `monostyle fix` applies the one edit that is\nsafe to automate.\n\n**Fast.** A 2,198-file repository with 232,000 lines of code completes in about a second."
     },
     {
-      "owner_id": "@monostyle_rs/cli_linux_x64_musl",
+      "owner_id": "@monostyle-rs/cli-linux-x64-musl",
       "owner_kind": "package",
       "output": "default",
       "stream": "default",
-      "path": "packages/monostyle__cli_linux_x64_musl/changelog.md",
+      "path": "packages/monostyle__cli-linux-x64-musl/changelog.md",
       "format": "keep_a_changelog",
       "notes": {
         "title": "[0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)",
@@ -902,11 +902,11 @@
       "rendered": "## [0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)\n\n### Breaking changes\n\n#### First release\n\nmonostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.\nEvery point lost is traced to a named rule with an explanation and a suggested fix, so a report is a\nworklist rather than a grade.\n\n**Two scores.** Readability measures how the code looks: whether complex sections have room to\nbreathe, whether sequential control flow is separated, how deeply logic nests, and whether comments\nexplain the hard parts. Complexity measures how hard the code is to follow and to test, using\ncyclomatic complexity, cognitive complexity, NPath, exit counts, and a maintainability index.\n\n**Twenty-three languages**, described by data profiles rather than parsers, so adding one is a data\nedit.\n\n**Per-path cutoffs.** A repository is not one uniform standard, so `[[section]]` entries hold tests,\nvendored code, and generated clients to their own bars.\n\n**Actionable output.** Findings rank by the share of penalty each accounts for, name their worst\noffender as `path:line`, and carry a suggested fix. `monostyle fix` applies the one edit that is\nsafe to automate.\n\n**Fast.** A 2,198-file repository with 232,000 lines of code completes in about a second."
     },
     {
-      "owner_id": "@monostyle_rs/cli_win32_arm64_msvc",
+      "owner_id": "@monostyle-rs/cli-win32-arm64-msvc",
       "owner_kind": "package",
       "output": "default",
       "stream": "default",
-      "path": "packages/monostyle__cli_win32_arm64_msvc/changelog.md",
+      "path": "packages/monostyle__cli-win32-arm64-msvc/changelog.md",
       "format": "keep_a_changelog",
       "notes": {
         "title": "[0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)",
@@ -924,11 +924,11 @@
       "rendered": "## [0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)\n\n### Breaking changes\n\n#### First release\n\nmonostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.\nEvery point lost is traced to a named rule with an explanation and a suggested fix, so a report is a\nworklist rather than a grade.\n\n**Two scores.** Readability measures how the code looks: whether complex sections have room to\nbreathe, whether sequential control flow is separated, how deeply logic nests, and whether comments\nexplain the hard parts. Complexity measures how hard the code is to follow and to test, using\ncyclomatic complexity, cognitive complexity, NPath, exit counts, and a maintainability index.\n\n**Twenty-three languages**, described by data profiles rather than parsers, so adding one is a data\nedit.\n\n**Per-path cutoffs.** A repository is not one uniform standard, so `[[section]]` entries hold tests,\nvendored code, and generated clients to their own bars.\n\n**Actionable output.** Findings rank by the share of penalty each accounts for, name their worst\noffender as `path:line`, and carry a suggested fix. `monostyle fix` applies the one edit that is\nsafe to automate.\n\n**Fast.** A 2,198-file repository with 232,000 lines of code completes in about a second."
     },
     {
-      "owner_id": "@monostyle_rs/cli_win32_x64_msvc",
+      "owner_id": "@monostyle-rs/cli-win32-x64-msvc",
       "owner_kind": "package",
       "output": "default",
       "stream": "default",
-      "path": "packages/monostyle__cli_win32_x64_msvc/changelog.md",
+      "path": "packages/monostyle__cli-win32-x64-msvc/changelog.md",
       "format": "keep_a_changelog",
       "notes": {
         "title": "[0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)",
@@ -946,7 +946,7 @@
       "rendered": "## [0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)\n\n### Breaking changes\n\n#### First release\n\nmonostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.\nEvery point lost is traced to a named rule with an explanation and a suggested fix, so a report is a\nworklist rather than a grade.\n\n**Two scores.** Readability measures how the code looks: whether complex sections have room to\nbreathe, whether sequential control flow is separated, how deeply logic nests, and whether comments\nexplain the hard parts. Complexity measures how hard the code is to follow and to test, using\ncyclomatic complexity, cognitive complexity, NPath, exit counts, and a maintainability index.\n\n**Twenty-three languages**, described by data profiles rather than parsers, so adding one is a data\nedit.\n\n**Per-path cutoffs.** A repository is not one uniform standard, so `[[section]]` entries hold tests,\nvendored code, and generated clients to their own bars.\n\n**Actionable output.** Findings rank by the share of penalty each accounts for, name their worst\noffender as `path:line`, and carry a suggested fix. `monostyle fix` applies the one edit that is\nsafe to automate.\n\n**Fast.** A 2,198-file repository with 232,000 lines of code completes in about a second."
     },
     {
-      "owner_id": "@monostyle_rs/skill",
+      "owner_id": "@monostyle-rs/skill",
       "owner_kind": "package",
       "output": "default",
       "stream": "default",

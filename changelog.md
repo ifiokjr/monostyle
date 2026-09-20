@@ -14,12 +14,12 @@ Grouped release for `release`.
 #### First release
 
 _Packages:_ 🔴 _monostyle_, 🔴 _monostyle_core_, 🔴 _monostyle_languages_, 🔴 _monostyle_lexer_, 🔴
-_monostyle_markdown_, 🔴 _monostyle_metrics_, 🔴 _monostyle_rules_, 🔴 _@monostyle_rs/cli_, 🔴
-_@monostyle_rs/cli_darwin_arm64_, 🔴 _@monostyle_rs/cli_darwin_x64_, 🔴
-_@monostyle_rs/cli_linux_arm64_gnu_, 🔴 _@monostyle_rs/cli_linux_arm64_musl_, 🔴
-_@monostyle_rs/cli_linux_x64_gnu_, 🔴 _@monostyle_rs/cli_linux_x64_musl_, 🔴
-_@monostyle_rs/cli_win32_arm64_msvc_, 🔴 _@monostyle_rs/cli_win32_x64_msvc_, 🔴
-_@monostyle_rs/skill_
+_monostyle_markdown_, 🔴 _monostyle_metrics_, 🔴 _monostyle_rules_, 🔴 _@monostyle-rs/cli-, 🔴
+_@monostyle-rs/cli-darwin-arm64-, 🔴 _@monostyle-rs/cli-darwin-x64-, 🔴
+_@monostyle-rs/cli-linux-arm64-gnu-, 🔴 _@monostyle-rs/cli-linux-arm64-musl-, 🔴
+_@monostyle-rs/cli-linux-x64-gnu-, 🔴 _@monostyle-rs/cli-linux-x64-musl-, 🔴
+_@monostyle-rs/cli-win32-arm64-msvc-, 🔴 _@monostyle-rs/cli-win32-x64-msvc-, 🔴
+_@monostyle-rs/skill-
 
 monostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.
 Every point lost is traced to a named rule with an explanation and a suggested fix, so a report is a

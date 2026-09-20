@@ -1,7 +1,7 @@
 {
-  "name": "@monostyle_rs/cli_linux_arm64_musl",
+  "name": "@monostyle-rs/cli-linux-arm64-gnu",
   "version": "0.1.0",
-  "description": "Prebuilt monostyle binary for Linux arm64 (musl)",
+  "description": "Prebuilt monostyle binary for Linux arm64 (glibc)",
   "homepage": "https://github.com/ifiokjr/monostyle",
   "bugs": {
     "url": "https://github.com/ifiokjr/monostyle/issues"

@@ -1,5 +1,5 @@
 {
-  "name": "@monostyle_rs/cli_darwin_arm64",
+  "name": "@monostyle-rs/cli-darwin-arm64",
   "version": "0.1.0",
   "description": "Prebuilt monostyle binary for macOS arm64",
   "homepage": "https://github.com/ifiokjr/monostyle",

@@ -1,5 +1,5 @@
 {
-  "name": "@monostyle_rs/cli",
+  "name": "@monostyle-rs/cli",
   "version": "0.1.0",
   "type": "module",
   "description": "Score the complexity and readability of a codebase, a file, or a function",
@@ -32,14 +32,14 @@
     "provenance": true
   },
   "optionalDependencies": {
-    "@monostyle_rs/cli_darwin_arm64": "^0.1.0",
-    "@monostyle_rs/cli_darwin_x64": "^0.1.0",
-    "@monostyle_rs/cli_linux_arm64_gnu": "^0.1.0",
-    "@monostyle_rs/cli_linux_arm64_musl": "^0.1.0",
-    "@monostyle_rs/cli_linux_x64_gnu": "^0.1.0",
-    "@monostyle_rs/cli_linux_x64_musl": "^0.1.0",
-    "@monostyle_rs/cli_win32_arm64_msvc": "^0.1.0",
-    "@monostyle_rs/cli_win32_x64_msvc": "^0.1.0"
+    "@monostyle-rs/cli-darwin-arm64": "^0.1.0",
+    "@monostyle-rs/cli-darwin-x64": "^0.1.0",
+    "@monostyle-rs/cli-linux-arm64-gnu": "^0.1.0",
+    "@monostyle-rs/cli-linux-arm64-musl": "^0.1.0",
+    "@monostyle-rs/cli-linux-x64-gnu": "^0.1.0",
+    "@monostyle-rs/cli-linux-x64-musl": "^0.1.0",
+    "@monostyle-rs/cli-win32-arm64-msvc": "^0.1.0",
+    "@monostyle-rs/cli-win32-x64-msvc": "^0.1.0"
   },
   "engines": {
     "node": ">=20"

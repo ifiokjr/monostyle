@@ -28,8 +28,8 @@ score.txt
 # Binaries staged into platform packages by scripts/stage-binaries.mjs.
 # They are built by the release workflow and must never be committed: a checked-in
 # binary would ship whatever architecture the last developer built on.
-packages/monostyle__cli_*/bin/monostyle
-packages/monostyle__cli_*/bin/monostyle.exe
+packages/monostyle__cli-*/bin/monostyle
+packages/monostyle__cli-*/bin/monostyle.exe
 
 # mdbook build output
 docs/book/

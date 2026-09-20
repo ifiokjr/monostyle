@@ -1,7 +1,7 @@
 {
-  "name": "@monostyle_rs/cli_win32_x64_msvc",
+  "name": "@monostyle-rs/cli-linux-x64-musl",
   "version": "0.1.0",
-  "description": "Prebuilt monostyle binary for Windows x64",
+  "description": "Prebuilt monostyle binary for Linux x64 (musl)",
   "homepage": "https://github.com/ifiokjr/monostyle",
   "bugs": {
     "url": "https://github.com/ifiokjr/monostyle/issues"
@@ -15,7 +15,7 @@
     "bin"
   ],
   "os": [
-    "win32"
+    "linux"
   ],
   "cpu": [
     "x64"

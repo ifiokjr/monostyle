@@ -65,16 +65,16 @@ packages = [
   "monostyle_markdown",
   "monostyle_metrics",
   "monostyle_rules",
-  "@monostyle_rs/cli",
-  "@monostyle_rs/cli_darwin_arm64",
-  "@monostyle_rs/cli_darwin_x64",
-  "@monostyle_rs/cli_linux_arm64_gnu",
-  "@monostyle_rs/cli_linux_arm64_musl",
-  "@monostyle_rs/cli_linux_x64_gnu",
-  "@monostyle_rs/cli_linux_x64_musl",
-  "@monostyle_rs/cli_win32_arm64_msvc",
-  "@monostyle_rs/cli_win32_x64_msvc",
-  "@monostyle_rs/skill",
+  "@monostyle-rs/cli",
+  "@monostyle-rs/cli-darwin-arm64",
+  "@monostyle-rs/cli-darwin-x64",
+  "@monostyle-rs/cli-linux-arm64-gnu",
+  "@monostyle-rs/cli-linux-arm64-musl",
+  "@monostyle-rs/cli-linux-x64-gnu",
+  "@monostyle-rs/cli-linux-x64-musl",
+  "@monostyle-rs/cli-win32-arm64-msvc",
+  "@monostyle-rs/cli-win32-x64-msvc",
+  "@monostyle-rs/skill",
 ]
 tag = true
 release = true
@@ -131,43 +131,43 @@ type = "cargo"
 # npm packages
 # =============================================================================
 
-[package."@monostyle_rs/cli"]
+[package."@monostyle-rs/cli"]
 path = "packages/monostyle__cli"
 type = "npm"
 
-[package."@monostyle_rs/cli_darwin_arm64"]
-path = "packages/monostyle__cli_darwin_arm64"
+[package."@monostyle-rs/cli-darwin-arm64"]
+path = "packages/monostyle__cli-darwin-arm64"
 type = "npm"
 
-[package."@monostyle_rs/cli_darwin_x64"]
-path = "packages/monostyle__cli_darwin_x64"
+[package."@monostyle-rs/cli-darwin-x64"]
+path = "packages/monostyle__cli-darwin-x64"
 type = "npm"
 
-[package."@monostyle_rs/cli_linux_arm64_gnu"]
-path = "packages/monostyle__cli_linux_arm64_gnu"
+[package."@monostyle-rs/cli-linux-arm64-gnu"]
+path = "packages/monostyle__cli-linux-arm64-gnu"
 type = "npm"
 
-[package."@monostyle_rs/cli_linux_arm64_musl"]
-path = "packages/monostyle__cli_linux_arm64_musl"
+[package."@monostyle-rs/cli-linux-arm64-musl"]
+path = "packages/monostyle__cli-linux-arm64-musl"
 type = "npm"
 
-[package."@monostyle_rs/cli_linux_x64_gnu"]
-path = "packages/monostyle__cli_linux_x64_gnu"
+[package."@monostyle-rs/cli-linux-x64-gnu"]
+path = "packages/monostyle__cli-linux-x64-gnu"
 type = "npm"
 
-[package."@monostyle_rs/cli_linux_x64_musl"]
-path = "packages/monostyle__cli_linux_x64_musl"
+[package."@monostyle-rs/cli-linux-x64-musl"]
+path = "packages/monostyle__cli-linux-x64-musl"
 type = "npm"
 
-[package."@monostyle_rs/cli_win32_arm64_msvc"]
-path = "packages/monostyle__cli_win32_arm64_msvc"
+[package."@monostyle-rs/cli-win32-arm64-msvc"]
+path = "packages/monostyle__cli-win32-arm64-msvc"
 type = "npm"
 
-[package."@monostyle_rs/cli_win32_x64_msvc"]
-path = "packages/monostyle__cli_win32_x64_msvc"
+[package."@monostyle-rs/cli-win32-x64-msvc"]
+path = "packages/monostyle__cli-win32-x64-msvc"
 type = "npm"
 
-[package."@monostyle_rs/skill"]
+[package."@monostyle-rs/skill"]
 path = "packages/monostyle__skill"
 type = "npm"
 
