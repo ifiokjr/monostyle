@@ -1,27 +1,28 @@
 ---
-"monostyle": minor
-"monostyle_core": minor
-"monostyle_languages": minor
-"monostyle_lexer": minor
-"monostyle_markdown": minor
-"monostyle_metrics": minor
-"monostyle_rules": minor
-"@monostyle_rs/cli": minor
-"@monostyle_rs/cli_darwin_arm64": minor
-"@monostyle_rs/cli_darwin_x64": minor
-"@monostyle_rs/cli_linux_arm64_gnu": minor
-"@monostyle_rs/cli_linux_arm64_musl": minor
-"@monostyle_rs/cli_linux_x64_gnu": minor
-"@monostyle_rs/cli_linux_x64_musl": minor
-"@monostyle_rs/cli_win32_arm64_msvc": minor
-"@monostyle_rs/cli_win32_x64_msvc": minor
-"@monostyle_rs/skill": minor
+"monostyle": major
+"monostyle_core": major
+"monostyle_languages": major
+"monostyle_lexer": major
+"monostyle_markdown": major
+"monostyle_metrics": major
+"monostyle_rules": major
+"@monostyle_rs/cli": major
+"@monostyle_rs/cli_darwin_arm64": major
+"@monostyle_rs/cli_darwin_x64": major
+"@monostyle_rs/cli_linux_arm64_gnu": major
+"@monostyle_rs/cli_linux_arm64_musl": major
+"@monostyle_rs/cli_linux_x64_gnu": major
+"@monostyle_rs/cli_linux_x64_musl": major
+"@monostyle_rs/cli_win32_arm64_msvc": major
+"@monostyle_rs/cli_win32_x64_msvc": major
+"@monostyle_rs/skill": major
 ---
 
-# Initial release
+# First release
 
 monostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.
-Every point lost is traced to a named rule with an explanation and a suggested fix.
+Every point lost is traced to a named rule with an explanation and a suggested fix, so a report is a
+worklist rather than a grade.
 
 **Two scores.** Readability measures how the code looks: whether complex sections have room to
 breathe, whether sequential control flow is separated, how deeply logic nests, and whether comments
