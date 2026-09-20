@@ -170,3 +170,75 @@ jobs:
             head -40 score.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # The half of the release flow that runs after the release PR is merged. The release-pr job above
+  # prepares the PR; merging it lands the `chore(release)` commit on main, and this job is what
+  # makes that merge cut a release: it pushes the tag, which is the event publish.yml listens for,
+  # and creates the draft GitHub release with the notes from the release record.
+  release-post-merge:
+    name: tag and draft the release
+    # Runs only when the pushed commit is itself a release commit. The release-pr job has the
+    # inverse condition, so the two halves never both run on the same push.
+    if: "startsWith(github.event.head_commit.message, 'chore(release)')"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      # Pushing the tag needs write on contents, and the draft release carries the token into the
+      # GitHub API rather than into the git config of every later step.
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The release record is matched against first-parent ancestry, and the draft release
+          # copies changelogs from the tree, so the history and the files both have to be present.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: install monochange
+        run: cargo binstall monochange --no-confirm || cargo install monochange --locked
+
+      - name: confirm the commit is a release commit
+        id: record
+        # A commit whose subject says `chore(release)` but which carries no release record is a
+        # hand-written lookalike. Failing here is better than tagging whatever it happens to
+        # contain: the record is the authority on what version and what packages the tag names.
+        run: |
+          set -euo pipefail
+
+          is_release_commit="$(monochange step release-record --from HEAD --format json \
+            --jq '.resolved_commit == .record_commit')"
+
+          if [ "$is_release_commit" != "true" ]; then
+            echo "::error::This commit looks like a release commit but carries no release record."
+            monochange step release-record --from HEAD --format text || true
+            exit 1
+          fi
+
+          echo "is_release_commit=true" >> "$GITHUB_OUTPUT"
+
+      - name: push the release tag
+        # The tag push is what publish.yml listens for, so this step is the handoff between the
+        # two workflows. The credential helper supplies the token per command rather than writing
+        # it into `.git/config`, because the checkout disabled persistence for exactly that reason.
+        env:
+          RELEASE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          export GIT_CONFIG_COUNT=1
+          export GIT_CONFIG_KEY_0=credential.https://github.com.helper
+          # The value is single-quoted on purpose: git runs it through its own shell, which is
+          # what expands `$RELEASE_TOKEN`. Expanding it here would bake the token into the git
+          # configuration in plaintext.
+          # shellcheck disable=SC2016
+          export GIT_CONFIG_VALUE_0='!f() { echo "username=x-access-token"; echo "password=$RELEASE_TOKEN"; }; f'
+
+          monochange step tag-release --from HEAD --push=true
+
+      - name: create the draft release
+        # A draft, not a public release: publish.yml flips it public only after both registries
+        # have accepted every package, so a release is never visible while the registry is still
+        # missing artifacts.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: monochange step publish-release --from-ref HEAD --draft

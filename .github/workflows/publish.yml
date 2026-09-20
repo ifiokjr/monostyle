@@ -206,6 +206,30 @@ jobs:
           ref: ${{ env.RELEASE_TAG }}
           persist-credentials: false
 
+      - name: wait for the draft release
+        # The draft release is created by the release workflow's release-post-merge job, which
+        # also pushed the tag this run is building from. The build can finish before that job has
+        # created the draft, so wait for it rather than race: `gh release upload` fails outright
+        # against a release that does not exist yet.
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          echo "Waiting for the draft release $RELEASE_TAG to be created by the release workflow..."
+          for attempt in $(seq 1 30); do
+            if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              echo "Draft release $RELEASE_TAG exists after $attempt attempt(s)."
+              exit 0
+            fi
+
+            echo "  attempt $attempt/30: release not found yet; sleeping 10s"
+            sleep 10
+          done
+
+          echo "::error::Release $RELEASE_TAG was not created within the wait window. Check the release workflow's release-post-merge job." >&2
+          exit 1
+
       - name: download every artifact
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -470,3 +494,25 @@ jobs:
 
           npm publish --provenance --access public packages/monostyle__cli
           npm publish --provenance --access public packages/monostyle__skill
+
+  # The release was created as a draft by the release workflow so a half-published release is
+  # never visible. Both registries have now accepted every package, so this is the step that makes
+  # the release public and marks it latest.
+  finalize-release:
+    name: publish the github release
+    needs: [validate, release, publish-crates, publish-npm]
+    if: inputs.dry_run != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: flip the draft release public
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          gh release edit "$RELEASE_TAG" --draft=false --latest --repo "$GITHUB_REPOSITORY"
+
+          echo "Release $RELEASE_TAG is public: every crate and every npm package is on its registry."
