@@ -3,7 +3,7 @@ name: "monostyle"
 description: "Use when scoring or improving the readability and complexity of code. Measures whether complex sections are given room, whether sequential control flow is separated, how deeply logic nests, and whether comments explain why. Use for reviewing a codebase, a file, or a single function, and for checking your own output before finishing."
 ---
 
-# @monostyle-rs/skill
+# @monostyle_rs/skill
 
 Scores code for **readability** and **complexity**, out of 100 each, and explains every point lost
 as a named rule with a location and a suggested fix.
@@ -37,38 +37,38 @@ The report is ordered the way you should act on it:
 3. **Each impact names its worst offender** as `path:line`. That is where to look.
 4. **`start here`** at the bottom names the highest-value single fix.
 
-When you are asked to improve a score, work the impact table from the top. Fixing the first row often
-moves the score more than fixing everything below it combined.
+When you are asked to improve a score, work the impact table from the top. Fixing the first row
+often moves the score more than fixing everything below it combined.
 
 ## The rules
 
 Readability:
 
-| Rule | What it means | What to do |
-| --- | --- | --- |
-| `blank-line-before-control-flow` | An `if`/`for`/`while` is crowded against the line above | Put a blank line before each control-flow statement |
-| `blank-line-before-return` | A `return` is buried against the code above it | Put a blank line before the return |
-| `group-separation` | A long run of statements with no blank lines | Separate the logical groups within the run |
-| `deep-nesting` | Control flow nested past the limit | Flatten with an early return or extract the block |
-| `excessive-indentation` | A line indented past the limit | Same fix: flatten or extract |
-| `long-parameter-list` | An argument list that should be split | One argument per line |
-| `overlong-line` | A line wider than the readable limit | Break it at a logical boundary |
-| `oversized-unit` | A function too long to hold in your head | Extract the distinct phases into named helpers |
-| `oversized-file` | A file too large to navigate | Split it along its natural seams |
-| `mixed-indentation` | Tabs and spaces in one file | Pick one |
-| `comment-required-on-complex-unit` | A complex function with no explanation | Add a comment explaining why it is complex |
-| `comment-explains-why` | **Credit** for explaining reasoning | Keep it |
-| `comment-narrates-code` | A comment restating the code | Delete it or explain why instead |
-| `excessive-comments` | More commentary than the code can carry | Keep the why, delete the what |
-| `thin-documentation` | A doc block listing structure without purpose | Add a sentence on what it is for and why |
+| Rule                               | What it means                                           | What to do                                          |
+| ---------------------------------- | ------------------------------------------------------- | --------------------------------------------------- |
+| `blank-line-before-control-flow`   | An `if`/`for`/`while` is crowded against the line above | Put a blank line before each control-flow statement |
+| `blank-line-before-return`         | A `return` is buried against the code above it          | Put a blank line before the return                  |
+| `group-separation`                 | A long run of statements with no blank lines            | Separate the logical groups within the run          |
+| `deep-nesting`                     | Control flow nested past the limit                      | Flatten with an early return or extract the block   |
+| `excessive-indentation`            | A line indented past the limit                          | Same fix: flatten or extract                        |
+| `long-parameter-list`              | An argument list that should be split                   | One argument per line                               |
+| `overlong-line`                    | A line wider than the readable limit                    | Break it at a logical boundary                      |
+| `oversized-unit`                   | A function too long to hold in your head                | Extract the distinct phases into named helpers      |
+| `oversized-file`                   | A file too large to navigate                            | Split it along its natural seams                    |
+| `mixed-indentation`                | Tabs and spaces in one file                             | Pick one                                            |
+| `comment-required-on-complex-unit` | A complex function with no explanation                  | Add a comment explaining why it is complex          |
+| `comment-explains-why`             | **Credit** for explaining reasoning                     | Keep it                                             |
+| `comment-narrates-code`            | A comment restating the code                            | Delete it or explain why instead                    |
+| `excessive-comments`               | More commentary than the code can carry                 | Keep the why, delete the what                       |
+| `thin-documentation`               | A doc block listing structure without purpose           | Add a sentence on what it is for and why            |
 
 Complexity:
 
-| Rule | What it means | What to do |
-| --- | --- | --- |
-| `cyclomatic-per-unit` | Too many independent paths to test | Extract cohesive branch groups into helpers |
-| `cognitive-per-unit` | Hard to follow; the message reports the nesting penalty | Flattening resets the nesting penalty without reducing the branch count |
-| `cyclomatic-per-file` | A file dense with decisions | Split it into smaller modules |
+| Rule                  | What it means                                           | What to do                                                              |
+| --------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `cyclomatic-per-unit` | Too many independent paths to test                      | Extract cohesive branch groups into helpers                             |
+| `cognitive-per-unit`  | Hard to follow; the message reports the nesting penalty | Flattening resets the nesting penalty without reducing the branch count |
+| `cyclomatic-per-file` | A file dense with decisions                             | Split it into smaller modules                                           |
 
 ## What actually improves the score
 
@@ -81,7 +81,7 @@ The rules reward one habit above all: **give complex code room, and flatten it.*
 - A blank line between logical groups inside a function, so its phases are visible.
 - Split an argument list across lines when it does not fit — the rule measures rendered width, not
   just the count, so a short numeric call is left alone.
-- Comment the *why* on any function that is genuinely complex. The score asks for this only above a
+- Comment the _why_ on any function that is genuinely complex. The score asks for this only above a
   cognitive threshold, so it does not nag simple code.
 
 ## Two honest caveats
@@ -89,8 +89,8 @@ The rules reward one habit above all: **give complex code room, and flatten it.*
 **The comment classifier is a keyword matcher, not comprehension.** It counts phrases from two
 curated lists. It cannot see negation, so a comment like "do not increment the counter" reads as
 narration. It stays quiet when a comment is ambiguous rather than guessing, which means a good
-comment occasionally reports `Neutral` instead of credit. Do not treat a
-`comment-narrates-code` finding as authoritative without reading the comment yourself.
+comment occasionally reports `Neutral` instead of credit. Do not treat a `comment-narrates-code`
+finding as authoritative without reading the comment yourself.
 
 **Scores are comparable within a run, not across configurations.** Changing thresholds in
 `monostyle.toml` changes what the numbers mean, so a score recorded before a config change is not

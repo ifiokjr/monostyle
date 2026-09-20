@@ -151,6 +151,7 @@ fn disabling_a_rule_removes_its_findings() {
 
 	let disabled = RulesConfig {
 		disabled_rules: vec![rule.to_string()],
+
 		..RulesConfig::default()
 	};
 
@@ -171,6 +172,7 @@ fn a_kitchen_sink_source_exercises_many_rules() {
 	// A source with one problem per class should trip most of the registry; if it stops doing so, a
 	// rule has silently stopped firing.
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
+
 	let findings = run_rules(&lexed, &RulesConfig::default());
 
 	let mut rules: Vec<&str> = findings
@@ -192,6 +194,7 @@ fn running_the_rules_twice_gives_the_same_answer() {
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
 
 	let first = run_rules(&lexed, &RulesConfig::default());
+
 	let second = run_rules(&lexed, &RulesConfig::default());
 
 	assert_eq!(first.len(), second.len());
@@ -232,6 +235,7 @@ fn every_finding_carries_a_category_matching_its_namespace() {
 	// and changes the number a reader trusts.
 	for rule in all_rules() {
 		let lexed = lex(KITCHEN_SINK, Language::Rust);
+
 		let findings = (rule.run)(&lexed, &RulesConfig::default());
 
 		let namespace = rule.name.split('/').next().unwrap_or_default();
@@ -282,6 +286,7 @@ fn only_one_rule_produces_a_fix() {
 	// Fixes are restricted to the blank-line insertion because it is the only edit guaranteed to
 	// survive a formatter. A second fixable rule would need the same argument made for it.
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
+
 	let findings = run_rules(&lexed, &RulesConfig::default());
 
 	let fixable: Vec<&str> = findings
@@ -306,6 +311,7 @@ fn the_fixable_rule_produces_a_fix_for_every_finding() {
 	// A finding from the fixable rule with no fix attached would mean the rule attached one
 	// conditionally, which makes `monostyle fix` unreliable.
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
+
 	let findings = run_rules(&lexed, &RulesConfig::default());
 
 	for finding in findings

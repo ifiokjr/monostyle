@@ -13,14 +13,14 @@ const PREFIX = "monostyle__cli";
 
 /** Every platform suffix the launcher knows how to resolve. */
 const PLATFORM_SUFFIXES = [
-	"darwin-arm64",
-	"darwin-x64",
-	"linux-arm64-gnu",
-	"linux-arm64-musl",
-	"linux-x64-gnu",
-	"linux-x64-musl",
-	"win32-arm64-msvc",
-	"win32-x64-msvc",
+	"darwin_arm64",
+	"darwin_x64",
+	"linux_arm64_gnu",
+	"linux_arm64_musl",
+	"linux_x64_gnu",
+	"linux_x64_musl",
+	"win32_arm64_msvc",
+	"win32_x64_msvc",
 ];
 
 const errors = [];
@@ -55,7 +55,7 @@ if (launcher) {
 	// The launcher must point at every platform package, and at the same version, or npm resolves
 	// a mismatched set that may not contain a working binary.
 	for (const suffix of PLATFORM_SUFFIXES) {
-		const dependency = `@monostyle-rs/cli-${suffix}`;
+		const dependency = `@monostyle_rs/cli_${suffix}`;
 		const declared = launcher.optionalDependencies?.[dependency];
 
 		if (!declared) {
@@ -71,14 +71,14 @@ if (launcher) {
 	const launcherSource = fs.readFileSync(path.join(launcherDirectory, "bin", "monostyle.js"), "utf8");
 
 	for (const suffix of PLATFORM_SUFFIXES) {
-		if (!launcherSource.includes(`@monostyle-rs/cli-${suffix}`)) {
-			errors.push(`bin/monostyle.js never tries @monostyle-rs/cli-${suffix}`);
+		if (!launcherSource.includes(`@monostyle_rs/cli_${suffix}`)) {
+			errors.push(`bin/monostyle.js never tries @monostyle_rs/cli_${suffix}`);
 		}
 	}
 }
 
 for (const suffix of PLATFORM_SUFFIXES) {
-	const directory = path.join(packagesDirectory, `${PREFIX}-${suffix}`);
+	const directory = path.join(packagesDirectory, `${PREFIX}_${suffix}`);
 	const manifest = readManifest(directory);
 
 	if (!manifest) continue;

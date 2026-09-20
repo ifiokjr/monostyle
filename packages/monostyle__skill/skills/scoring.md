@@ -22,12 +22,12 @@ one number would hide exactly the cases where the two disagree.
 
 Rules emit findings. Each finding carries a `weight`, which severity scales into a `penalty`:
 
-| Severity | Multiplier |
-| --- | --- |
-| `info` | 0 (reported, never scored) |
-| `minor` | 1.0 |
-| `major` | 2.5 |
-| `critical` | 5.0 |
+| Severity   | Multiplier                 |
+| ---------- | -------------------------- |
+| `info`     | 0 (reported, never scored) |
+| `minor`    | 1.0                        |
+| `major`    | 2.5                        |
+| `critical` | 5.0                        |
 
 Penalties are summed per category and divided by code volume to produce a **penalty density** —
 findings per 100 lines of code. Density, not raw count, is what the score uses, so a large
@@ -72,7 +72,7 @@ Three invariants follow, and all three are enforced by tests in
 
 ## Credit for good comments
 
-A comment that explains *why* earns a **negative** penalty, which offsets other penalties inside the
+A comment that explains _why_ earns a **negative** penalty, which offsets other penalties inside the
 same density number.
 
 Modelling credit as a negative finding rather than as a separate bonus channel means one number —

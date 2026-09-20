@@ -408,11 +408,13 @@ impl Default for AnalysisOptions {
 	fn default() -> Self {
 		Self {
 			rules: RulesConfig::default(),
+
 			scoring: ScoringConfig::default(),
 			// Written out rather than derived, because a derived `Default` would make every boolean
 			// false. That silently disabled the cache: the field existed, the code consulted it, and
 			// the whole feature was dead because the default was the opposite of the intent.
 			cache: true,
+
 			fail_under: crate::section::ScoreFloor::default(),
 			sections: Vec::new(),
 		}

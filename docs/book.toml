@@ -13,4 +13,3 @@ edit-url-template = "https://github.com/ifiokjr/monostyle/edit/main/{path}"
 
 [output.html.search]
 enable = true
-

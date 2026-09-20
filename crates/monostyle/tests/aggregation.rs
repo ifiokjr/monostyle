@@ -65,6 +65,7 @@ fn a_projects_score_matches_a_single_file_with_the_same_density() {
 	let split = vec![file("a.rs", 100, 4.0), file("b.rs", 100, 4.0)];
 
 	let whole_score = project_score(&whole, Category::Readability, ScoringConfig::default());
+
 	let split_score = project_score(&split, Category::Readability, ScoringConfig::default());
 
 	assert!(
@@ -109,6 +110,7 @@ fn penalties_accumulate_across_files() {
 	let two = vec![file("a.rs", 100, 5.0), file("b.rs", 100, 5.0)];
 
 	let single = project_score(&one, Category::Readability, ScoringConfig::default());
+
 	let double = project_score(&two, Category::Readability, ScoringConfig::default());
 
 	// Doubling both the penalty and the volume leaves the density unchanged, so the score must be

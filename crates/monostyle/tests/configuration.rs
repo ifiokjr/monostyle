@@ -33,6 +33,7 @@ fn load(contents: &str) -> monostyle::config::ConfigFile {
 #[test]
 fn an_empty_file_changes_nothing() {
 	let options = options("");
+
 	let defaults = AnalysisOptions::default();
 
 	assert_eq!(options.rules, defaults.rules);
@@ -45,6 +46,7 @@ fn a_single_rule_value_overrides_only_that_rule() {
 	// reset every threshold the file did not mention, which is the bug that makes a config file
 	// untrustworthy.
 	let options = options("[rules]\nmax-nesting-depth = 7\n");
+
 	let defaults = RulesConfig::default();
 
 	assert_eq!(options.rules.max_nesting_depth, 7);
@@ -140,6 +142,7 @@ fn a_missing_file_is_an_error() {
 #[test]
 fn strict_lowers_the_tolerance() {
 	let strict = apply_tolerance(AnalysisOptions::default(), true, false);
+
 	let defaults = AnalysisOptions::default();
 
 	assert!(strict.scoring.half_life < defaults.scoring.half_life);
@@ -151,6 +154,7 @@ fn strict_lowers_the_tolerance() {
 #[test]
 fn lenient_raises_the_tolerance() {
 	let lenient = apply_tolerance(AnalysisOptions::default(), false, true);
+
 	let defaults = AnalysisOptions::default();
 
 	assert!(lenient.scoring.half_life > defaults.scoring.half_life);
@@ -173,6 +177,7 @@ fn strict_nesting_never_falls_below_one() {
 #[test]
 fn neither_tolerance_flag_leaves_the_defaults_alone() {
 	let untouched = apply_tolerance(AnalysisOptions::default(), false, false);
+
 	let defaults = AnalysisOptions::default();
 
 	assert_eq!(untouched.rules, defaults.rules);
@@ -278,7 +283,9 @@ fn tolerance_flags_also_move_the_path_limit() {
 	// Every threshold that describes complexity should respond to the tolerance flags, or strict mode
 	// would be strict about some rules and not others.
 	let strict = apply_tolerance(AnalysisOptions::default(), true, false);
+
 	let lenient = apply_tolerance(AnalysisOptions::default(), false, true);
+
 	let defaults = AnalysisOptions::default();
 
 	assert!(strict.rules.max_npath_per_unit < defaults.rules.max_npath_per_unit);

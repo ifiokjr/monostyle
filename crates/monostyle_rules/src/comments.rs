@@ -262,28 +262,7 @@ fn check_documentation_run(file: &LexedFile, run: &[usize], findings: &mut Vec<F
 		return;
 	}
 
-	let mut prose_words = 0;
-
-	for index in run {
-		let Some(line) = file.lines.get(*index) else {
-			continue;
-		};
-
-		let body = line.text.trim_start_matches(['/', '#', ' ', '\t', '*']);
-
-		// Annotations are structural, not explanatory: `@param`, `# Arguments`, `:return:`.
-		let is_annotation = body.starts_with('@')
-			|| body.starts_with(':')
-			|| body.starts_with("Arguments")
-			|| body.starts_with("Parameters")
-			|| body.starts_with("Returns")
-			|| body.starts_with("Example")
-			|| body.starts_with("Notes");
-
-		if !is_annotation {
-			prose_words += body.split_whitespace().count();
-		}
-	}
+	let prose_words: usize = run.iter().map(|index| prose_words_at(file, *index)).sum();
 
 	if prose_words >= MIN_PROSE_WORDS {
 		return;
@@ -311,4 +290,39 @@ fn check_documentation_run(file: &LexedFile, run: &[usize], findings: &mut Vec<F
 		)
 		.build(),
 	);
+}
+
+/// Counts the explanatory words on one documentation line.
+///
+/// Annotations contribute nothing: `@param name` is structural, and a block made entirely of them
+/// documents shape without stating purpose, which is what the rule exists to catch.
+fn prose_words_at(file: &LexedFile, index: usize) -> usize {
+	let Some(line) = file.lines.get(index) else {
+		return 0;
+	};
+
+	let body = line.text.trim_start_matches(['/', '#', ' ', '\t', '*']);
+
+	if is_annotation_body(body) {
+		return 0;
+	}
+
+	body.split_whitespace().count()
+}
+
+/// Whether a documentation line is a structural annotation rather than prose.
+fn is_annotation_body(body: &str) -> bool {
+	const ANNOTATION_PREFIXES: &[&str] = &[
+		"@",
+		":",
+		"Arguments",
+		"Parameters",
+		"Returns",
+		"Example",
+		"Notes",
+	];
+
+	ANNOTATION_PREFIXES
+		.iter()
+		.any(|prefix| body.starts_with(prefix))
 }

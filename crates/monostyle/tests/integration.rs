@@ -31,6 +31,7 @@ fn analyze(relative: &str) -> ProjectReport {
 	let root = fixture(relative);
 	let options = AnalysisOptions {
 		cache: false,
+
 		..AnalysisOptions::default()
 	};
 	let paths = collect_paths(&root, true, &options.rules.ignore);
@@ -52,6 +53,7 @@ fn analyze_allow_empty(relative: &str) -> ProjectReport {
 	let root = fixture(relative);
 	let options = AnalysisOptions {
 		cache: false,
+
 		..AnalysisOptions::default()
 	};
 	let paths = collect_paths(&root, true, &options.rules.ignore);
@@ -197,10 +199,13 @@ fn generated_files_can_be_included() {
 		rules: monostyle_rules::RulesConfig {
 			ignore: IgnoreConfig {
 				generated: false,
+
 				..IgnoreConfig::default()
 			},
+
 			..monostyle_rules::RulesConfig::default()
 		},
+
 		..AnalysisOptions::default()
 	};
 
@@ -236,6 +241,7 @@ fn ignored_directories_are_never_analyzed() {
 fn user_patterns_are_honoured() {
 	let config = IgnoreConfig {
 		patterns: vec!["**/*.spec.ts".to_string(), "legacy/**".to_string()],
+
 		..IgnoreConfig::default()
 	};
 
@@ -251,6 +257,7 @@ fn include_entries_override_every_other_rule() {
 	let config = IgnoreConfig {
 		patterns: vec!["src/**".to_string()],
 		include: vec!["src/keep.rs".to_string()],
+
 		..IgnoreConfig::default()
 	};
 
@@ -546,6 +553,7 @@ fn repeated_analysis_of_many_files_is_identical() {
 
 	let options = AnalysisOptions {
 		cache: false,
+
 		..AnalysisOptions::default()
 	};
 	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
@@ -600,6 +608,7 @@ fn every_unit_is_measured_with_its_own_lines() {
 
 	let options = AnalysisOptions {
 		cache: false,
+
 		..AnalysisOptions::default()
 	};
 	let paths = collect_paths(temp.path(), true, &options.rules.ignore);

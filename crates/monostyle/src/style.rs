@@ -8,27 +8,53 @@
 use std::io::IsTerminal;
 use std::sync::OnceLock;
 
+use monostyle_core::score::EXCELLENT_FLOOR;
+use monostyle_core::score::FAIR_FLOOR;
+use monostyle_core::score::GOOD_FLOOR;
+
 /// Whether colour should be emitted.
 static COLOR_ENABLED: OnceLock<bool> = OnceLock::new();
 
 /// Decides once whether colour is appropriate for this process.
 ///
 /// The environment is consulted before the terminal check because `NO_COLOR` is an explicit
-/// instruction from the user, while a non-TTY is merely a hint.
+/// instruction from the user, while a non-TTY is merely a hint: a redirected stdout usually means no
+/// colour, but a user who has set `FORCE_COLOR` or passed `--color` means it.
 pub fn init_color(force: bool, disable: bool) {
-	let enabled = if disable {
-		false
-	} else if force {
-		true
-	} else if std::env::var_os("NO_COLOR").is_some()
-		|| std::env::var("TERM").is_ok_and(|term| term == "dumb")
-	{
-		false
-	} else {
-		std::io::stdout().is_terminal()
-	};
+	let enabled = resolve_color(force, disable);
 
 	let _ = COLOR_ENABLED.set(enabled);
+}
+
+/// Resolves the colour decision from the flags and the environment.
+///
+/// The precedence is what makes the three inputs compose: an explicit disable wins over everything,
+/// then an explicit force, then the environment's own opt-outs, and only then the terminal check.
+fn resolve_color(force: bool, disable: bool) -> bool {
+	if disable {
+		return false;
+	}
+
+	if force {
+		return true;
+	}
+
+	if declines_color() {
+		return false;
+	}
+
+	std::io::stdout().is_terminal()
+}
+
+/// Reports whether the environment asks for plain output.
+fn declines_color() -> bool {
+	if std::env::var_os("NO_COLOR").is_some() {
+		return true;
+	}
+
+	// `TERM=dumb` is how a terminal advertises that it cannot render escape sequences, which is a
+	// stronger signal than the TTY check: the output is a terminal, and it still wants no colour.
+	std::env::var("TERM").is_ok_and(|term| term == "dumb")
 }
 
 /// Whether colour is enabled.
@@ -64,6 +90,12 @@ pub fn green(text: &str) -> String {
 	paint(text, "32")
 }
 
+/// Bright green, which distinguishes an excellent score from a merely good one.
+#[must_use]
+pub fn bright_green(text: &str) -> String {
+	paint(text, "92")
+}
+
 /// Yellow, for values worth attention.
 #[must_use]
 pub fn yellow(text: &str) -> String {
@@ -90,22 +122,32 @@ pub fn magenta(text: &str) -> String {
 
 /// Colours a score by how good it is.
 ///
-/// The bands match [`Score::grade`](monostyle_core::Score::grade) so the colour and the word beside
-/// it never disagree.
+/// The bands come from [`monostyle_core::score`] so the colour and the word beside it never disagree.
+/// That is why `excellent` and `good` are different colours rather than both green: a report that
+/// says "good" in the same colour it uses for "excellent" makes the band invisible, which is the one
+/// job the colour has.
 #[must_use]
 pub fn score_color(value: f64) -> fn(&str) -> String {
-	match value {
-		value if value >= 90.0 => green,
-		value if value >= 75.0 => green,
-		value if value >= 60.0 => yellow,
-		_ => red,
+	if value >= EXCELLENT_FLOOR {
+		return bright_green;
 	}
+
+	if value >= GOOD_FLOOR {
+		return green;
+	}
+
+	if value >= FAIR_FLOOR {
+		return yellow;
+	}
+
+	red
 }
 
 /// Renders a score with its colour applied.
 #[must_use]
 pub fn score(value: f64) -> String {
 	let text = format!("{value:.1}");
+
 	score_color(value)(&text)
 }
 
@@ -141,12 +183,23 @@ pub fn rule(width: usize) -> String {
 	dim(&"─".repeat(width))
 }
 
+/// The width assumed when `COLUMNS` is unset, which is the classic terminal width.
+const DEFAULT_WIDTH: usize = 80;
+
+/// The narrowest and widest output layouts.
+///
+/// The lower bound keeps the bar and the labels from colliding in a very narrow terminal; the upper
+/// bound keeps a long line of prose readable on a very wide one, where the eye has to travel too far
+/// from the end of one line to the start of the next.
+const MIN_WIDTH: usize = 60;
+const MAX_WIDTH: usize = 100;
+
 /// The width available for output, capped so lines stay readable on wide terminals.
 #[must_use]
 pub fn width() -> usize {
 	std::env::var("COLUMNS")
 		.ok()
 		.and_then(|columns| columns.parse::<usize>().ok())
-		.unwrap_or(80)
-		.clamp(60, 100)
+		.unwrap_or(DEFAULT_WIDTH)
+		.clamp(MIN_WIDTH, MAX_WIDTH)
 }

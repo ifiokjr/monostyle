@@ -10,7 +10,7 @@ edition = "2024"
 keywords = ["complexity", "readability", "metrics", "lint", "code-quality"]
 license = "Unlicense"
 readme = "readme.md"
-repository = "https://github.com/monostyle/monostyle"
+repository = "https://github.com/ifiokjr/monostyle"
 rust-version = "1.90.0"
 
 [workspace.dependencies]

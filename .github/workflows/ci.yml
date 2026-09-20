@@ -31,7 +31,7 @@ jobs:
           persist-credentials: false
 
       - name: install rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
           components: rustfmt, clippy
@@ -59,14 +59,16 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: install nextest
-        uses: taiki-e/install-action@9874fc3fbcb156695ec7e9bfb472e60e9d2370e9 # nextest
+        uses: taiki-e/install-action@76c2e6406e52637deed7160d77bded76bd83e06e # v2
+        with:
+          tool: nextest
 
       - name: run tests
         run: cargo nextest run --workspace --all-features --no-fail-fast
@@ -85,7 +87,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
 
@@ -103,14 +105,16 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
           components: llvm-tools-preview
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
-      - uses: taiki-e/install-action@868747438ea8f2c3701d0cf6fe59dcfebbdb06a2 # cargo-llvm-cov
+      - uses: taiki-e/install-action@76c2e6406e52637deed7160d77bded76bd83e06e # v2
+        with:
+          tool: cargo-llvm-cov
 
       - name: measure coverage
         run: |
@@ -139,7 +143,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
 
@@ -187,7 +191,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
 
@@ -224,7 +228,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
 
@@ -263,14 +267,16 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       - name: install cargo-deny
-        uses: taiki-e/install-action@20dbe8975311291f4d8dc8bbf4c4dd67b25920d5 # cargo-deny
+        uses: taiki-e/install-action@8ed95cf4ff55afeb4411ad3165fa10f7ca9e7a62 # v2
+        with:
+          tool: cargo-deny
 
       - name: check advisories, licenses, and bans
         run: cargo deny check
@@ -305,7 +311,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           toolchain: nightly-2026-09-07
 
@@ -345,7 +351,17 @@ jobs:
   ci-ok:
     name: ci ok
     if: always()
-    needs: [lint, test, lexer-correctness, coverage, dogfood, npm, docs, package-check, security]
+    needs: [
+      lint,
+      test,
+      lexer-correctness,
+      coverage,
+      dogfood,
+      npm,
+      docs,
+      package-check,
+      security,
+    ]
     runs-on: ubuntu-latest
     steps:
       - name: verify every job succeeded

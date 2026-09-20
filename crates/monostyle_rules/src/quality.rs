@@ -181,11 +181,7 @@ fn introduces_handler(line: &LexedLine) -> bool {
 	/// Keywords that introduce an error handler.
 	const HANDLER_KEYWORDS: &[&str] = &["catch", "except", "rescue"];
 
-	if line
-		.masked_code
-		.split(|character: char| !character.is_alphanumeric())
-		.any(|word| HANDLER_KEYWORDS.contains(&word))
-	{
+	if opens_with_handler_keyword(&line.masked_code, HANDLER_KEYWORDS) {
 		return true;
 	}
 
@@ -196,6 +192,49 @@ fn introduces_handler(line: &LexedLine) -> bool {
 	trimmed.starts_with("Err")
 		&& line.masked_code.contains("=>")
 		&& line.masked_code.trim_end().ends_with('{')
+}
+
+/// Whether a line opens a handler block with one of `keywords`.
+///
+/// The keyword has to be a word of its own, not a fragment of a longer identifier. Matching any
+/// occurrence of the text reported every function whose *name* contained one:
+/// `fn complexity_rules_catch_a_hard_function()` opens no handler, and was reported as discarding an
+/// error it never caught.
+///
+/// The keyword may sit mid-line, because JavaScript writes `} catch (error) {` after the closing brace
+/// of the `try` body. Requiring the line to begin with it would miss every such handler.
+fn opens_with_handler_keyword(code: &str, keywords: &[&str]) -> bool {
+	keywords
+		.iter()
+		.filter(|keyword| !keyword.is_empty())
+		.any(|keyword| has_word(code, keyword))
+}
+
+/// Whether `code` contains `word` delimited by non-identifier characters on both sides.
+fn has_word(code: &str, word: &str) -> bool {
+	let mut from = 0;
+
+	while let Some(offset) = code.get(from..).and_then(|rest| rest.find(word)) {
+		let start = from + offset;
+		let end = start + word.len();
+		let before = code.get(..start).and_then(|head| head.chars().next_back());
+		let after = code.get(end..).and_then(|tail| tail.chars().next());
+
+		// Both sides must be word boundaries, which is what a bare `find` does not give: without
+		// this, `rescue_all` matches `rescue` and a name like `catches` matches `catch`.
+		if !is_identifier_char(before) && !is_identifier_char(after) {
+			return true;
+		}
+
+		from = end;
+	}
+
+	false
+}
+
+/// Whether a character can appear inside an identifier.
+fn is_identifier_char(character: Option<char>) -> bool {
+	character.is_some_and(|value| value.is_alphanumeric() || value == '_')
 }
 
 /// Whether a handler's body does nothing with the error.
