@@ -1,4 +1,4 @@
-#:schema ./docs/src/schemas/monochange.schema.json
+#:schema https://monochange.github.io/monochange/schemas/monochange.schema.json
 
 # =============================================================================
 # monochange.toml — release configuration for monostyle
@@ -42,7 +42,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 # lockstep. They are one product: a CLI whose version does not match its
 # platform packages would resolve a binary set that may not launch, and a skill
 # that describes flags a different version supports is worse than no skill.
-[groups.monostyle]
+[group.main]
 packages = [
 	"monostyle",
 	"monostyle_core",
