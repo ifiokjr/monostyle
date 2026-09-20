@@ -243,17 +243,23 @@ jobs:
 
           # The release is created by the release automation with its notes already written, so this
           # only attaches files to it.
+          #
+          # The extension is set alongside the fallback rather than derived from the file name with
+          # `$( [ ... ] && echo .exe )`: a command substitution whose test fails exits non-zero, and
+          # under `set -e` a failing substitution fails the assignment — the step died on the first
+          # non-Windows binary without printing anything.
           for directory in artifacts/monostyle-*; do
             target="${directory#artifacts/monostyle-}"
             binary="$directory/monostyle"
+            extension=""
 
             if [ ! -f "$binary" ]; then
               binary="$directory/monostyle.exe"
+              extension=".exe"
             fi
 
             if [ -f "$binary" ]; then
-              asset="monostyle-${target}$( [ "${binary##*.}" = "exe" ] && echo '.exe' )"
-              gh release upload "$RELEASE_TAG" "$binary#$asset" --clobber
+              gh release upload "$RELEASE_TAG" "$binary#monostyle-${target}${extension}" --clobber
             fi
           done
 
