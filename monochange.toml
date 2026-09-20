@@ -332,7 +332,12 @@ steps = [
   # Formatting the version bumps keeps the release commit clean, but a missing formatter must never
   # block a release: the manifests monochange writes are already well-formed, so the fallback is to
   # commit them unformatted rather than to fail the release.
-  { type = "Command", name = "format changed files", when = "{{ number_of_changesets > 0 }}", command = "dprint fmt --allow-no-files 2>/dev/null || echo 'dprint unavailable; committing without reformatting'" },
+  #
+  # `shell = true` is what makes that redirection and `||` mean anything. A Command step without it
+  # is split into argv and spawned directly, so `2>/dev/null` and the fallback echo were handed to
+  # dprint as file arguments — which it ignored, finding no files to format and exiting 0. The
+  # step was a silent no-op: every release commit up to v0.1.0 was committed unformatted.
+  { type = "Command", name = "format changed files", when = "{{ number_of_changesets > 0 }}", shell = true, command = "dprint fmt --allow-no-files 2>/dev/null || echo 'dprint unavailable; committing without reformatting'" },
   { type = "CommitRelease", name = "create release commit", when = "{{ number_of_changesets > 0 && inputs.commit }}", inputs = { no_verify = "{{ inputs.no_verify }}", stage_all = true } },
   { type = "OpenReleaseRequest", name = "create the pull request", when = "{{ number_of_changesets > 0 && inputs.commit && inputs.create_pr }}", inputs = { no_verify = "{{ inputs.no_verify }}", stage_all = true } },
 ]
