@@ -2,8 +2,8 @@
 
 All notable changes to this project are documented in this file.
 
-The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
-this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
+adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [0.1.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.1.0) (2026-09-20)
 
@@ -13,7 +13,13 @@ Grouped release for `release`.
 
 #### First release
 
-_Packages:_ 🔴 _monostyle_, 🔴 _monostyle_core_, 🔴 _monostyle_languages_, 🔴 _monostyle_lexer_, 🔴 _monostyle_markdown_, 🔴 _monostyle_metrics_, 🔴 _monostyle_rules_, 🔴 _@monostyle_rs/cli_, 🔴 _@monostyle_rs/cli_darwin_arm64_, 🔴 _@monostyle_rs/cli_darwin_x64_, 🔴 _@monostyle_rs/cli_linux_arm64_gnu_, 🔴 _@monostyle_rs/cli_linux_arm64_musl_, 🔴 _@monostyle_rs/cli_linux_x64_gnu_, 🔴 _@monostyle_rs/cli_linux_x64_musl_, 🔴 _@monostyle_rs/cli_win32_arm64_msvc_, 🔴 _@monostyle_rs/cli_win32_x64_msvc_, 🔴 _@monostyle_rs/skill_
+_Packages:_ 🔴 _monostyle_, 🔴 _monostyle_core_, 🔴 _monostyle_languages_, 🔴 _monostyle_lexer_, 🔴
+_monostyle_markdown_, 🔴 _monostyle_metrics_, 🔴 _monostyle_rules_, 🔴 _@monostyle_rs/cli_, 🔴
+_@monostyle_rs/cli_darwin_arm64_, 🔴 _@monostyle_rs/cli_darwin_x64_, 🔴
+_@monostyle_rs/cli_linux_arm64_gnu_, 🔴 _@monostyle_rs/cli_linux_arm64_musl_, 🔴
+_@monostyle_rs/cli_linux_x64_gnu_, 🔴 _@monostyle_rs/cli_linux_x64_musl_, 🔴
+_@monostyle_rs/cli_win32_arm64_msvc_, 🔴 _@monostyle_rs/cli_win32_x64_msvc_, 🔴
+_@monostyle_rs/skill_
 
 monostyle scores the complexity and readability of a codebase, a file, or a function, out of 100.
 Every point lost is traced to a named rule with an explanation and a suggested fix, so a report is a
