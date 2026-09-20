@@ -113,9 +113,9 @@ in
       exec = ''
         set -euo pipefail
         cargo run --quiet --release --package monostyle --bin monostyle -- \
-          check crates --strict --fail-under 75 "$@"
+          check crates --strict --fail-under 95 "$@"
       '';
-      description = "Score this repository strictly and fail below 75.";
+      description = "Score this repository strictly and fail below 95.";
       binary = "bash";
     };
     "score:json" = {

@@ -6,11 +6,12 @@
 #
 # # Two different numbers, and why
 #
-# The *target* is the project score: `monostyle check crates` reports 91.8 readability and 94.0
-# complexity, and CI shows that number on every run. The *floor* below is a safety net rather than the
-# target. A floor of 90 would fail on every file that is fine but not exceptional — 23 of 47 source
-# files sit between 70 and 90, and none of them are a problem worth blocking a merge over. A floor of
-# 70 catches the case that actually matters: a file that has become genuinely unpleasant to read.
+# The *target* is the project score: `monostyle check crates` reports 95.4 readability and 95.2
+# complexity, and CI holds it there with `--fail-under 95`. The *floor* below is a safety net rather
+# than the target. A floor of 95 per file would fail on every file that is fine but not exceptional —
+# a hand-written lexer is inherently branch-heavy, and none of those files are a problem worth
+# blocking a merge over. A floor of 70 catches the case that actually matters: a file that has become
+# genuinely unpleasant to read.
 
 [rules]
 max-line-width = 100

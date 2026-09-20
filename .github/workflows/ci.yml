@@ -159,7 +159,7 @@ jobs:
         run: ./target/release/monostyle check crates examples --no-color
 
       - name: enforce the quality floor
-        run: ./target/release/monostyle check crates --fail-under 75 --quiet
+        run: ./target/release/monostyle check crates --fail-under 95 --quiet
 
   npm:
     name: npm packages
@@ -211,7 +211,7 @@ jobs:
           with open('monochange.toml', 'rb') as handle:
               config = tomllib.load(handle)
           packages = len([key for key in config.get('package', {})])
-          groups = len(config.get('groups', {}))
+          groups = len(config.get('group', {}))
           print(f'monochange.toml parses: {packages} packages, {groups} group')
           if packages == 0:
               sys.exit('no packages declared in monochange.toml')
