@@ -22,7 +22,6 @@ const TARGETS = {
 };
 
 const target = process.argv[2];
-const source = process.argv[3] ?? `target/${target}/release/monostyle`;
 
 if (!target) {
 	console.error("usage: stage-binaries.mjs <rust-target-triple> [path-to-binary]");
@@ -36,6 +35,11 @@ if (!mapping) {
 	console.error(`known targets: ${Object.keys(TARGETS).join(", ")}`);
 	process.exit(1);
 }
+
+// The default source is cargo's output for this target. The binary name comes from the mapping
+// rather than a literal, because Windows appends `.exe` and looking for `monostyle` there found
+// nothing: the build succeeded and the release failed at staging.
+const source = process.argv[3] ?? `target/${target}/release/${mapping.binary}`;
 
 if (!fs.existsSync(source)) {
 	console.error(`built binary not found at ${source}`);
