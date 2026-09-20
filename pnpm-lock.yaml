@@ -1,0 +1,54 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .: {}
+
+  packages/monostyle__cli:
+    optionalDependencies:
+      '@monostyle_rs/cli_darwin_arm64':
+        specifier: ^0.1.0
+        version: link:../monostyle__cli_darwin_arm64
+      '@monostyle_rs/cli_darwin_x64':
+        specifier: ^0.1.0
+        version: link:../monostyle__cli_darwin_x64
+      '@monostyle_rs/cli_linux_arm64_gnu':
+        specifier: ^0.1.0
+        version: link:../monostyle__cli_linux_arm64_gnu
+      '@monostyle_rs/cli_linux_arm64_musl':
+        specifier: ^0.1.0
+        version: link:../monostyle__cli_linux_arm64_musl
+      '@monostyle_rs/cli_linux_x64_gnu':
+        specifier: ^0.1.0
+        version: link:../monostyle__cli_linux_x64_gnu
+      '@monostyle_rs/cli_linux_x64_musl':
+        specifier: ^0.1.0
+        version: link:../monostyle__cli_linux_x64_musl
+      '@monostyle_rs/cli_win32_arm64_msvc':
+        specifier: ^0.1.0
+        version: link:../monostyle__cli_win32_arm64_msvc
+      '@monostyle_rs/cli_win32_x64_msvc':
+        specifier: ^0.1.0
+        version: link:../monostyle__cli_win32_x64_msvc
+
+  packages/monostyle__cli_darwin_arm64: {}
+
+  packages/monostyle__cli_darwin_x64: {}
+
+  packages/monostyle__cli_linux_arm64_gnu: {}
+
+  packages/monostyle__cli_linux_arm64_musl: {}
+
+  packages/monostyle__cli_linux_x64_gnu: {}
+
+  packages/monostyle__cli_linux_x64_musl: {}
+
+  packages/monostyle__cli_win32_arm64_msvc: {}
+
+  packages/monostyle__cli_win32_x64_msvc: {}
+
+  packages/monostyle__skill: {}
