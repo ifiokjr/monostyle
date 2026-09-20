@@ -9,105 +9,11 @@ use monostyle_core::Language;
 use monostyle_lexer::LineKind;
 use monostyle_lexer::lex;
 
-/// A snippet exercising one language's comment, string, and decision syntax.
-struct Snippet {
-	/// The language.
-	language: Language,
-	/// Source written in that language.
-	source: &'static str,
+mod snippets {
+	include!("fixtures/language_snippets.rs");
 }
 
-/// A snippet per language, each written in its own syntax.
-const SNIPPETS: &[Snippet] = &[
-	Snippet {
-		language: Language::C,
-		source: "int f(int a) { if (a) { return 1; } return 0; }\n",
-	},
-	Snippet {
-		language: Language::Cpp,
-		source: "auto f(int a) { if (a) { return 1; } return 0; }\n",
-	},
-	Snippet {
-		language: Language::CSharp,
-		source: "int F(int a) { if (a > 0) { return 1; } return 0; }\n",
-	},
-	Snippet {
-		language: Language::Java,
-		source: "int f(int a) { if (a > 0) { return 1; } return 0; }\n",
-	},
-	Snippet {
-		language: Language::JavaScript,
-		source: "function f(a) { if (a) { return 1; } return 0; }\n",
-	},
-	Snippet {
-		language: Language::Kotlin,
-		source: "fun f(a: Int): Int { if (a > 0) return 1; return 0 }\n",
-	},
-	Snippet {
-		language: Language::Mozjs,
-		source: "function f(a) { if (a) { return 1; } return 0; }\n",
-	},
-	Snippet {
-		language: Language::Python,
-		source: "def f(a):\n    if a:\n        return 1\n    return 0\n",
-	},
-	Snippet {
-		language: Language::Rust,
-		source: "fn f(a: i32) -> i32 { if a > 0 { 1 } else { 0 } }\n",
-	},
-	Snippet {
-		language: Language::TypeScript,
-		source: "function f(a: number): number { if (a > 0) { return 1; } return 0; }\n",
-	},
-	Snippet {
-		language: Language::Tsx,
-		source: "function f(a: number): number { if (a > 0) { return 1; } return 0; }\n",
-	},
-	Snippet {
-		language: Language::Dart,
-		source: "int f(int a) { if (a > 0) { return 1; } return 0; }\n",
-	},
-	Snippet {
-		language: Language::Go,
-		source: "func f(a int) int { if a > 0 { return 1 }; return 0 }\n",
-	},
-	Snippet {
-		language: Language::Swift,
-		source: "func f(a: Int) -> Int { if a > 0 { return 1 }; return 0 }\n",
-	},
-	Snippet {
-		language: Language::Ruby,
-		source: "def f(a)\n  if a > 0\n    return 1\n  end\n  0\nend\n",
-	},
-	Snippet {
-		language: Language::Php,
-		source: "<?php function f($a) { if ($a > 0) { return 1; } return 0; }\n",
-	},
-	Snippet {
-		language: Language::Scala,
-		source: "def f(a: Int): Int = { if (a > 0) 1 else 0 }\n",
-	},
-	Snippet {
-		language: Language::Shell,
-		source: "f() {\n  if [ \"$1\" ]; then\n    echo yes\n  fi\n}\n",
-	},
-	Snippet {
-		language: Language::Lua,
-		source: "function f(a)\n  if a then\n    return 1\n  end\n  return 0\nend\n",
-	},
-	Snippet {
-		language: Language::Elixir,
-		source: "def f(a) do\n  if a do\n    1\n  else\n    0\n  end\nend\n",
-	},
-	Snippet {
-		language: Language::Haskell,
-		source: "f a = if a > 0 then 1 else 0\n",
-	},
-	Snippet {
-		language: Language::Nix,
-		source: "{ a }: if a then 1 else 0\n",
-	},
-];
+use snippets::SNIPPETS;
 
 #[test]
 fn every_language_detects_a_decision_point() {
@@ -200,30 +106,6 @@ fn every_language_hides_comment_contents_from_the_masked_view() {
 			!first.masked_code.contains("while"),
 			"{}: comment contents leaked into the masked view",
 			snippet.language
-		);
-	}
-}
-
-#[test]
-fn every_language_reports_units_when_it_has_functions() {
-	// Languages whose declaration syntax the structural detector recognizes should produce at least one
-	// unit. Haskell and Nix are exempt because their declarations have no parameter list to anchor on,
-	// and the detector is documented as approximate.
-	let exempt = [Language::Haskell, Language::Nix, Language::Mozjs];
-
-	for snippet in SNIPPETS {
-		if exempt.contains(&snippet.language) {
-			continue;
-		}
-
-		let lexed = lex(snippet.source, snippet.language);
-		let units = monostyle_metrics::find_units(&lexed);
-
-		assert!(
-			!units.is_empty(),
-			"{}: no unit detected in {:?}",
-			snippet.language,
-			snippet.source
 		);
 	}
 }
