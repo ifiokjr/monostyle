@@ -248,6 +248,11 @@ jobs:
           # `$( [ ... ] && echo .exe )`: a command substitution whose test fails exits non-zero, and
           # under `set -e` a failing substitution fails the assignment — the step died on the first
           # non-Windows binary without printing anything.
+          #
+          # Each binary is copied to a per-target name before uploading. `gh release upload` takes
+          # the asset's name from the file's basename — a `#label` suffix only sets the display
+          # label — so uploading all eight `monostyle` files collapsed them into a single asset,
+          # each clobbering the last, and left the release with no per-platform downloads.
           for directory in artifacts/monostyle-*; do
             target="${directory#artifacts/monostyle-}"
             binary="$directory/monostyle"
@@ -259,7 +264,9 @@ jobs:
             fi
 
             if [ -f "$binary" ]; then
-              gh release upload "$RELEASE_TAG" "$binary#monostyle-${target}${extension}" --clobber
+              staged="${RUNNER_TEMP}/monostyle-${target}${extension}"
+              cp "$binary" "$staged"
+              gh release upload "$RELEASE_TAG" "$staged" --clobber
             fi
           done
 
