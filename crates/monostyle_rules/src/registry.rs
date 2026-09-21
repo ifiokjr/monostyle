@@ -204,18 +204,68 @@ pub fn all_rules() -> Vec<Rule> {
 			run: markdown::fence_readability,
 		},
 		Rule {
+			name: "markdown/fence-without-language",
+			description: "Flags fences with no language tag.",
+			prose: true,
+			run: markdown::fence_without_language,
+		},
+		Rule {
+			name: "markdown/fence-language-unknown",
+			description: "Flags fences declaring a language monostyle cannot read.",
+			prose: true,
+			run: markdown::fence_language_unknown,
+		},
+		Rule {
 			name: "markdown/prose-run",
 			description: "Flags long unbroken runs of prose.",
 			prose: true,
 			run: markdown::prose_runs,
 		},
 		Rule {
-			name: "markdown/heading-structure",
-			description: "Flags skipped heading levels and missing document titles.",
+			name: "markdown/no-title",
+			description: "Flags documents that do not start with a top-level heading.",
 			prose: true,
-			run: |file, _config| markdown::heading_structure(file),
+			run: |file, _config| markdown::missing_title(file),
+		},
+		Rule {
+			name: "markdown/skipped-heading-level",
+			description: "Flags heading levels that skip a step.",
+			prose: true,
+			run: |file, _config| markdown::skipped_heading_levels(file),
 		},
 	]
+}
+
+/// Rule names that are no longer registered but still disable their replacement.
+///
+/// `markdown/heading-structure` bundled two checks, and `markdown/fence-readability` used to emit the
+/// fence-language findings itself. Both were documented as standalone rules while living inside another
+/// one, so a project that wrote `disabled-rules = ["markdown/no-title"]` was silently ignored. The names
+/// are kept here so that configuration which named the old composite still turns the right thing off
+/// rather than quietly changing the project's scores.
+const ALIASES: &[(&str, &[&str])] = &[(
+	"markdown/heading-structure",
+	&["markdown/no-title", "markdown/skipped-heading-level"],
+)];
+
+/// Expands alias names to the rules they stand for.
+#[must_use]
+pub fn expand_disabled(disabled: &[String]) -> Vec<String> {
+	let mut expanded = disabled.to_vec();
+
+	for (alias, replacements) in ALIASES {
+		if !disabled.iter().any(|name| name == alias) {
+			continue;
+		}
+
+		for replacement in *replacements {
+			if !expanded.iter().any(|name| name == replacement) {
+				expanded.push((*replacement).to_string());
+			}
+		}
+	}
+
+	expanded
 }
 
 /// Runs every enabled rule against `file`.
@@ -228,9 +278,10 @@ pub fn all_rules() -> Vec<Rule> {
 pub fn run_rules(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	let mut findings = Vec::new();
 	let prose = file.language == monostyle_core::Language::Markdown;
+	let disabled = expand_disabled(&config.disabled_rules);
 
 	for rule in all_rules() {
-		if !config.is_enabled(rule.name) {
+		if disabled.iter().any(|name| name == rule.name) {
 			continue;
 		}
 

@@ -957,3 +957,53 @@ fn fix_leaves_an_ignored_section_alone() {
 
 	assert_eq!(after, original, "an ignored file must not be rewritten");
 }
+
+#[test]
+fn a_checked_in_bundle_is_skipped_by_default() {
+	// A bundle is a dependency's code committed into the repository, so scoring it describes the
+	// dependency rather than the project. The banner is what identifies it: the file name is ordinary
+	// and the bundle declares its own provenance on the first line.
+	let temp = tempfile::tempdir().expect("a temporary directory");
+
+	std::fs::write(
+		temp.path().join("app.js"),
+		"/* esm.sh - esbuild bundle(@wallet-standard/app@1.1.0) es2022 development */\n\
+		 var wallets = void 0;\n\
+		 var registered = new Set();\n",
+	)
+	.expect("the fixture should be written");
+
+	let output = run(&["check", temp.path().to_str().unwrap(), "--no-color"]);
+
+	assert!(
+		String::from_utf8_lossy(&output.stderr).contains("no analyzable files"),
+		"a bundle should be skipped, so nothing is analyzed. stderr: {}",
+		String::from_utf8_lossy(&output.stderr)
+	);
+}
+
+#[test]
+fn a_file_that_merely_mentions_a_bundler_is_still_analyzed() {
+	// The false positive this check has to avoid: naming a build tool in a comment is not the same as
+	// being a bundle. Only the first line is consulted, and only for a banner phrase a bundler writes.
+	let temp = tempfile::tempdir().expect("a temporary directory");
+
+	std::fs::write(
+		temp.path().join("notes.js"),
+		"// This module is bundled with esbuild in CI, but it is hand-written.\n\
+		 export const value = 1;\n",
+	)
+	.expect("the fixture should be written");
+
+	let output = run(&["check", temp.path().to_str().unwrap(), "--no-color"]);
+
+	assert!(
+		output.status.success(),
+		"a hand-written file naming a bundler should still be analyzed. stderr: {}",
+		String::from_utf8_lossy(&output.stderr)
+	);
+	assert!(
+		!String::from_utf8_lossy(&output.stderr).contains("no analyzable files"),
+		"the file should have been analyzed"
+	);
+}

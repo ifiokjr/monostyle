@@ -42,3 +42,6 @@ docs/book/
 
 # video-agent-kit local plugin state
 .video_agent/
+
+# Agent session tooling state (plans, scratch drafts)
+.zcode/

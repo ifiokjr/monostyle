@@ -36,21 +36,10 @@ pub fn fence_readability(file: &LexedFile, config: &RulesConfig) -> Vec<Finding>
 		return Vec::new();
 	}
 
-	let source = file
-		.lines
-		.iter()
-		.map(|line| line.text.as_str())
-		.collect::<Vec<_>>()
-		.join("\n");
-	let document = monostyle_markdown::analyze(&source);
 	let mut findings = Vec::new();
 
-	for fence in &document.fences {
+	for fence in &scoreable_fences(file) {
 		let Some(language) = fence.language else {
-			// An unrecognized or absent language cannot be scored, but it is worth reporting:
-			// an untagged fence is a fence nobody can copy usefully.
-			findings.push(unscoreable_fence(fence));
-
 			continue;
 		};
 
@@ -69,7 +58,62 @@ pub fn fence_readability(file: &LexedFile, config: &RulesConfig) -> Vec<Finding>
 	findings
 }
 
-/// Reports fences that cannot be scored because their language is missing or unknown.
+/// Reports fences that declare a language the scanner does not know.
+///
+/// An example in a language monostyle cannot read is not measured at all, so saying so is more useful
+/// than silently scoring the document as though the example were fine. It is usually a misspelling in
+/// the info string.
+pub fn fence_language_unknown(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
+	if !config.score_markdown_fences {
+		return Vec::new();
+	}
+
+	unscoreable_fences(file, true)
+}
+
+/// Reports fences with no language tag.
+///
+/// An untagged fence cannot be scored, and it is also the fence a reader cannot copy usefully: there
+/// is no way to tell what language the example is in.
+pub fn fence_without_language(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
+	if !config.score_markdown_fences {
+		return Vec::new();
+	}
+
+	unscoreable_fences(file, false)
+}
+
+/// Every fence in the document.
+fn scoreable_fences(file: &LexedFile) -> Vec<CodeFence> {
+	let source = document_source(file);
+
+	monostyle_markdown::analyze(&source).fences
+}
+
+/// Reports the fences that cannot be scored, filtered to one reason.
+///
+/// The two reasons are separate rules because they have different remedies — tag the fence, or fix the
+/// spelling — and because a project may reasonably decide that untagged fences are fine while
+/// misspelled ones are not.
+fn unscoreable_fences(file: &LexedFile, annotated: bool) -> Vec<Finding> {
+	scoreable_fences(file)
+		.iter()
+		.filter(|fence| fence.language.is_none())
+		.filter(|fence| fence.info_string.trim().is_empty() != annotated)
+		.map(unscoreable_fence)
+		.collect()
+}
+
+/// Returns the document's text, reconstructed from its lines.
+fn document_source(file: &LexedFile) -> String {
+	file.lines
+		.iter()
+		.map(|line| line.text.as_str())
+		.collect::<Vec<_>>()
+		.join("\n")
+}
+
+/// Builds the finding for a fence that cannot be scored.
 fn unscoreable_fence(fence: &CodeFence) -> Finding {
 	let annotated = !fence.info_string.trim().is_empty();
 
@@ -194,49 +238,50 @@ pub fn prose_runs(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 		.collect()
 }
 
-/// Reports heading structure problems.
+/// Reports a document that does not begin with a top-level heading.
 ///
-/// Two failures are checked: a document with no top-level heading, and heading levels that
-/// skip a step. Both break outlines and generated navigation.
-pub fn heading_structure(file: &LexedFile) -> Vec<Finding> {
-	if file.language != monostyle_core::Language::Markdown {
+/// A document whose first heading is level 2 or deeper has no title, which breaks outlines and
+/// generated navigation. That is why it is its own rule: the remedy is to add one heading, not to
+/// renumber the rest.
+pub fn missing_title(file: &LexedFile) -> Vec<Finding> {
+	if !is_markdown(file) {
 		return Vec::new();
 	}
 
-	let source = file
-		.lines
-		.iter()
-		.map(|line| line.text.as_str())
-		.collect::<Vec<_>>()
-		.join("\n");
-	let document = monostyle_markdown::analyze(&source);
-	let mut findings = Vec::new();
+	let headings = headings_of(file);
 
-	// A document with content but no headings at all cannot be navigated.
-	if let Some(first) = document
-		.headings
-		.first()
-		.filter(|heading| heading.level != 1)
-	{
-		findings.push(
-			FindingBuilder::new(
-				"markdown/no-title",
-				Category::Readability,
-				Span::new(0, 0, first.line, first.line),
-			)
-			.severity(Severity::Minor)
-			.weight(0.5)
-			.message(format!(
-				"the document starts at heading level {} rather than with a top-level title",
-				first.level
-			))
-			.suggestion("Start the document with a single level-1 heading naming its subject.")
-			.build(),
-		);
+	let Some(first) = headings.first().filter(|heading| heading.level != 1) else {
+		return Vec::new();
+	};
+
+	vec![
+		FindingBuilder::new(
+			"markdown/no-title",
+			Category::Readability,
+			Span::new(0, 0, first.line, first.line),
+		)
+		.severity(Severity::Minor)
+		.weight(0.5)
+		.message(format!(
+			"the document starts at heading level {} rather than with a top-level title",
+			first.level
+		))
+		.suggestion("Start the document with a single level-1 heading naming its subject.")
+		.build(),
+	]
+}
+
+/// Reports heading levels that skip a step.
+///
+/// Jumping from level 1 to level 3 breaks the outline, because the level-2 step exists only implicitly.
+pub fn skipped_heading_levels(file: &LexedFile) -> Vec<Finding> {
+	if !is_markdown(file) {
+		return Vec::new();
 	}
 
-	for skipped in monostyle_markdown::skipped_headings(&document.headings) {
-		findings.push(
+	monostyle_markdown::skipped_headings(&headings_of(file))
+		.into_iter()
+		.map(|skipped| {
 			FindingBuilder::new(
 				"markdown/skipped-heading-level",
 				Category::Readability,
@@ -252,11 +297,31 @@ pub fn heading_structure(file: &LexedFile) -> Vec<Finding> {
 				"Use the next heading level down rather than skipping one, so the document \
 				 outline stays navigable.",
 			)
-			.build(),
-		);
-	}
+			.build()
+		})
+		.collect()
+}
+
+/// Reports every heading-structure problem in one pass.
+///
+/// Kept for callers that want both checks together; the registry runs the two rules separately so each
+/// can be disabled on its own.
+pub fn heading_structure(file: &LexedFile) -> Vec<Finding> {
+	let mut findings = missing_title(file);
+
+	findings.extend(skipped_heading_levels(file));
 
 	findings
+}
+
+/// Whether the file is a Markdown document.
+fn is_markdown(file: &LexedFile) -> bool {
+	file.language == monostyle_core::Language::Markdown
+}
+
+/// The document's headings.
+fn headings_of(file: &LexedFile) -> Vec<monostyle_markdown::Heading> {
+	monostyle_markdown::analyze(&document_source(file)).headings
 }
 
 /// Returns the lines of a lexed file, for callers that need them.

@@ -60,23 +60,28 @@ monostyle config                   # print the effective configuration
 
 <!-- {=readabilityRules} -->
 
-| Rule                               | What it catches                                             |
-| ---------------------------------- | ----------------------------------------------------------- |
-| `blank-line-before-control-flow`   | An `if`/`for`/`while` crowded against the statement above   |
-| `blank-line-before-return`         | A `return` buried against the code above it                 |
-| `group-separation`                 | A long run of statements with no blank lines between groups |
-| `excessive-indentation`            | Lines indented past the readable limit                      |
-| `deep-nesting`                     | Control flow nested past the configured depth               |
-| `long-parameter-list`              | An argument list that should be split across lines          |
-| `overlong-line`                    | A line wider than the readable limit                        |
-| `oversized-unit`                   | A function too long to hold in your head                    |
-| `oversized-file`                   | A file too large to navigate                                |
-| `mixed-indentation`                | A file that indents with both tabs and spaces               |
-| `comment-required-on-complex-unit` | A complex function with no explanation                      |
-| `comment-explains-why`             | **Credit** for a comment that explains reasoning            |
-| `comment-narrates-code`            | A comment that restates what the code already says          |
-| `excessive-comments`               | More commentary than the code can carry                     |
-| `thin-documentation`               | A doc block that lists structure without explaining purpose |
+| Rule                               | What it catches                                                         |
+| ---------------------------------- | ----------------------------------------------------------------------- |
+| `blank-line-before-control-flow`   | An `if`/`for`/`while` crowded against the statement above               |
+| `blank-line-before-return`         | A `return` buried against the code above it                             |
+| `group-separation`                 | A run of statements longer than `max-statements-per-group` with no gaps |
+| `excessive-blank-lines`            | A run of blank lines longer than the language allows                    |
+| `excessive-indentation`            | Lines indented past the readable limit                                  |
+| `deep-nesting`                     | Control flow nested past the configured depth                           |
+| `long-parameter-list`              | An argument list that should be split across lines                      |
+| `overlong-line`                    | A line wider than the readable limit                                    |
+| `oversized-unit`                   | A function too long to hold in your head                                |
+| `oversized-file`                   | A file too large to navigate                                            |
+| `mixed-indentation`                | A file that indents with both tabs and spaces                           |
+| `comment-required-on-complex-unit` | A complex function with no explanation                                  |
+| `comment-explains-why`             | **Credit** for a comment that explains reasoning                        |
+| `comment-narrates-code`            | A comment that restates what the code already says                      |
+| `excessive-comments`               | More commentary than the code can carry                                 |
+| `thin-documentation`               | A doc block that lists structure without explaining purpose             |
+| `magic-number`                     | A meaningful numeric literal that should be a named constant            |
+| `short-identifier`                 | An identifier too short to convey meaning                               |
+| `empty-handler`                    | An error handler that discards the error                                |
+| `commented-out-code`               | A block of code commented out instead of deleted                        |
 
 <!-- {/readabilityRules} -->
 
@@ -169,9 +174,15 @@ start here
 
 <!-- {=autofixExplanation} -->
 
-One rule is auto-fixable: inserting a blank line before a control-flow statement. That is the only edit guaranteed to survive a formatter — rustfmt, Prettier, Black, and `dart format` all preserve a blank line between statements and none of them remove one. A fixer that fights the project's formatter produces a diff the next format run reverts, which is worse than the finding itself.
+Two rules are auto-fixable, and both edits are ones a formatter leaves alone.
 
-Every other rule explains itself and leaves the change to you. The fix output shows both: what was applied, and what still needs a decision, with the suggestion attached.
+`blank-line-before-control-flow` inserts a blank line before a control-flow statement. Rustfmt, Prettier, Black, and `dart format` all preserve a blank line between statements and none of them remove one.
+
+`excessive-blank-lines` removes the blank lines past the allowance. The number to keep is the same one the finding measured against, so the fix cannot disagree with the rule and running it twice changes nothing the second time.
+
+Those two together are what make the whitespace rules safe to follow automatically: the other rules ask for gaps without bounding them, and this pair supplies both the gap and the ceiling, so a fixer cannot grow a file into mostly whitespace.
+
+Every other rule explains itself and leaves the change to you — breaking a long line, renaming an identifier, extracting a function, and adding an explanatory comment are judgement calls whose automated version would be worse than the problem. The fix output shows both: what was applied, and what still needs a decision, with the suggestion attached.
 
 <!-- {/autofixExplanation} -->
 
@@ -205,6 +216,8 @@ max-parameters-inline = 3
 max-cyclomatic-per-unit = 10
 max-cognitive-per-unit = 15
 max-line-width = 120
+max-statements-per-group = 8
+max-consecutive-blank-lines = 1
 comment-required-above-cognitive = 10
 disabled-rules = ["readability/excessive-comments"]
 
@@ -212,6 +225,8 @@ disabled-rules = ["readability/excessive-comments"]
 patterns = ["**/*.spec.ts", "crates/legacy/**"]
 generated = true
 ```
+
+`max-statements-per-group` and `max-consecutive-blank-lines` are the two halves of the same instruction: the first says when a run of statements needs a gap, the second says how large that gap may grow. `max-consecutive-blank-lines` is a floor rather than a cap for languages with their own convention — PEP 8 asks for two blank lines before a top-level Python definition, and `dart format` does the same — so the allowance is whichever is larger, and only a longer run is reported.
 
 <!-- {/configExample} -->
 
