@@ -386,8 +386,8 @@ fn ignorable(
 	}
 
 	// The fields of a struct literal, the entries of a collection, and the arguments of a wrapped call
-	// are data rather than statements.
-	if region == Region::Data {
+	// are data rather than statements, and the arms of a `match` or `switch` are cases rather than steps.
+	if region == Region::Data || region == Region::Alternatives {
 		return true;
 	}
 
@@ -414,7 +414,32 @@ fn starts_new_item(file: &LexedFile, line: &LexedLine, run: &Run, region: Region
 		return true;
 	}
 
-	declares_body(file, line) || run.previous_was_doc || region == Region::Items
+	declares_body(file, line)
+		|| run.previous_was_doc
+		|| introduces_alternative(line)
+		|| region == Region::Items
+}
+
+/// Returns true when a line introduces one alternative of a choice.
+///
+/// `case 0:`, `default:`, and `_ =>` each begin a new arm. They are labels rather than statements, so a
+/// run never accumulates across them: counting them reported a `switch` of three braced arms as nine
+/// statements run together, because each label and each body statement was added to the same run.
+fn introduces_alternative(line: &LexedLine) -> bool {
+	/// Keywords that label one alternative.
+	const ARM_KEYWORDS: &[&str] = &["case", "default", "when"];
+
+	let trimmed = line.masked_code.trim_start();
+
+	// A Rust or Dart arm: `Some(value) =>`, `_ =>`, `1 =>`.
+	if trimmed.ends_with("=>") {
+		return true;
+	}
+
+	// A C-family arm: `case 0:`, `default:`, optionally followed by a brace.
+	let head = trimmed.split('{').next().unwrap_or(trimmed);
+
+	has_keyword(line, ARM_KEYWORDS) && (trimmed.ends_with(':') || head.trim_end().ends_with(':'))
 }
 
 /// Where a line sits, which decides whether it counts as a statement.
@@ -424,6 +449,8 @@ enum Region {
 	Statements,
 	/// Inside a type body, whose members are items to read one at a time.
 	Items,
+	/// Inside a `match` or `switch` body, whose arms are cases rather than steps.
+	Alternatives,
 	/// Inside a literal: a struct literal, a collection, a wrapped argument list.
 	Data,
 }
@@ -481,6 +508,13 @@ enum BodyKind {
 	Items,
 	/// The body holds a statement sequence, as in a function or a control-flow block.
 	Statements,
+	/// The body holds alternatives, as in a `match` or `switch` body.
+	///
+	/// Only one arm runs, so the arms are a set of cases rather than a sequence of steps. Counting them as
+	/// statements reported a `switch` with nine patterns as nine statements run together, which is the
+	/// shape a total function over an enum always has. Blank lines between arms are a matter of taste, and
+	/// a formatter decides them.
+	Alternatives,
 	/// The body holds data rather than code, as in a struct literal or a collection.
 	Data,
 }
@@ -526,6 +560,7 @@ impl Bodies {
 
 		match self.open.last().map(|body| body.kind) {
 			Some(BodyKind::Items) => Region::Items,
+			Some(BodyKind::Alternatives) => Region::Alternatives,
 			Some(BodyKind::Data) => Region::Data,
 			// A function body and a control-flow block both hold statements, and so does the top
 			// level of a file.
@@ -566,7 +601,7 @@ impl Bodies {
 		{
 			self.open.push(OpenBody {
 				open_depth: depth_before,
-				kind,
+				kind: self.inherited(kind),
 			});
 		}
 	}
@@ -581,7 +616,7 @@ impl Bodies {
 		if let Some(kind) = body_kind(file, line) {
 			self.open.push(OpenBody {
 				open_depth: line.indent,
-				kind,
+				kind: self.inherited(kind),
 			});
 		}
 	}
@@ -606,11 +641,24 @@ impl Bodies {
 		if let Some(kind) = body_kind(file, line) {
 			self.open.push(OpenBody {
 				open_depth: self.depth,
-				kind,
+				kind: self.inherited(kind),
 			});
 
 			self.depth += 1;
 		}
+	}
+
+	/// The kind a body takes given where it sits.
+	///
+	/// A block opened inside a `match` or `switch` is part of one alternative, so it inherits that: the
+	/// statements in one arm are that arm's body, not a sequence the reader has to scan in order. Without
+	/// this a `switch` with braced arms accumulated every arm label and every arm body into one run.
+	fn inherited(&self, kind: BodyKind) -> BodyKind {
+		if self.region() == Region::Alternatives {
+			return BodyKind::Alternatives;
+		}
+
+		kind
 	}
 
 	/// The data-delimiter depth after `line`.
@@ -653,7 +701,13 @@ fn body_kind(file: &LexedFile, line: &LexedLine) -> Option<BodyKind> {
 		return Some(BodyKind::Items);
 	}
 
-	// A decision or nesting keyword is the plainest block there is: `if x {`, `match value {`.
+	// A `match` or `switch` body holds alternatives rather than steps, so its arms are cases: only one
+	// of them runs, and a total function over an enum necessarily lists one per variant.
+	if opens_alternatives(line) {
+		return Some(BodyKind::Alternatives);
+	}
+
+	// A decision or nesting keyword is the plainest block there is: `if x {`, `while ready {`.
 	if !(line.decisions.is_empty() && line.nesting.is_empty()) {
 		return Some(BodyKind::Statements);
 	}
@@ -681,6 +735,22 @@ fn body_kind(file: &LexedFile, line: &LexedLine) -> Option<BodyKind> {
 	}
 
 	Some(BodyKind::Data)
+}
+
+/// Returns true when a line opens a body whose members are alternatives rather than steps.
+///
+/// `match` and `switch` both introduce a set of cases, and a total function over an enum necessarily
+/// lists one per variant. The word may land in either keyword list depending on the language profile —
+/// Rust records `match` as a decision and C records `switch` as nesting — so both are consulted.
+fn opens_alternatives(line: &LexedLine) -> bool {
+	/// Keywords that introduce a choice between alternatives rather than a sequence.
+	const ALTERNATIVE_KEYWORDS: &[&str] = &["match", "switch"];
+
+	line.decisions
+		.iter()
+		.chain(line.nesting.iter())
+		.any(|keyword| ALTERNATIVE_KEYWORDS.contains(&keyword.as_str()))
+		|| has_keyword(line, ALTERNATIVE_KEYWORDS)
 }
 
 /// Returns true when a line's brace opens a block of code rather than a literal value.

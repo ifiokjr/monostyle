@@ -578,3 +578,107 @@ fn disabling_the_rule_removes_every_finding() {
 		"a disabled rule reports nothing: {findings:?}"
 	);
 }
+
+#[test]
+fn a_dart_switch_expression_of_many_arms_is_not_reported() {
+	// A total function over an enum necessarily lists one arm per variant, and only one of them runs. The
+	// arms are alternatives rather than steps, so counting them reported a nine-pattern switch as nine
+	// statements run together — which is every one of them.
+	let source = "\
+SectionColour fromCode(int code) => switch (code) {
+  0 => SectionColour.acid,
+  1 => SectionColour.coral,
+  2 => SectionColour.cyan,
+  3 => SectionColour.paper,
+  4 => SectionColour.violet,
+  5 => SectionColour.amber,
+  6 => SectionColour.blue,
+  7 => SectionColour.pink,
+  _ => throw StateError('unknown palette colour'),
+};
+";
+	let findings = groups_in(source, Language::Dart);
+
+	assert!(
+		findings.is_empty(),
+		"switch arms are alternatives, not a statement run: {findings:?}"
+	);
+}
+
+#[test]
+fn a_rust_match_of_many_arms_is_not_reported() {
+	let source = "\
+fn name(code: u8) -> &'static str {
+    match code {
+        0 => \"acid\",
+        1 => \"coral\",
+        2 => \"cyan\",
+        3 => \"paper\",
+        4 => \"violet\",
+        5 => \"amber\",
+        6 => \"blue\",
+        7 => \"pink\",
+        _ => \"unknown\",
+    }
+}
+";
+	let findings = groups_in(source, Language::Rust);
+
+	assert!(
+		findings.is_empty(),
+		"match arms are alternatives, not a statement run: {findings:?}"
+	);
+}
+
+#[test]
+fn a_switch_with_statement_arms_is_still_not_a_run() {
+	// The C-family shape: each arm is a block of statements. The arms are still alternatives, so the
+	// bodies inside them are not one sequence.
+	let source = "\
+void dispatch(int code) {
+  switch (code) {
+    case 0: {
+      first();
+      second();
+      break;
+    }
+    case 1: {
+      third();
+      fourth();
+      break;
+    }
+    default: {
+      fallback();
+      break;
+    }
+  }
+}
+";
+	let findings = groups_in(source, Language::C);
+
+	assert!(
+		findings.is_empty(),
+		"switch arms are alternatives: {findings:?}"
+	);
+}
+
+#[test]
+fn a_long_run_in_a_loop_body_is_still_reported() {
+	// The other half of the same distinction: a loop body runs to completion, so its statements are a
+	// sequence and the rule still measures them.
+	let mut source = String::from("fn render() {\n    for y in 0..10 {\n");
+
+	push_numbered(&mut source, 9, |index| {
+		format!("        let step_{index} = {index};")
+	});
+
+	source.push_str("    }\n}\n");
+
+	let findings = groups_in(&source, Language::Rust);
+
+	assert_eq!(
+		findings.len(),
+		1,
+		"a loop body is a statement sequence: {findings:?}"
+	);
+}
