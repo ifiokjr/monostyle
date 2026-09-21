@@ -445,3 +445,50 @@ fn markdown_prose_is_still_exempt_from_the_limit() {
 		"Markdown prose has no line limit"
 	);
 }
+
+#[test]
+fn a_rustdoc_error_list_is_not_commented_out_code() {
+	// A rustdoc `# Errors` section lists variants as `Error::Variant`. Each of those lines contains the
+	// `::` marker the code test looks for, so a naive run counts the documentation of a public API as
+	// dead code. Reporting it would push authors to delete the documentation to raise their score.
+	let findings = run(
+		quality::commented_out_code,
+		"/// Connects to the wallet.\n\
+		 ///\n\
+		 /// # Errors\n\
+		 ///\n\
+		 /// This method may return errors such as:\n\
+		 /// - `WalletError::Connection` if the connection fails\n\
+		 /// - `WalletError::WindowClosed` if the user closes the window\n\
+		 /// - `WalletError::WindowBlocked` if the window is blocked\n\
+		 pub fn connect() {}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"documentation should never be read as commented-out code: {findings:?}"
+	);
+}
+
+#[test]
+fn commented_out_code_adjacent_to_documentation_is_still_reported() {
+	// Skipping documentation must not skip the code around it: the doc block ends the run above and
+	// starts a new one, so a hidden implementation next to a doc comment is still found.
+	let findings = run(
+		quality::commented_out_code,
+		"/// Explains the function below.\n\
+		 ///\n\
+		 /// - `Thing::Other` and `Thing::Another` are both handled\n\
+		 // fn old(a: i32) -> i32 {\n\
+		 //     if a > 0 { return a; }\n\
+		 //     a\n\
+		 // }\n\
+		 pub fn current() {}\n",
+	);
+
+	assert_eq!(
+		findings.len(),
+		1,
+		"hidden code beside documentation should still be reported: {findings:?}"
+	);
+}

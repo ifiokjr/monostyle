@@ -393,3 +393,46 @@ fn every_documented_key_is_accepted() {
 		result.err()
 	);
 }
+
+#[test]
+fn a_section_layers_its_rules_onto_the_repository_wide_values() {
+	// A section states what differs, not the whole rule set. If a section replaced the repository
+	// values instead, every threshold stated under `[rules]` would silently revert to its default for
+	// any path a section matched — the config would look right and score against rules nobody chose.
+	let options = options(
+		"[rules]\nmax-line-width = 99\ndisabled-rules = [\"readability/magic-number\"]\n\n\
+		 [[section]]\npath = \"crates\"\nfail-under = { readability = 90.0, complexity = 90.0 }\n",
+	);
+
+	let section_rules = options.rules_for(std::path::Path::new("crates/core/src/lib.rs"));
+
+	assert_eq!(
+		section_rules.max_line_width, 99,
+		"a rule stated repository-wide should still apply inside a section"
+	);
+	assert!(
+		!section_rules.is_enabled("readability/magic-number"),
+		"a disabled rule should stay disabled inside a section"
+	);
+}
+
+#[test]
+fn a_section_can_override_one_rule_and_inherit_the_rest() {
+	// The override is what the section is for; the inheritance is what makes a section readable.
+	let options = options(
+		"[rules]\nmax-line-width = 99\nmax-nesting-depth = 3\n\n\
+		 [[section]]\npath = \"crates/tests\"\n\n\
+		 [section.rules]\nmax-nesting-depth = 8\n",
+	);
+
+	let section_rules = options.rules_for(std::path::Path::new("crates/tests/one.rs"));
+
+	assert_eq!(
+		section_rules.max_nesting_depth, 8,
+		"the section's own value should win"
+	);
+	assert_eq!(
+		section_rules.max_line_width, 99,
+		"a value the section does not mention should be inherited"
+	);
+}

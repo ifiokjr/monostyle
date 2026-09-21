@@ -339,3 +339,56 @@ fn a_prose_run_can_be_tuned() {
 		[] as [monostyle_core::Finding; 0]
 	);
 }
+
+#[test]
+fn a_numbered_prose_list_is_not_read_as_code() {
+	// A Markdown file is lexed with a profile that has no comments or strings, so every prose line is
+	// classified as code. The layout rules then read a list marker as a numeric literal and a list of
+	// steps as an unbroken statement run — findings about source code, reported against prose, with no
+	// edit that could clear them. Prose is not code, so the code rules do not run against it.
+	let findings = analyze(
+		"# Steps\n\n\
+		 1. First step of the process.\n\
+		 2. Second step of the process.\n\
+		 3. Third step of the process.\n\
+		 4. Fourth step of the process.\n\
+		 5. Fifth step of the process.\n\
+		 6. Sixth step of the process.\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"a prose list should produce no code findings: {findings:?}"
+	);
+}
+
+#[test]
+fn code_inside_a_fence_is_still_scored() {
+	// The other half: skipping the code rules for prose must not stop them from scoring the code inside
+	// a fence, which is the whole reason documentation is analyzed.
+	let findings = analyze(
+		"# Example\n\nSome prose.\n\n\
+		 ```rust\nfn demo() {\n    let a = 1;\n    if a > 0 {\n        work();\n    }\n}\n```\n",
+	);
+
+	assert!(
+		findings
+			.iter()
+			.any(|finding| finding.rule == "readability/blank-line-before-control-flow"),
+		"a fence should still be scored: {findings:?}"
+	);
+}
+
+#[test]
+fn markdown_structure_rules_still_run_on_prose() {
+	// The rules written for documentation declare themselves for prose, so restricting the code rules
+	// must not silence them.
+	let findings = analyze("# Title\n\n## Skipped to four\n\n#### Too deep\n");
+
+	assert!(
+		findings
+			.iter()
+			.any(|finding| finding.rule == "markdown/skipped-heading-level"),
+		"a skipped heading level should still be reported: {findings:?}"
+	);
+}

@@ -14,6 +14,7 @@ use monostyle_core::FindingBuilder;
 use monostyle_core::Language;
 use monostyle_core::Severity;
 use monostyle_core::Span;
+use monostyle_lexer::CommentIntent;
 use monostyle_lexer::LexedFile;
 use monostyle_lexer::LexedLine;
 use monostyle_lexer::LineKind;
@@ -299,6 +300,13 @@ fn body_is_empty(text: &str) -> bool {
 /// Commented-out code is a maintenance hazard: it is never formatted, never compiled, and never
 /// tested, so it drifts out of sync and misleads anyone who reads it. Version control already
 /// remembers it, which is what the suggestion says.
+///
+/// Documentation is skipped rather than counted. A doc comment is addressed to a reader, and its
+/// prose routinely contains the very markers this rule treats as evidence of code — a rustdoc
+/// `# Errors` section lists `Error::Variant` paths, and an `# Examples` section shows calls. Counting
+/// those would report the documentation of an API as dead code, and the only way to clear the finding
+/// would be to delete prose that earns credit elsewhere. The rule reports code that has been hidden,
+/// and a doc comment is the opposite of hidden.
 #[must_use]
 pub fn commented_out_code(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	/// Consecutive comment lines that look like code before a block is reported.
@@ -315,6 +323,25 @@ pub fn commented_out_code(file: &LexedFile, config: &RulesConfig) -> Vec<Finding
 
 	for line in &file.lines {
 		if line.kind == LineKind::Comment {
+			// A documentation line ends any run in progress rather than joining it: documentation
+			// belongs to the item below it, so the comments above and below are unrelated.
+			if line.comment_intent == Some(CommentIntent::Documentation) {
+				report_run(
+					&file.lines,
+					run_start,
+					run_length,
+					code_like,
+					RUN_LIMIT,
+					&mut findings,
+				);
+
+				run_start = None;
+				run_length = 0;
+				code_like = 0;
+
+				continue;
+			}
+
 			run_start.get_or_insert(line.number);
 			run_length += 1;
 

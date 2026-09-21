@@ -230,9 +230,11 @@ fn find_indentation_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
 
 /// Whether a declaration completes without ever opening a body.
 ///
-/// Two shapes qualify: a body that opens and closes on the declaration line, and an expression-bodied
-/// function with no braces at all such as `const f = (x) => x + 1`. Without the second, the declaration is
-/// never resolved and the function is dropped from the report.
+/// Three shapes qualify: a body that opens and closes on the declaration line, an expression-bodied
+/// function with no braces at all such as `const f = (x) => x + 1`, and a bodyless declaration ending in a
+/// semicolon such as a trait method or a function prototype. Without the second the declaration is never
+/// resolved and the function is dropped from the report; without the third it stays open until the file
+/// ends, so a one-line trait method is measured as spanning the rest of the trait.
 fn completes_immediately(
 	pending: &PendingUnit,
 	line: &LexedLine,
@@ -248,7 +250,13 @@ fn completes_immediately(
 	let one_liner = opens > 0 && closes > 0;
 	let expression_body = opens == 0 && closes == 0 && line.masked_code.contains("=>");
 
-	one_liner || expression_body
+	// A declaration with no braces that ends in a semicolon declares an interface rather than an
+	// implementation, so there is no body to wait for. Only a semicolon at the very end of the line counts:
+	// one followed by more code is a statement separator, not a terminator.
+	let bodyless_declaration =
+		opens == 0 && closes == 0 && code_only(&line.masked_code).trim_end().ends_with(';');
+
+	one_liner || expression_body || bodyless_declaration
 }
 
 /// Returns the last line of an indented body and the index to resume from.
