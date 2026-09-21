@@ -392,3 +392,97 @@ fn markdown_structure_rules_still_run_on_prose() {
 		"a skipped heading level should still be reported: {findings:?}"
 	);
 }
+
+#[test]
+fn each_fence_problem_can_be_disabled_on_its_own() {
+	// The two fence findings used to be emitted from inside `markdown/fence-readability`, so naming
+	// either one in `disabled-rules` did nothing. They are registry entries now, which is what makes a
+	// project able to say that untagged fences are fine while misspelled ones are not.
+	let source = "# Title\n\n```\nplain\n```\n\n```notalanguage\nx\n```\n";
+	let disabled = |rule: &str| {
+		let config = RulesConfig {
+			disabled_rules: vec![rule.to_string()],
+			..RulesConfig::default()
+		};
+		let lexed = lex(source, Language::Markdown);
+
+		run_rules(&lexed, &config)
+	};
+
+	let all = disabled("markdown/nothing");
+	let names: Vec<String> = all.iter().map(|finding| finding.rule.clone()).collect();
+
+	assert!(
+		names.contains(&"markdown/fence-without-language".to_string()),
+		"the untagged fence should be reported first: {names:?}"
+	);
+	assert!(
+		names.contains(&"markdown/fence-language-unknown".to_string()),
+		"the unknown-language fence should be reported first: {names:?}"
+	);
+
+	let without_tag_rule = disabled("markdown/fence-without-language");
+	assert!(
+		!without_tag_rule
+			.iter()
+			.any(|finding| finding.rule == "markdown/fence-without-language"),
+		"disabling the untagged-fence rule should silence it: {without_tag_rule:?}"
+	);
+	assert!(
+		without_tag_rule
+			.iter()
+			.any(|finding| finding.rule == "markdown/fence-language-unknown"),
+		"disabling one fence rule must not silence the other: {without_tag_rule:?}"
+	);
+}
+
+#[test]
+fn each_heading_problem_can_be_disabled_on_its_own() {
+	// The document starts below level one *and* jumps two levels, so both rules have something to
+	// report and disabling one leaves the other's finding in place.
+	let source = "## No title\n\n#### Skipped two levels\n\nText.\n";
+	let lexed = lex(source, Language::Markdown);
+	let findings = run_rules(
+		&lexed,
+		&RulesConfig {
+			disabled_rules: vec!["markdown/no-title".to_string()],
+			..RulesConfig::default()
+		},
+	);
+
+	assert!(
+		!findings
+			.iter()
+			.any(|finding| finding.rule == "markdown/no-title"),
+		"the disabled heading rule should be silent: {findings:?}"
+	);
+	assert!(
+		findings
+			.iter()
+			.any(|finding| finding.rule == "markdown/skipped-heading-level"),
+		"the other heading rule should still run: {findings:?}"
+	);
+}
+
+#[test]
+fn the_retired_composite_name_still_disables_its_rules() {
+	// `markdown/heading-structure` was documented as a rule while living inside another one. A project
+	// that configured it must keep the behavior it asked for rather than having its scores change
+	// silently, so the old name still turns both replacement rules off.
+	let source = "## No title\n\n#### Skipped two levels\n\nText.\n";
+	let lexed = lex(source, Language::Markdown);
+	let findings = run_rules(
+		&lexed,
+		&RulesConfig {
+			disabled_rules: vec!["markdown/heading-structure".to_string()],
+			..RulesConfig::default()
+		},
+	);
+
+	assert!(
+		!findings.iter().any(|finding| {
+			finding.rule == "markdown/no-title" || finding.rule == "markdown/skipped-heading-level"
+		}),
+		"the retired composite name should disable both rules: {findings:?}"
+	);
+}
