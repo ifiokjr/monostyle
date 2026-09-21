@@ -276,8 +276,8 @@ fn is_guard_clause(line: &LexedLine) -> bool {
 /// noise rather than signal.
 ///
 /// A function's *body*, by contrast, is exactly the sequence this rule measures, so the
-/// statements inside one are counted. [`Bodies`] is what keeps the two apart, and it is also
-/// what keeps a struct literal's fields out of the count: they are data, not statements.
+/// statements inside one are counted, while a struct literal's fields are data rather than
+/// statements and stay out of the count.
 pub fn group_separation(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	if !config.require_group_separation {
 		return Vec::new();
