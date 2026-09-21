@@ -859,3 +859,58 @@ fn a_short_file_is_not_reported_for_density() {
 		[] as [monostyle_core::Finding; 0]
 	);
 }
+
+#[test]
+fn a_trait_of_bodyless_methods_is_not_one_oversized_unit() {
+	// A trait method ending in `;` declares an interface rather than an implementation, so there is no
+	// body to measure. Without that distinction the declaration stayed open until the file ended and the
+	// whole trait was measured as one function — a trait of twenty short methods read as a single
+	// unit spanning the rest of the file.
+	let mut source = String::from("trait Store {\n");
+
+	for index in 0..30 {
+		source.push_str("    fn method_");
+		source.push_str(&index.to_string());
+		source.push_str("(&self) -> u32;\n");
+	}
+
+	source.push_str("}\n");
+
+	let findings = run(structure::oversized_units, &source);
+
+	assert!(
+		findings.is_empty(),
+		"bodyless declarations have no body to measure: {findings:?}"
+	);
+}
+
+#[test]
+fn a_bodyless_declaration_does_not_swallow_the_functions_after_it() {
+	// The other symptom of the same defect: an unresolved declaration stayed open to end of file, so a
+	// genuinely long function declared after a trait was folded into it.
+	let mut source =
+		String::from("trait Store {\n    fn load(&self) -> u32;\n}\n\nfn long_one() {\n");
+
+	for index in 0..100 {
+		source.push_str("    let value_");
+		source.push_str(&index.to_string());
+		source.push_str(" = ");
+		source.push_str(&index.to_string());
+		source.push_str(";\n");
+	}
+
+	source.push_str("}\n");
+
+	let findings = run(structure::oversized_units, &source);
+
+	assert_eq!(
+		findings.len(),
+		1,
+		"only the genuinely long function should be reported: {findings:?}"
+	);
+	assert!(
+		findings[0].message.contains("long_one"),
+		"the reported unit is the long function, not the trait: {}",
+		findings[0].message
+	);
+}

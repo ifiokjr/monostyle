@@ -51,9 +51,10 @@ pub fn blank_line_before_control_flow(file: &LexedFile, config: &RulesConfig) ->
 	}
 
 	let mut findings = Vec::new();
+	let depths = PrefixDepth::new(&file.lines);
 
 	for (index, line) in file.lines.iter().enumerate() {
-		if !needs_blank_line(&file.lines, index, line, config) {
+		if !needs_blank_line(&file.lines, &depths, index, line, config) {
 			continue;
 		}
 
@@ -96,6 +97,7 @@ pub fn blank_line_before_control_flow(file: &LexedFile, config: &RulesConfig) ->
 /// is a case where a blank line would be wrong rather than merely absent.
 fn needs_blank_line(
 	lines: &[LexedLine],
+	depths: &PrefixDepth,
 	index: usize,
 	line: &LexedLine,
 	config: &RulesConfig,
@@ -121,7 +123,7 @@ fn needs_blank_line(
 	// rather than a new decision. An inline conditional in an argument list — `path / "x" if flag
 	// else "y"` — was reported as a missing blank line before a branch, which asked for a blank line
 	// inside a single expression.
-	if inside_expression(line, lines, index) {
+	if inside_expression(line, depths, index) {
 		return false;
 	}
 
@@ -284,13 +286,14 @@ pub fn group_separation(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> 
 	let mut findings = Vec::new();
 	let mut run = Run::default();
 	let mut bodies = Bodies::default();
+	let depths = PrefixDepth::new(&file.lines);
 
 	for (index, line) in file.lines.iter().enumerate() {
 		// The regions a line sits in are read before the line is recorded, so a declaration is
 		// judged as the declaration it is rather than as the first member of its own body.
 		let region = bodies.region();
 
-		match classify(file, index, line, &run, region) {
+		match classify(file, &depths, index, line, &run, region) {
 			// A blank line, a doc comment, or the start of a new item closes whatever run was open.
 			Disposition::Break { previous_was_doc } => {
 				run.break_with(file, config, &mut findings, previous_was_doc);
@@ -328,6 +331,7 @@ enum Disposition {
 /// where it sits, and only then whether it breaks the run or joins it.
 fn classify(
 	file: &LexedFile,
+	depths: &PrefixDepth,
 	index: usize,
 	line: &LexedLine,
 	run: &Run,
@@ -340,7 +344,7 @@ fn classify(
 		};
 	}
 
-	if !ignorable(file, index, line, region) {
+	if !ignorable(file, depths, index, line, region) {
 		if starts_new_item(file, line, run, region) {
 			return Disposition::Break {
 				previous_was_doc: false,
@@ -366,7 +370,13 @@ fn classify(
 /// Every case here is a line the rule has no opinion about: one that is not code, one that carries no
 /// statement of its own, or one whose text belongs to an expression or a literal rather than to the
 /// sequence being measured. Blank lines are not here: they are the boundary the rule asks for.
-fn ignorable(file: &LexedFile, index: usize, line: &LexedLine, region: Region) -> bool {
+fn ignorable(
+	file: &LexedFile,
+	depths: &PrefixDepth,
+	index: usize,
+	line: &LexedLine,
+	region: Region,
+) -> bool {
 	if line.is_comment() {
 		return true;
 	}
@@ -390,7 +400,7 @@ fn ignorable(file: &LexedFile, index: usize, line: &LexedLine, region: Region) -
 
 	// A formatter may spread one statement over many physical lines. Only its first line extends the
 	// run; arguments, collection entries, and closing delimiters remain part of that statement.
-	starts_inside_expression(&file.lines, index) || !line.starts_statement()
+	starts_inside_expression(depths, index) || !line.starts_statement()
 }
 
 /// Returns true when a line introduces an item rather than joining the current run.
@@ -1134,7 +1144,7 @@ pub fn mixed_indentation(file: &LexedFile) -> Vec<Finding> {
 ///
 /// Two shapes count: a line that opens a delimiter which has not closed yet, and a line whose own text
 /// begins inside one. In both cases the keyword it carries belongs to an expression.
-fn inside_expression(line: &LexedLine, lines: &[LexedLine], index: usize) -> bool {
+fn inside_expression(line: &LexedLine, depths: &PrefixDepth, index: usize) -> bool {
 	// A control-flow keyword used as a value is part of an expression rather than a statement. `let after =
 	// if flag { a } else { b }` has an `if` on the line, and reporting it asked for a blank line in the middle
 	// of a binding.
@@ -1142,7 +1152,7 @@ fn inside_expression(line: &LexedLine, lines: &[LexedLine], index: usize) -> boo
 		return true;
 	}
 
-	if starts_inside_expression(lines, index) {
+	if starts_inside_expression(depths, index) {
 		return true;
 	}
 
@@ -1154,21 +1164,52 @@ fn inside_expression(line: &LexedLine, lines: &[LexedLine], index: usize) -> boo
 }
 
 /// Returns true when a line begins inside parentheses or brackets opened above it.
-fn starts_inside_expression(lines: &[LexedLine], index: usize) -> bool {
-	let mut depth: isize = 0;
+///
+/// This is a lookup into the file's [`PrefixDepth`] rather than a rescan. The rescan was quadratic — it
+/// walked every earlier line for every line — and a twenty-thousand-line file took sixteen seconds to
+/// analyze, with the cost growing fourfold when the file doubled.
+fn starts_inside_expression(depths: &PrefixDepth, index: usize) -> bool {
+	depths.starts_inside(index)
+}
 
-	for earlier in lines.iter().take(index) {
-		if !earlier.is_code() {
-			continue;
+/// The delimiter depth at every line boundary, computed once per file.
+///
+/// "Is this line a continuation of an expression above it?" is asked for every line, and answering it by
+/// walking the lines above is what made the rule set quadratic in file size. Building the table once
+/// turns each question into a single lookup, and the answer is identical: the depth after the first
+/// `index` lines is exactly what the rescan computed.
+struct PrefixDepth {
+	/// One entry per boundary: `boundaries[i]` is the depth after the first `i` lines.
+	boundaries: Vec<isize>,
+}
+
+impl PrefixDepth {
+	/// Builds the depth table for `lines`.
+	fn new(lines: &[LexedLine]) -> Self {
+		let mut boundaries = Vec::with_capacity(lines.len() + 1);
+		let mut depth: isize = 0;
+
+		boundaries.push(depth);
+
+		for line in lines {
+			// A line that is not code contributes nothing, which is what the rescan's `continue` did.
+			if line.is_code() {
+				depth += line.masked_code.matches('(').count() as isize;
+				depth -= line.masked_code.matches(')').count() as isize;
+				depth += line.masked_code.matches('[').count() as isize;
+				depth -= line.masked_code.matches(']').count() as isize;
+			}
+
+			boundaries.push(depth);
 		}
 
-		depth += earlier.masked_code.matches('(').count() as isize;
-		depth -= earlier.masked_code.matches(')').count() as isize;
-		depth += earlier.masked_code.matches('[').count() as isize;
-		depth -= earlier.masked_code.matches(']').count() as isize;
+		Self { boundaries }
 	}
 
-	depth > 0
+	/// Whether the line at `index` begins inside an expression opened above it.
+	fn starts_inside(&self, index: usize) -> bool {
+		self.boundaries.get(index).copied().unwrap_or(0) > 0
+	}
 }
 
 /// Returns true when a line's control-flow keyword introduces a value rather than a statement.
