@@ -1,9 +1,9 @@
 ---
-"monostyle": minor
-"monostyle_core": minor
-"monostyle_lexer": minor
-"monostyle_metrics": minor
-"monostyle_rules": minor
+"monostyle": major
+"monostyle_core": major
+"monostyle_lexer": major
+"monostyle_metrics": major
+"monostyle_rules": major
 ---
 
 # Fix five rule-correctness defects
@@ -18,4 +18,4 @@ Running monostyle across thirteen real repositories surfaced five defects that m
 
 **Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.
 
-These fixes change scores, which is why this is a minor release rather than a patch: fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.
+These fixes change scores, which is why this is a major bump before 1.0 (monochange applies the pre-1.0 convention, where `major` moves the minor digit): fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.
