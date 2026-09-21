@@ -28,6 +28,12 @@ pub struct RulesConfig {
 	pub require_blank_line_before_return: bool,
 	/// Whether logical groups of statements must be separated.
 	pub require_group_separation: bool,
+	/// Statements in an unbroken run before a blank line is expected.
+	///
+	/// The rule reports a run only when it is longer than this, so the default of 8 means eight
+	/// statements in a row are one group and the ninth is where a break belongs. Raising it is how a
+	/// project says its functions are longer than the default taste allows.
+	pub max_statements_per_group: usize,
 	/// Most consecutive blank lines allowed inside a block before they are reported.
 	///
 	/// A tool that asks for blank lines has to say when there are too many, or its own advice becomes
@@ -112,6 +118,7 @@ impl Default for RulesConfig {
 			min_blank_lines_between_control_flow: 1,
 			require_blank_line_before_return: true,
 			require_group_separation: true,
+			max_statements_per_group: 8,
 			max_consecutive_blank_lines: 1,
 
 			max_nesting_depth: 3,

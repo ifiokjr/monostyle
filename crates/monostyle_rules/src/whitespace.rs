@@ -24,6 +24,7 @@ use monostyle_core::FindingBuilder;
 use monostyle_core::Fix;
 use monostyle_core::Severity;
 use monostyle_core::Span;
+use monostyle_languages::BlockStyle;
 use monostyle_lexer::CommentIntent;
 use monostyle_lexer::LexedFile;
 use monostyle_lexer::LexedLine;
@@ -267,30 +268,39 @@ fn is_guard_clause(line: &LexedLine) -> bool {
 /// Without those breaks the rule fires on nearly every well-organized file — a builder with
 /// twelve documented setters reads as "twelve statements run together" — which would make it
 /// noise rather than signal.
+///
+/// A function's *body*, by contrast, is exactly the sequence this rule measures, so the
+/// statements inside one are counted. [`Bodies`] is what keeps the two apart, and it is also
+/// what keeps a struct literal's fields out of the count: they are data, not statements.
 pub fn group_separation(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	if !config.require_group_separation {
 		return Vec::new();
 	}
 
 	let mut findings = Vec::new();
-
 	let mut run = Run::default();
+	let mut bodies = Bodies::default();
 
 	for (index, line) in file.lines.iter().enumerate() {
-		match classify(&file.lines, index, line, &run) {
+		// The regions a line sits in are read before the line is recorded, so a declaration is
+		// judged as the declaration it is rather than as the first member of its own body.
+		let region = bodies.region();
+
+		match classify(file, index, line, &run, region) {
 			// A blank line, a doc comment, or the start of a new item closes whatever run was open.
-			Disposition::Break {
-				declaration,
-				previous_was_doc,
-			} => run.break_with(&file.lines, &mut findings, declaration, previous_was_doc),
-			// A comment or literal is invisible to the rule: it neither extends a run nor ends one,
-			// except for a doc comment, which `Break` handles above.
+			Disposition::Break { previous_was_doc } => {
+				run.break_with(file, config, &mut findings, previous_was_doc);
+			}
+			// A comment, a label, or a line inside a literal is invisible to the rule: it neither
+			// extends a run nor ends one, except for a doc comment, which `Break` handles above.
 			Disposition::Skip => {}
 			Disposition::Extend => run.extend(index),
 		}
+
+		bodies.visit(file, line);
 	}
 
-	run.close(&file.lines, &mut findings);
+	run.close(file, config, &mut findings);
 	findings
 }
 
@@ -298,10 +308,6 @@ pub fn group_separation(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> 
 enum Disposition {
 	/// Close the open run.
 	Break {
-		/// `Some` records the declaration state for the next line; `None` leaves it unchanged, which
-		/// is what a doc comment does — it ends the statements before it without ending the
-		/// declaration body it sits inside.
-		declaration: Option<bool>,
 		/// True when this line was a doc comment, which makes the next code line a new item.
 		previous_was_doc: bool,
 	},
@@ -312,52 +318,100 @@ enum Disposition {
 }
 
 /// Classifies one line for the group-separation rule.
-fn classify(lines: &[LexedLine], index: usize, line: &LexedLine, run: &Run) -> Disposition {
+///
+/// The order of the guards is the whole logic. Each one answers a question that would make the later
+/// questions meaningless, so the checks are deliberately in a fixed order: what kind of line it is,
+/// where it sits, and only then whether it breaks the run or joins it.
+fn classify(
+	file: &LexedFile,
+	index: usize,
+	line: &LexedLine,
+	run: &Run,
+	region: Region,
+) -> Disposition {
+	// A blank line is the boundary the rule asks for, so it always ends the run.
 	if line.is_blank() {
 		return Disposition::Break {
-			declaration: Some(false),
 			previous_was_doc: false,
 		};
 	}
 
-	let is_doc = line.comment_intent == Some(CommentIntent::Documentation);
-
-	if line.is_comment() {
-		// A doc comment starts a new item, so it ends whatever run preceded it. An ordinary comment
-		// belongs to the code around it and changes nothing.
-		if is_doc {
+	if !ignorable(file, index, line, region) {
+		if starts_new_item(file, line, run, region) {
 			return Disposition::Break {
-				declaration: None,
-				previous_was_doc: true,
+				previous_was_doc: false,
 			};
 		}
 
-		return Disposition::Skip;
+		return Disposition::Extend;
+	}
+
+	// The only ignorable line that still ends a run is a doc comment: it introduces a distinct item, so
+	// the statements before it are one group and the ones after it another.
+	if line.comment_intent == Some(CommentIntent::Documentation) {
+		return Disposition::Break {
+			previous_was_doc: true,
+		};
+	}
+
+	Disposition::Skip
+}
+
+/// Returns true when a line is invisible to the rule — neither a statement nor a break.
+///
+/// Every case here is a line the rule has no opinion about: one that is not code, one that carries no
+/// statement of its own, or one whose text belongs to an expression or a literal rather than to the
+/// sequence being measured. Blank lines are not here: they are the boundary the rule asks for.
+fn ignorable(file: &LexedFile, index: usize, line: &LexedLine, region: Region) -> bool {
+	if line.is_comment() {
+		return true;
 	}
 
 	if line.is_literal() || !line.is_code() {
-		return Disposition::Skip;
+		return true;
+	}
+
+	// The fields of a struct literal, the entries of a collection, and the arguments of a wrapped call
+	// are data rather than statements.
+	if region == Region::Data {
+		return true;
+	}
+
+	// A lone `}` or `});`, or the `end` that closes a block in Ruby and Lua, ends a block rather than
+	// stating anything. Counting it would make every function body read one statement longer than it
+	// is, and the closing marker is the most common line in the language.
+	if closes_block(file, line) {
+		return true;
 	}
 
 	// A formatter may spread one statement over many physical lines. Only its first line extends the
 	// run; arguments, collection entries, and closing delimiters remain part of that statement.
-	if starts_inside_expression(lines, index) || !line.starts_statement() {
-		return Disposition::Skip;
+	starts_inside_expression(&file.lines, index) || !line.starts_statement()
+}
+
+/// Returns true when a line introduces an item rather than joining the current run.
+///
+/// An item is its own group: the members of a type, a documented declaration, a function's signature,
+/// and the first statement after one all begin something rather than continue.
+fn starts_new_item(file: &LexedFile, line: &LexedLine, run: &Run, region: Region) -> bool {
+	let style = file.profile.block_style;
+
+	if is_type_declaration(line, style) || is_function_declaration(line, style) {
+		return true;
 	}
 
-	let starts_new_item = is_type_declaration(line)
-		|| is_function_declaration(line)
-		|| run.previous_was_doc
-		|| run.in_declaration;
+	declares_body(file, line) || run.previous_was_doc || region == Region::Items
+}
 
-	if starts_new_item {
-		return Disposition::Break {
-			declaration: Some(is_type_declaration(line) || !ends_declaration_body(line)),
-			previous_was_doc: false,
-		};
-	}
-
-	Disposition::Extend
+/// Where a line sits, which decides whether it counts as a statement.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Region {
+	/// Top level, or inside a function body: these are the statements the rule measures.
+	Statements,
+	/// Inside a type body, whose members are items to read one at a time.
+	Items,
+	/// Inside a literal: a struct literal, a collection, a wrapped argument list.
+	Data,
 }
 
 /// The sequence of statements currently being measured.
@@ -366,17 +420,20 @@ struct Run {
 	/// Index of the first line in the run, absent when no run is open.
 	start: Option<usize>,
 	length: usize,
-	/// True while inside a type body, whose members are one logical group rather than a statement
-	/// sequence.
-	in_declaration: bool,
 	/// True when the previous line was a doc comment, which makes the next line a new item.
 	previous_was_doc: bool,
 }
 
 impl Run {
 	/// Reports the current run as a finding when it is long enough, and clears it.
-	fn close(&mut self, lines: &[LexedLine], findings: &mut Vec<Finding>) {
-		check_run(lines, self.start, self.length, findings);
+	fn close(&mut self, file: &LexedFile, config: &RulesConfig, findings: &mut Vec<Finding>) {
+		check_run(
+			&file.lines,
+			self.start,
+			self.length,
+			config.max_statements_per_group,
+			findings,
+		);
 
 		self.start = None;
 		self.length = 0;
@@ -386,19 +443,12 @@ impl Run {
 	/// Closes the run and applies the state a break decided.
 	fn break_with(
 		&mut self,
-		lines: &[LexedLine],
+		file: &LexedFile,
+		config: &RulesConfig,
 		findings: &mut Vec<Finding>,
-		declaration: Option<bool>,
 		previous_was_doc: bool,
 	) {
-		self.close(lines, findings);
-
-		// A doc comment carries the declaration state forward: it ends the statements before it
-		// without ending the declaration body it sits inside.
-		if let Some(in_declaration) = declaration {
-			self.in_declaration = in_declaration;
-		}
-
+		self.close(file, config, findings);
 		self.previous_was_doc = previous_was_doc;
 	}
 
@@ -410,8 +460,373 @@ impl Run {
 	}
 }
 
+/// The body of a declaration, described by what its members are.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum BodyKind {
+	/// Members are items rather than statements, as in a struct, enum, trait, or class.
+	Items,
+	/// The body holds a statement sequence, as in a function or a control-flow block.
+	Statements,
+	/// The body holds data rather than code, as in a struct literal or a collection.
+	Data,
+}
+
+/// A body that is currently open.
+#[derive(Debug, Clone, Copy)]
+struct OpenBody {
+	/// The depth the body was opened at: its members sit deeper than this.
+	open_depth: usize,
+	/// What the body holds.
+	kind: BodyKind,
+}
+
+/// Tracks the bodies and literals that are open, so the rule knows what a line is part of.
+///
+/// The rule measures statement runs, and what counts as a statement depends on where the line sits.
+/// A type's members are items rather than statements — a struct with twelve fields is one item, not
+/// twelve lines run together — while a function's body is exactly the sequence this rule is looking
+/// for. A literal's contents are neither: they are data.
+///
+/// Keeping this as a stack, rather than the single flag the rule used to carry, is what makes a
+/// nested declaration correct: a struct declared inside a function body ends when its own brace
+/// closes, and the statements after it belong to the function again. That flag was never cleared,
+/// which made the rule blind inside every function body — the one place it matters most — and made
+/// splitting a long run unable to clear the finding, because the split only closed the run that the
+/// flag had already prevented from forming.
+#[derive(Default)]
+struct Bodies {
+	/// The bodies that are still open, innermost last.
+	open: Vec<OpenBody>,
+	/// Brace depth in brace languages, `end` nesting in `end`-terminated ones.
+	depth: usize,
+	/// Unmatched delimiters opened by a line that is not a block, which is how a literal is tracked.
+	data: usize,
+}
+
+impl Bodies {
+	/// The region the next line sits in.
+	fn region(&self) -> Region {
+		if self.data > 0 {
+			return Region::Data;
+		}
+
+		match self.open.last().map(|body| body.kind) {
+			Some(BodyKind::Items) => Region::Items,
+			Some(BodyKind::Data) => Region::Data,
+			// A function body and a control-flow block both hold statements, and so does the top
+			// level of a file.
+			Some(BodyKind::Statements) | None => Region::Statements,
+		}
+	}
+
+	/// Records one line, opening and closing bodies as it does.
+	fn visit(&mut self, file: &LexedFile, line: &LexedLine) {
+		if !line.is_code() {
+			return;
+		}
+
+		match file.profile.block_style {
+			BlockStyle::Brace => self.visit_brace(file, line),
+			BlockStyle::Indentation => self.visit_indentation(file, line),
+			BlockStyle::EndKeyword => self.visit_end_keyword(file, line),
+		}
+
+		self.data = self.data_after(file, line);
+	}
+
+	/// Records a line in a brace-delimited language.
+	fn visit_brace(&mut self, file: &LexedFile, line: &LexedLine) {
+		let opens = line.masked_code.matches('{').count();
+		let closes = line.masked_code.matches('}').count();
+		let depth_before = self.depth;
+
+		self.depth = depth_before.saturating_add(opens).saturating_sub(closes);
+
+		// A body closes once the depth returns to the level it was declared at.
+		self.open.retain(|body| body.open_depth < self.depth);
+
+		// A declaration whose brace is still open after this line opens a body. One that opens and
+		// closes on its own line — `struct Point { x: f64 }` — is a whole item in one line.
+		if self.depth > depth_before
+			&& let Some(kind) = body_kind(file, line)
+		{
+			self.open.push(OpenBody {
+				open_depth: depth_before,
+				kind,
+			});
+		}
+	}
+
+	/// Records a line in an indentation-delimited language.
+	///
+	/// A body runs until a line returns to the indentation of the declaration that opened it, which is
+	/// the same rule the scanner and the unit detector use.
+	fn visit_indentation(&mut self, file: &LexedFile, line: &LexedLine) {
+		self.open.retain(|body| line.indent > body.open_depth);
+
+		if let Some(kind) = body_kind(file, line) {
+			self.open.push(OpenBody {
+				open_depth: line.indent,
+				kind,
+			});
+		}
+	}
+
+	/// Records a line in an `end`-terminated language.
+	///
+	/// The nesting is counted here rather than inferred from the text, because a closing `end` carries
+	/// no keyword and a nested body has to know which opener it belongs to.
+	fn visit_end_keyword(&mut self, file: &LexedFile, line: &LexedLine) {
+		let first = line
+			.masked_code
+			.split_whitespace()
+			.next()
+			.unwrap_or_default();
+
+		if file.profile.end_keywords.contains(&first) {
+			self.depth = self.depth.saturating_sub(1);
+		}
+
+		self.open.retain(|body| body.open_depth < self.depth);
+
+		if let Some(kind) = body_kind(file, line) {
+			self.open.push(OpenBody {
+				open_depth: self.depth,
+				kind,
+			});
+
+			self.depth += 1;
+		}
+	}
+
+	/// The data-delimiter depth after `line`.
+	///
+	/// Parens and brackets always belong to an expression, so a line inside one continues the
+	/// statement above it. Braces are handled by the body stack in brace languages, where they may open
+	/// a block; in the others a brace can only delimit a literal, so it counts here.
+	fn data_after(&self, file: &LexedFile, line: &LexedLine) -> usize {
+		let code = &line.masked_code;
+		let mut balance = code.matches('(').count() as isize - code.matches(')').count() as isize;
+		balance += code.matches('[').count() as isize - code.matches(']').count() as isize;
+
+		if file.profile.block_style != BlockStyle::Brace {
+			balance += code.matches('{').count() as isize;
+			balance -= code.matches('}').count() as isize;
+		}
+
+		let total = self.data as isize + balance;
+
+		// A stray closer — an unbalanced closing brace in a file the scanner already flagged as
+		// unterminated — must not push the depth below zero, or every later line would look like it
+		// sat inside a literal.
+		total.max(0) as usize
+	}
+}
+
+/// The body a line opens, if it opens one.
+///
+/// Four shapes open a body: a declaration, a control-flow statement, a trailing block or lambda, and a
+/// literal. The first three hold code and the last holds data, and telling them apart is what keeps a
+/// twelve-field struct literal out of the count while the statements of a function body stay in it.
+fn body_kind(file: &LexedFile, line: &LexedLine) -> Option<BodyKind> {
+	let style = file.profile.block_style;
+
+	if !opens_body(line, style) {
+		return None;
+	}
+
+	if is_type_declaration(line, style) {
+		return Some(BodyKind::Items);
+	}
+
+	// A decision or nesting keyword is the plainest block there is: `if x {`, `match value {`.
+	if !(line.decisions.is_empty() && line.nesting.is_empty()) {
+		return Some(BodyKind::Statements);
+	}
+
+	let trimmed = line.masked_code.trim_end();
+
+	// A block marker that is not a keyword: a `do` block, a `then` branch, an `=>` arm.
+	if trimmed.ends_with("=>") || trimmed.ends_with("then") || trimmed.ends_with("do") {
+		return Some(BodyKind::Statements);
+	}
+
+	if is_function_declaration(line, style) || is_signature(line) {
+		return Some(BodyKind::Statements);
+	}
+
+	// Only a brace language can open a literal body, because only there does a brace delimit a value.
+	// In the others the brace belongs to the interpolation or is a shell expansion, and the body was
+	// already recognized above or not at all.
+	if style != BlockStyle::Brace {
+		return None;
+	}
+
+	if brace_opens_a_block(line) {
+		return Some(BodyKind::Statements);
+	}
+
+	Some(BodyKind::Data)
+}
+
+/// Returns true when a line's brace opens a block of code rather than a literal value.
+///
+/// The signal is what precedes the brace. A literal follows an assignment (`let p = Point {`) or sits
+/// inside an expression (`take(Big {`), while a block follows a parameter list, a keyword, or a bare
+/// type name.
+fn brace_opens_a_block(line: &LexedLine) -> bool {
+	let code = &line.masked_code;
+	let Some(brace) = code.find('{') else {
+		return false;
+	};
+
+	let prefix = code.get(..brace).unwrap_or_default().trim_end();
+
+	// A brace with nothing before it is a bare scope, which holds statements.
+	if prefix.is_empty() {
+		return true;
+	}
+
+	if has_assignment(prefix) {
+		return false;
+	}
+
+	// An unbalanced paren or bracket means the brace sits inside an expression, so it belongs to the
+	// value being built rather than to a block.
+	let parens = prefix.matches('(').count() as isize - prefix.matches(')').count() as isize;
+	let brackets = prefix.matches('[').count() as isize - prefix.matches(']').count() as isize;
+
+	if parens > 0 || brackets > 0 {
+		return false;
+	}
+
+	// A prefix that ends in a value is a literal: `Some(Point {` closes a paren and a name, and the
+	// brace is the value's own. A prefix that ends in a keyword or a type name introduces a block.
+	let first = prefix
+		.split(|character: char| !character.is_alphanumeric() && character != '_')
+		.next()
+		.unwrap_or_default();
+
+	CONTROL_KEYWORDS.contains(&first) || prefix.ends_with(')') || is_bare_type_name(prefix)
+}
+
+/// Returns true when a prefix is a bare type name, which is how a literal is introduced.
+///
+/// `Point {` and `Self {` build a value, so the brace belongs to it. Anything with a keyword, an
+/// operator, or a punctuation mark is not a type name and falls through to the block case.
+fn is_bare_type_name(prefix: &str) -> bool {
+	!prefix.is_empty()
+		&& prefix
+			.chars()
+			.all(|character| character.is_alphanumeric() || character == '_')
+}
+
+/// Returns true when the prefix assigns a value, which makes a following brace a literal.
+///
+/// The comparison and arrow operators contain `=` without assigning, so each is excluded by name.
+fn has_assignment(prefix: &str) -> bool {
+	prefix.match_indices('=').any(|(index, _)| {
+		let before = prefix.get(..index).unwrap_or_default();
+		let after = prefix.get(index..).unwrap_or_default();
+
+		!(after.starts_with("=>")
+			|| after.starts_with("==")
+			|| before.ends_with(['!', '<', '>', '=']))
+	})
+}
+
+/// Returns true when a line is a signature — a parameter list with nothing after it.
+///
+/// This is how a function is declared without a declaration keyword: Dart's `void emit()`, a C
+/// function definition, a Kotlin method. The keyword tables do not cover them, and the brace that
+/// follows a closed parameter list is a body.
+fn is_signature(line: &LexedLine) -> bool {
+	let code = &line.masked_code;
+	let end = code.find('{').unwrap_or(code.len());
+	let head = code.get(..end).unwrap_or_default().trim_end();
+
+	if !head.ends_with(')') {
+		return false;
+	}
+
+	// `if x {`, `for entry in list {`, and `while running {` all end in a parameter list followed by
+	// an opener, and all of them are statements rather than declarations. The decisions the lexer
+	// already recorded are what separates them, and the fallback below covers a language whose
+	// keyword table omits the word.
+	if !line.decisions.is_empty() || !line.nesting.is_empty() {
+		return false;
+	}
+
+	let first = head
+		.split(|character: char| !character.is_alphanumeric() && character != '_')
+		.next()
+		.unwrap_or_default();
+
+	if CONTROL_KEYWORDS.contains(&first) {
+		return false;
+	}
+
+	// The parameter list must close the signature. This is what separates `void emit()` from
+	// `register(handler);`, where the parens close a call rather than a declaration.
+	head.matches(')').count() > head.matches('(').count().saturating_sub(1)
+}
+
+/// Words that introduce a statement rather than a named declaration.
+///
+/// Shared by the signature check and the block check, because both are asking the same question: does
+/// this line name something, or does it do something?
+const CONTROL_KEYWORDS: &[&str] = &[
+	"if", "else", "elsif", "elif", "unless", "for", "while", "until", "loop", "switch", "match",
+	"case", "when", "catch", "except", "rescue", "finally", "return", "yield", "await", "assert",
+	"throw", "raise", "let", "const", "var", "do", "begin", "try", "with", "defer", "guard",
+	"repeat",
+];
+
+/// Returns true when a line declares a body without a declaration keyword.
+///
+/// Dart's `void emit()`, a C function definition, and a Kotlin method all name a callable without any
+/// word from the keyword tables, so the parameter list followed by an opener is the only signal. The
+/// line is a declaration rather than a statement, which is why it ends a run instead of extending one:
+/// the statements it introduces are measured as its body.
+fn declares_body(file: &LexedFile, line: &LexedLine) -> bool {
+	opens_body(line, file.profile.block_style) && is_signature(line)
+}
+
+/// Returns true when a line opens a body in this language's block style.
+///
+/// The marker differs by style: a brace language opens with `{`, and an indentation language with a
+/// trailing `:`. An `end`-terminated language has no marker at all — `def work` is the whole opener —
+/// so any line could be one, and the declaration and keyword checks that follow are what decide.
+fn opens_body(line: &LexedLine, style: BlockStyle) -> bool {
+	match style {
+		BlockStyle::Brace => line.masked_code.contains('{'),
+		BlockStyle::Indentation => line.masked_code.trim_end().ends_with(':'),
+		BlockStyle::EndKeyword => true,
+	}
+}
+
+/// Returns true when a line closes a block rather than stating anything.
+///
+/// The marker depends on how the language delimits blocks: a brace language closes with a brace, and an
+/// `end`-terminated language with its closing keyword. Counting either as a statement would make every
+/// function body read one statement longer than it is, and the closing marker is the most common line
+/// in the language.
+fn closes_block(file: &LexedFile, line: &LexedLine) -> bool {
+	let trimmed = line.masked_code.trim();
+
+	if file.profile.block_style == BlockStyle::EndKeyword {
+		let first = trimmed.split_whitespace().next().unwrap_or_default();
+
+		return file.profile.end_keywords.contains(&first);
+	}
+
+	trimmed
+		.chars()
+		.all(|character| matches!(character, '}' | ')' | ']' | ';' | ','))
+}
+
 /// Returns true when a line opens a type declaration whose members are one logical group.
-fn is_type_declaration(line: &LexedLine) -> bool {
+fn is_type_declaration(line: &LexedLine, style: BlockStyle) -> bool {
 	/// Keywords that introduce a group of related members rather than a statement sequence.
 	const DECLARATION_KEYWORDS: &[&str] = &[
 		"struct",
@@ -428,11 +843,11 @@ fn is_type_declaration(line: &LexedLine) -> bool {
 		"type",
 	];
 
-	has_keyword(line, DECLARATION_KEYWORDS) && line.masked_code.contains('{')
+	has_keyword(line, DECLARATION_KEYWORDS) && opens_body(line, style)
 }
 
 /// Returns true when a line declares a function or method.
-fn is_function_declaration(line: &LexedLine) -> bool {
+fn is_function_declaration(line: &LexedLine, style: BlockStyle) -> bool {
 	/// Keywords that introduce a callable.
 	const FUNCTION_KEYWORDS: &[&str] = &[
 		"fn",
@@ -447,7 +862,12 @@ fn is_function_declaration(line: &LexedLine) -> bool {
 		"lambda",
 	];
 
-	has_keyword(line, FUNCTION_KEYWORDS) && line.masked_code.contains('(')
+	// A brace or indentation language writes a parameter list, which is what separates a declaration
+	// from a call. Ruby and Lua do not require one — `def name` is the whole signature — so the
+	// keyword alone is the signal there.
+	let has_signature = line.masked_code.contains('(') || style == BlockStyle::EndKeyword;
+
+	has_keyword(line, FUNCTION_KEYWORDS) && has_signature
 }
 
 /// Returns true when `line` contains one of `keywords` as a whole word.
@@ -457,29 +877,19 @@ fn has_keyword(line: &LexedLine, keywords: &[&str]) -> bool {
 		.any(|word| keywords.contains(&word))
 }
 
-/// Returns true when a declaration's body closed on this line.
-fn ends_declaration_body(line: &LexedLine) -> bool {
-	let opens = line.masked_code.matches('{').count();
-	let closes = line.masked_code.matches('}').count();
-
-	opens > 0 && opens == closes
-}
-
 /// Reports a run of statements that is long enough to need internal grouping.
 ///
-/// The threshold scales with nesting rather than being fixed: statements at depth 0 in a
-/// short function are naturally one group, while the same count inside two levels of nesting
-/// is much harder to scan.
+/// The limit is a statement count rather than a depth, because that is the thing the reader is being
+/// asked to change: the message names both the run and the limit, so a run can be split until the
+/// finding clears instead of being guessed at.
 fn check_run(
 	lines: &[LexedLine],
 	run_start: Option<usize>,
 	run_length: usize,
+	limit: usize,
 	findings: &mut Vec<Finding>,
 ) {
-	/// Statements in an unbroken run before grouping is expected.
-	const RUN_LIMIT: usize = 8;
-
-	if run_length < RUN_LIMIT {
+	if run_length <= limit {
 		return;
 	}
 
@@ -500,12 +910,13 @@ fn check_run(
 		.severity(Severity::Minor)
 		.weight(0.5)
 		.message(format!(
-			"{run_length} statements run together with no blank lines"
+			"{run_length} statements run together with no blank lines (limit {limit})"
 		))
-		.suggestion(
-			"Separate the logical groups within this run with blank lines so the phases of \
-			 the function are visible.",
-		)
+		.suggestion(format!(
+			"Separate the logical groups within this run with blank lines so the phases of the \
+			 function are visible. A blank line every {limit} statements or fewer clears this \
+			 finding."
+		))
 		.build(),
 	);
 }

@@ -13,6 +13,7 @@ description = "The rule set that turns layout observations into explained findin
 
 [dependencies]
 monostyle_core = { workspace = true }
+monostyle_languages = { workspace = true }
 monostyle_lexer = { workspace = true }
 monostyle_markdown = { workspace = true }
 monostyle_metrics = { workspace = true }
@@ -20,6 +21,7 @@ serde = { workspace = true }
 
 [dev-dependencies]
 insta = { workspace = true }
+toml = { workspace = true }
 
 [lints]
 workspace = true
