@@ -14,10 +14,12 @@
 //!
 //! Merging the parsed TOML over the serialized defaults removes the second list entirely. The defaults
 //! are serialized once, the file's values are overlaid onto them, and the result is deserialized back
-//! into the typed config. Adding a field to [`RulesConfig`](monostyle_rules::RulesConfig) needs no change here at all.
+//! into the typed config. Adding a field to `RulesConfig` needs no change here at all.
 
 use std::path::Path;
 use std::path::PathBuf;
+
+use monostyle_rules::RulesConfig;
 
 use crate::analysis::AnalysisOptions;
 
@@ -97,20 +99,41 @@ pub fn apply(options: &AnalysisOptions, file: &ConfigFile) -> Result<AnalysisOpt
 	options.clone().apply_config(file)
 }
 
-/// Reads the sections a configuration file declares.
+/// Reads the sections a configuration file declares, resolving each one's rules.
 ///
 /// Sections live at the top level as `[[section]]` entries rather than inside `[rules]`, because a section
 /// holds a floor and an ignore flag as well as rule thresholds. Keeping them out of the rules namespace
 /// means the merge for `[rules]` stays a simple value overlay.
-fn read_sections(file: &toml::Value) -> Result<Vec<crate::section::Section>, ConfigError> {
+///
+/// Each section's rules are merged onto `base`, the already-resolved repository-wide values, so a section
+/// states only what differs. Deserializing a section on its own cannot do this: absent fields would be
+/// filled with defaults, and every repository-wide threshold a section did not restate would silently
+/// revert for the paths it matched. That is the failure this merge exists to prevent, and it is invisible
+/// in the config file because the file reads correctly.
+fn read_sections(
+	file: &toml::Value,
+	base: &RulesConfig,
+) -> Result<Vec<crate::section::Section>, ConfigError> {
 	let Some(sections) = file.get("section") else {
 		return Ok(Vec::new());
 	};
 
-	let parsed: Vec<crate::section::Section> = sections
+	let mut parsed: Vec<crate::section::Section> = sections
 		.clone()
 		.try_into()
 		.map_err(ConfigError::Deserialize)?;
+
+	for (index, section) in parsed.iter_mut().enumerate() {
+		let mut merged = toml::Value::try_from(base).map_err(ConfigError::Serialize)?;
+
+		// A section without a `[section.rules]` table inherits the repository-wide rules unchanged, so the
+		// overlay is skipped rather than treated as an empty one.
+		if let Some(rules) = sections.get(index).and_then(|value| value.get("rules")) {
+			merge(&mut merged, rules);
+		}
+
+		section.rules = merged.try_into().map_err(ConfigError::Deserialize)?;
+	}
 
 	if let Some(problem) = crate::section::validate_sections(&parsed) {
 		return Err(ConfigError::InvalidSection(problem));
@@ -184,10 +207,14 @@ impl ConfigExt for AnalysisOptions {
 
 		// `[scoring]` is a sibling of `[rules]` on the options rather than inside it, so it is applied
 		// separately and keeps its own defaults.
+		let resolved: RulesConfig = merged.try_into().map_err(ConfigError::Deserialize)?;
+
 		let mut options = Self {
-			rules: merged.try_into().map_err(ConfigError::Deserialize)?,
+			// Sections are resolved against the repository-wide rules rather than the defaults, so a
+			// section inherits every threshold it does not restate.
+			sections: read_sections(file, &resolved)?,
+			rules: resolved,
 			fail_under: read_floor(file)?,
-			sections: read_sections(file)?,
 			..self
 		};
 

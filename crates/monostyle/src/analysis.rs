@@ -424,7 +424,8 @@ impl Default for AnalysisOptions {
 impl AnalysisOptions {
 	/// Returns the rules that apply to `path`.
 	///
-	/// A section's rules are layered onto the repository-wide values, so a section only states what differs.
+	/// A section's rules are layered onto the repository-wide values when the configuration is read, so a
+	/// section only states what differs and this is a selection rather than a merge.
 	#[must_use]
 	pub fn rules_for(&self, path: &Path) -> RulesConfig {
 		let Some(section) = crate::section::section_for(&self.sections, path) else {

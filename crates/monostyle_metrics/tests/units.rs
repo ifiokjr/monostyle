@@ -245,3 +245,23 @@ fn an_unterminated_unit_still_reports_its_lines() {
 	assert_eq!(unit.name, "a");
 	assert!(unit.end_line >= 2);
 }
+
+#[test]
+fn a_bodyless_trait_method_ends_on_its_own_line() {
+	// A trait method has no braces: the declaration ends at its semicolon. The scan waits for a body that
+	// never opens, so without treating the semicolon as the end the unit stayed open until the file did and
+	// reported the whole trait as one method — which then read as an oversized unit and a low
+	// maintainability index, both of them about a single line of code.
+	let source = "pub trait Thing {\n    /// Does the thing.\n    fn alpha(&self) -> u32;\n\n    /// Does another.\n    fn beta(&self) -> u32;\n}\n";
+
+	let units = find_units(&lex(source, Language::Rust));
+	let alpha = units
+		.iter()
+		.find(|unit| unit.name == "alpha")
+		.expect("`alpha` should be detected");
+
+	assert_eq!(
+		alpha.end_line, 3,
+		"a bodyless declaration should end on its own line"
+	);
+}

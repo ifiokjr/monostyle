@@ -159,6 +159,19 @@ impl LexedLine {
 		body.trim_end_matches("*/").trim().to_string()
 	}
 
+	/// Whether the line uses the language's documentation comment syntax.
+	///
+	/// Documentation syntax lives in the marker, not the prose, so this is the test that separates a
+	/// doc comment from an ordinary one before either is classified. Rustdoc's `///` and `//!` are the
+	/// only markers here because a block comment's opening `/**` carries the distinction on its first
+	/// line only, and a continuation line's `*` is indistinguishable from a bullet.
+	#[must_use]
+	pub fn has_doc_marker(&self) -> bool {
+		let trimmed = self.text.trim_start();
+
+		trimmed.starts_with("///") || trimmed.starts_with("//!")
+	}
+
 	/// A short preview of the line's code, for report output.
 	#[must_use]
 	pub fn preview(&self, width: usize) -> String {

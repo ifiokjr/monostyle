@@ -370,18 +370,31 @@ fn markdown_prose_is_never_reported_for_line_length() {
 
 #[test]
 fn markdown_measures_code_inside_fences() {
+	// The fixture's second fence is deliberately cramped, so a layout rule has to fire inside it and
+	// the finding has to carry the document's line number rather than an offset into the fence.
 	let report = analyze("markdown");
 	let file = report.files.first().expect("a Markdown fixture");
 
+	let fence_findings: Vec<&monostyle_core::Finding> = file
+		.findings
+		.iter()
+		.filter(|finding| finding.message.starts_with("in the "))
+		.collect();
+
 	assert!(
-		file.findings
-			.iter()
-			.any(|finding| finding.rule == "readability/blank-line-before-return"),
+		!fence_findings.is_empty(),
 		"the deliberately cramped fence should be measured. Findings: {:?}",
 		file.findings
 			.iter()
 			.map(|finding| finding.rule.clone())
 			.collect::<Vec<_>>()
+	);
+
+	assert!(
+		fence_findings
+			.iter()
+			.all(|finding| finding.span.start_line > 17),
+		"a fence finding should point into the fence's own lines: {fence_findings:?}"
 	);
 }
 

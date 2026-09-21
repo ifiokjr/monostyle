@@ -1197,12 +1197,19 @@ fn classify_comment_blocks(lines: &mut [LexedLine]) {
 
 		// Extend the run while lines stay comment-ish and keep the same indentation, so a blank
 		// line or a dedent correctly ends the block.
+		//
+		// A change of marker style also ends it. Documentation syntax is a property of the marker rather
+		// than of the prose, so a `//` line following a `///` block is a different comment: the author
+		// switched from documenting the item below to hiding something. Grouping them made the whole run
+		// inherit the `///` verdict, which hid commented-out code sitting beneath a doc comment.
 		let indent = lines.get(index).map_or(0, |line| line.indent);
+		let opens_with_doc_marker = lines.get(index).is_some_and(LexedLine::has_doc_marker);
 		let mut end = index + 1;
 
 		while let Some(candidate) = lines.get(end) {
 			let continues = (candidate.is_comment() || candidate.is_trailing_comment_only())
-				&& candidate.indent == indent;
+				&& candidate.indent == indent
+				&& candidate.has_doc_marker() == opens_with_doc_marker;
 
 			if !continues {
 				break;

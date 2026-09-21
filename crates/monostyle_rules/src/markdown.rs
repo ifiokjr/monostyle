@@ -106,10 +106,17 @@ fn unscoreable_fence(fence: &CodeFence) -> Finding {
 /// Only the layout and structure rules run here. Complexity rules are deliberately excluded:
 /// a documentation example that walks through a messy state on purpose is doing its job, and
 /// penalizing it would push authors toward hiding the very complexity they are explaining.
+///
+/// The set is listed explicitly rather than delegated to [`crate::run_rules`], which would run the
+/// whole code rule set over the document. A Markdown file lexes as one language, so delegating would
+/// score the surrounding prose as code — reporting a numbered list as a statement run — and would
+/// attribute those findings to the wrong lines.
 fn nested_layout_findings(lexed: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	let mut findings = Vec::new();
 
 	findings.extend(whitespace::blank_line_before_control_flow(lexed, config));
+	findings.extend(whitespace::blank_line_before_return(lexed, config));
+	findings.extend(whitespace::group_separation(lexed, config));
 	findings.extend(whitespace::excessive_indentation(lexed, config));
 	findings.extend(whitespace::mixed_indentation(lexed));
 	findings.extend(structure::deep_nesting(lexed, config));

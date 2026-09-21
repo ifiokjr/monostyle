@@ -28,6 +28,13 @@ pub struct RulesConfig {
 	pub require_blank_line_before_return: bool,
 	/// Whether logical groups of statements must be separated.
 	pub require_group_separation: bool,
+	/// Most consecutive blank lines allowed inside a block before they are reported.
+	///
+	/// A tool that asks for blank lines has to say when there are too many, or its own advice becomes
+	/// the problem: every rule here rewards a gap, so an auto-fixer following them without a ceiling
+	/// can grow a gap without limit. One blank line is almost always what the rule meant, so the
+	/// default is 1 and a run of two or more is reported.
+	pub max_consecutive_blank_lines: usize,
 
 	// --- Structure ---
 	/// Maximum nesting depth before a finding is raised.
@@ -105,6 +112,7 @@ impl Default for RulesConfig {
 			min_blank_lines_between_control_flow: 1,
 			require_blank_line_before_return: true,
 			require_group_separation: true,
+			max_consecutive_blank_lines: 1,
 
 			max_nesting_depth: 3,
 			max_parameters_inline: 3,

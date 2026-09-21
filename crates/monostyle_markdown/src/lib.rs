@@ -135,33 +135,12 @@ pub fn analyze(source: &str) -> Document {
 		if let Some((marker, info)) = parse_fence_open(line) {
 			flush_prose(&mut document, &mut prose_start, &mut prose_length);
 
-			let start_line = index + 1;
-			let mut body = Vec::new();
-			let mut cursor = index + 1;
+			let (fence, resume) = read_fence(&lines, index, marker, &info);
 
-			while let Some(candidate) = lines.get(cursor).copied() {
-				if is_fence_close(candidate, marker) {
-					break;
-				}
+			document.fences.push(fence);
 
-				body.push(candidate);
-				cursor += 1;
-			}
-
-			let info_string = info.trim().to_string();
-			let language = Language::from_fence_tag(&info_string);
-
-			document.fences.push(CodeFence {
-				language,
-				info_string,
-				code: body.join("\n"),
-				start_line,
-				end_line: (cursor + 1).min(lines.len()),
-				marker,
-			});
-
-			// The cursor stops on the closing fence; advancing past it resumes normal parsing.
-			index = cursor + 1;
+			// The reader stops on the closing marker; advancing past it resumes normal parsing.
+			index = resume;
 			continue;
 		}
 
@@ -178,6 +157,40 @@ pub fn analyze(source: &str) -> Document {
 	flush_prose(&mut document, &mut prose_start, &mut prose_length);
 
 	document
+}
+
+/// Reads a fenced code block starting at `open`.
+///
+/// Returns the fence and the index to resume parsing from, which is one past the closing marker.
+/// Separated from [`analyze`] because the body scan is a loop of its own: keeping it inline made the
+/// main loop carry three interleaved branches and a cursor, which is what `analyze`'s cognitive
+/// complexity was measuring.
+fn read_fence(lines: &[&str], open: usize, marker: char, info: &str) -> (CodeFence, usize) {
+	let mut body = Vec::new();
+	let mut cursor = open + 1;
+
+	while let Some(candidate) = lines.get(cursor).copied() {
+		if is_fence_close(candidate, marker) {
+			break;
+		}
+
+		body.push(candidate);
+		cursor += 1;
+	}
+
+	let info_string = info.trim().to_string();
+	let language = Language::from_fence_tag(&info_string);
+
+	let fence = CodeFence {
+		language,
+		info_string,
+		code: body.join("\n"),
+		start_line: open + 1,
+		end_line: (cursor + 1).min(lines.len()),
+		marker,
+	};
+
+	(fence, cursor + 1)
 }
 
 /// Returns headings whose level jumps by more than one.

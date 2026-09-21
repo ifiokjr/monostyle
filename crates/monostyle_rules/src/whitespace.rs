@@ -99,6 +99,13 @@ fn needs_blank_line(
 		return false;
 	}
 
+	// An attribute is not a statement, so a keyword inside one is a name rather than a decision.
+	// `#[serde(default, rename_all = "kebab-case")]` was reported as a `default` branch missing its
+	// blank line, which asked for a blank line inside an attribute list.
+	if is_attribute(line) {
+		return false;
+	}
+
 	// A line that opens a block is a declaration, not a statement, so it is exempt: the space
 	// belongs before the statements inside it, not before the declaration itself.
 	if is_block_declaration(line) {
@@ -503,6 +510,110 @@ fn check_run(
 	);
 }
 
+/// Reports runs of blank lines longer than the configured maximum.
+///
+/// Every other rule in this module asks for a gap: a blank line before a branch, before a return,
+/// between statement groups. A set of rules that only ever adds whitespace has no way to say when
+/// there is too much, so following all of them at once can grow a gap without limit — five blank
+/// lines between two `match` arms satisfy every rule that asked for one, and the result is harder to
+/// read than the crowded version it replaced.
+///
+/// This is the ceiling that makes the rest safe to follow.
+///
+/// # Why the limit is per language
+///
+/// The number is not a universal constant. PEP 8 asks for two blank lines before a top-level Python
+/// definition, and Go's `gofmt` and the Dart formatter each have their own convention, so a limit of
+/// one would report the standard style of three of the languages this tool supports. The allowance is
+/// therefore the larger of the configured maximum and the language's own convention, and only a run
+/// longer than that is reported. Two consecutive blank lines in a Rust file are a gap; in a Python
+/// file between two top-level definitions they are the documented layout.
+///
+/// Trailing blank lines at the end of a file are not reported: they separate nothing, and the
+/// position of the last line is a matter for the formatter rather than for this rule.
+pub fn excessive_blank_lines(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
+	let allowed = config
+		.max_consecutive_blank_lines
+		.max(blank_line_convention(file.language));
+
+	if allowed == 0 {
+		return Vec::new();
+	}
+
+	let mut findings = Vec::new();
+	let mut run_start: Option<usize> = None;
+
+	for line in &file.lines {
+		if line.is_blank() {
+			run_start.get_or_insert(line.number);
+
+			continue;
+		}
+
+		let Some(start) = run_start.take() else {
+			continue;
+		};
+
+		// `line.number` is one past the run's last line, so the run's length is the difference.
+		let length = line.number.saturating_sub(start);
+
+		if length <= allowed {
+			continue;
+		}
+
+		let Some(first) = file
+			.lines
+			.iter()
+			.find(|candidate| candidate.number == start)
+		else {
+			continue;
+		};
+
+		findings.push(
+			FindingBuilder::new(
+				"readability/excessive-blank-lines",
+				Category::Readability,
+				line_span(first),
+			)
+			.severity(Severity::Minor)
+			.weight(1.0)
+			.message(format!(
+				"{length} consecutive blank lines, over the limit of {allowed}"
+			))
+			.suggestion(
+				"Delete the extra blank lines. One blank line separates two statements; more than \
+				 that reads as a gap in the code rather than a break between groups.",
+			)
+			.build(),
+		);
+	}
+
+	// A trailing run is left alone: it separates nothing, and a file that ends with several blank
+	// lines is a formatting question rather than a readability one.
+	findings
+}
+
+/// The number of blank lines a language's own style asks for between top-level items.
+///
+/// Only languages with a documented convention appear here. A language that does not is governed by
+/// the configured maximum alone, which keeps the rule from inventing a standard for a language whose
+/// community never agreed on one.
+///
+/// The value is a floor rather than an override: a project that allows more than its language asks
+/// for keeps that setting, because the configured maximum is what a project chose deliberately.
+fn blank_line_convention(language: monostyle_core::Language) -> usize {
+	/// PEP 8: "surround top-level function and class definitions with two blank lines".
+	const PYTHON: usize = 2;
+	/// `dart format` puts a blank line between declarations, and two around a class body's members.
+	const DART: usize = 2;
+
+	match language {
+		monostyle_core::Language::Python => PYTHON,
+		monostyle_core::Language::Dart => DART,
+		_ => 1,
+	}
+}
+
 /// Reports indentation deeper than the configured limit.
 ///
 /// Deep indentation is the visual symptom of nesting, and it is reported here as a layout
@@ -660,6 +771,22 @@ fn is_block_declaration(line: &LexedLine) -> bool {
 		|| trimmed.ends_with("then")
 		|| trimmed.ends_with("do")
 		|| trimmed.ends_with("=>")
+}
+
+/// Whether the line is an attribute, decorator, or annotation rather than a statement.
+///
+/// These attach metadata to the declaration below them. A keyword inside one is an option name — a
+/// serde `default`, an angular `if`, a Java `for` in an annotation — so treating it as control flow
+/// asks for a blank line that would separate the attribute from the item it describes.
+fn is_attribute(line: &LexedLine) -> bool {
+	let trimmed = line.masked_code.trim_start();
+
+	// Rust and Rust-like: `#[...]` and the inner `#![...]`. A decorator's `@` and a Java or C#
+	// annotation's leading `@` are the same shape: metadata before a declaration.
+	trimmed.starts_with("#[")
+		|| trimmed.starts_with("#![")
+		|| trimmed.starts_with('@')
+		|| trimmed.starts_with("[[")
 }
 
 /// Finds the index of the previous line that is not blank.
