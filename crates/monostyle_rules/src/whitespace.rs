@@ -193,13 +193,13 @@ pub fn blank_line_before_return(file: &LexedFile, config: &RulesConfig) -> Vec<F
 			continue;
 		}
 
+		if has_separation_above(&file.lines, index, 1) {
+			continue;
+		}
+
 		let Some(previous) = previous_code_line(&file.lines, index) else {
 			continue;
 		};
-
-		if previous.is_blank() {
-			continue;
-		}
 
 		// A return as the first statement of its block is idiomatic and needs no preamble.
 		if previous.opens_block() {
