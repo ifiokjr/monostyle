@@ -1,7 +1,7 @@
 ---
-"monostyle": minor
-"monostyle_core": minor
-"monostyle_rules": minor
+"monostyle": major
+"monostyle_core": major
+"monostyle_rules": major
 ---
 
 # Make grouping measurable, and document what the rules are
@@ -38,3 +38,7 @@ The expression-depth check walked every earlier line for every line, which made 
 ## The rule table is complete and guarded
 
 Five registered rules were missing from the documentation (`magic-number`, `short-identifier`, `empty-handler`, `commented-out-code`, and `excessive-blank-lines`), and the two new configuration keys are now documented with the per-language blank-line floor explained. Tests check both directions — every registered rule appears in the table, and every name in the table has a registry entry — so the drift that made four rules impossible to disable cannot return.
+
+## Why this is a `major` bump before 1.0
+
+The changeset is `major` because monochange applies the pre-1.0 semver convention, where a `major` bump on `0.y.z` moves the minor digit. For a package below 1.0 that is how you say "the numbers a user sees will change, and a threshold that was failing may now pass" without claiming an API break that has not happened. A `minor` bump under the same convention would produce `0.1.1`, which reads as a patch and would understate the change.
