@@ -270,7 +270,7 @@ pub fn group_separation(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> 
 	let mut run = Run::default();
 
 	for (index, line) in file.lines.iter().enumerate() {
-		match classify(line, &run) {
+		match classify(&file.lines, index, line, &run) {
 			// A blank line, a doc comment, or the start of a new item closes whatever run was open.
 			Disposition::Break {
 				declaration,
@@ -305,7 +305,7 @@ enum Disposition {
 }
 
 /// Classifies one line for the group-separation rule.
-fn classify(line: &LexedLine, run: &Run) -> Disposition {
+fn classify(lines: &[LexedLine], index: usize, line: &LexedLine, run: &Run) -> Disposition {
 	if line.is_blank() {
 		return Disposition::Break {
 			declaration: Some(false),
@@ -329,6 +329,12 @@ fn classify(line: &LexedLine, run: &Run) -> Disposition {
 	}
 
 	if line.is_literal() || !line.is_code() {
+		return Disposition::Skip;
+	}
+
+	// A formatter may spread one statement over many physical lines. Only its first line extends the
+	// run; arguments, collection entries, and closing delimiters remain part of that statement.
+	if starts_inside_expression(lines, index) || !line.starts_statement() {
 		return Disposition::Skip;
 	}
 
@@ -582,7 +588,19 @@ fn inside_expression(line: &LexedLine, lines: &[LexedLine], index: usize) -> boo
 		return true;
 	}
 
-	// The line itself starts inside an unclosed delimiter from an earlier line.
+	if starts_inside_expression(lines, index) {
+		return true;
+	}
+
+	// The line opens more than it closes, so whatever follows is a continuation of it.
+	let opens = line.masked_code.matches('(').count() + line.masked_code.matches('[').count();
+	let closes = line.masked_code.matches(')').count() + line.masked_code.matches(']').count();
+
+	opens > closes
+}
+
+/// Returns true when a line begins inside parentheses or brackets opened above it.
+fn starts_inside_expression(lines: &[LexedLine], index: usize) -> bool {
 	let mut depth: isize = 0;
 
 	for earlier in lines.iter().take(index) {
@@ -596,15 +614,7 @@ fn inside_expression(line: &LexedLine, lines: &[LexedLine], index: usize) -> boo
 		depth -= earlier.masked_code.matches(']').count() as isize;
 	}
 
-	if depth > 0 {
-		return true;
-	}
-
-	// The line opens more than it closes, so whatever follows is a continuation of it.
-	let opens = line.masked_code.matches('(').count() + line.masked_code.matches('[').count();
-	let closes = line.masked_code.matches(')').count() + line.masked_code.matches(']').count();
-
-	opens > closes
+	depth > 0
 }
 
 /// Returns true when a line's control-flow keyword introduces a value rather than a statement.
