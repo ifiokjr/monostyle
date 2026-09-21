@@ -1,8 +1,9 @@
 ---
-"monostyle": patch
-"monostyle_rules": patch
-"monostyle_lexer": patch
-"monostyle_metrics": patch
+"monostyle": minor
+"monostyle_core": minor
+"monostyle_lexer": minor
+"monostyle_metrics": minor
+"monostyle_rules": minor
 ---
 
 # Fix five rule-correctness defects
@@ -16,3 +17,5 @@ Running monostyle across thirteen real repositories surfaced five defects that m
 - **A keyword inside an attribute was read as control flow.** `#[serde(default, rename_all = "kebab-case")]` was reported as a `default` branch missing its blank line, so the finding asked for a blank line inside an attribute list. A decorator or annotation has the same shape.
 
 **Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.
+
+These fixes change scores, which is why this is a minor release rather than a patch: fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.
