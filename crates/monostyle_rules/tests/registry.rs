@@ -53,6 +53,9 @@ pub fn process(input: &Input, mode: Mode, flags: Flags, cache: &Cache) -> Result
     }
     // Increment the retry counter
     let x = compute(ab, cd, ef, gh, input.scale, input.offset, input.limit, input.target);
+
+
+
     Ok(x)
 }
 ";
@@ -282,33 +285,36 @@ fn every_rule_survives_one_line_of_garbage() {
 }
 
 #[test]
-fn only_one_rule_produces_a_fix() {
-	// Fixes are restricted to the blank-line insertion because it is the only edit guaranteed to
-	// survive a formatter. A second fixable rule would need the same argument made for it.
+fn only_the_formatter_safe_rules_produce_a_fix() {
+	// Fixes are restricted to the two edits a formatter leaves alone: inserting a blank line, and
+	// deleting the blank lines past the allowance. A third fixable rule would need the same argument
+	// made for it — that rustfmt, Prettier, Black, and `dart format` will not revert the edit.
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
 
 	let findings = run_rules(&lexed, &RulesConfig::default());
 
-	let fixable: Vec<&str> = findings
+	let mut unique: Vec<&str> = findings
 		.iter()
 		.filter(|finding| finding.fix.is_some())
 		.map(|finding| finding.rule.as_str())
 		.collect();
 
-	let mut unique = fixable.clone();
 	unique.sort_unstable();
 	unique.dedup();
 
 	assert_eq!(
 		unique,
-		vec!["readability/blank-line-before-control-flow"],
-		"only the blank-line rule should be auto-fixable"
+		vec![
+			"readability/blank-line-before-control-flow",
+			"readability/excessive-blank-lines"
+		],
+		"only the two formatter-safe rules should be auto-fixable"
 	);
 }
 
 #[test]
-fn the_fixable_rule_produces_a_fix_for_every_finding() {
-	// A finding from the fixable rule with no fix attached would mean the rule attached one
+fn every_finding_of_a_fixable_rule_carries_a_fix() {
+	// A finding from a fixable rule with no fix attached would mean the rule attached one
 	// conditionally, which makes `monostyle fix` unreliable.
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
 
@@ -329,4 +335,120 @@ fn the_fixable_rule_produces_a_fix_for_every_finding() {
 			"the fix should target the finding"
 		);
 	}
+}
+
+// ---------------------------------------------------------------------------
+// Documentation drift
+// ---------------------------------------------------------------------------
+
+/// Returns the text of the rule-table template at the workspace root.
+///
+/// The template is the single source the readme, the mdbook pages, and the shipped skill are all
+/// generated from, so checking it covers every published copy at once.
+fn rule_table_template() -> String {
+	let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+		.parent()
+		.and_then(std::path::Path::parent)
+		.expect("the crate lives two levels below the workspace root")
+		.join(".templates/monostyle.t.md");
+
+	std::fs::read_to_string(&path)
+		.unwrap_or_else(|error| panic!("could not read {}: {error}", path.display()))
+}
+
+#[test]
+fn every_registered_rule_is_documented() {
+	// A rule that exists but is undocumented is invisible to the person reading a report and trying to
+	// understand it — and the readme is where they will look. This is the guard that keeps the table
+	// honest as rules are added: five rules were once missing from it entirely.
+	//
+	// The table names each rule without its namespace, because the section it sits in already says
+	// `readability` or `complexity`, so the check is on the final segment.
+	let template = rule_table_template();
+	let undocumented: Vec<&str> = all_rules()
+		.iter()
+		.map(|rule| rule.name)
+		.filter(|name| {
+			let short = name.split('/').next_back().unwrap_or(name);
+
+			!template.contains(&format!("`{short}`"))
+		})
+		.collect();
+
+	assert!(
+		undocumented.is_empty(),
+		"these rules are registered but absent from the rule table: {undocumented:?}"
+	);
+}
+
+#[test]
+fn every_documented_rule_is_registered() {
+	// The other direction, and the one that produced four un-disableable rules: a documented name that
+	// no registry entry owns cannot be turned off by `disabled-rules`, and `monostyle rules` never
+	// lists it. The table names rules without their namespace, so the comparison is on the final
+	// segment of each registered name.
+	let template = rule_table_template();
+	let registered: Vec<&str> = all_rules()
+		.iter()
+		.map(|rule| rule.name.split('/').next_back().unwrap_or(rule.name))
+		.collect();
+
+	// A name that was documented while living inside another rule, kept as a configuration alias.
+	let allowed_unregistered = ["heading-structure"];
+
+	let documented: Vec<String> = template
+		.lines()
+		.filter_map(backtick_rule_name)
+		.filter(|name| !registered.contains(&name.as_str()))
+		.filter(|name| !allowed_unregistered.contains(&name.as_str()))
+		.collect();
+
+	assert!(
+		documented.is_empty(),
+		"these documented names have no registry entry, so they cannot be disabled: {documented:?}"
+	);
+}
+
+#[test]
+fn the_retired_composite_name_still_maps_to_registered_rules() {
+	// The alias exists so configuration written against the old name keeps working. If it ever named a
+	// rule that no longer exists, disabling it would silently stop doing anything. The input name is
+	// filtered out because `expand_disabled` echoes what it was given.
+	let registered: Vec<&str> = all_rules().iter().map(|rule| rule.name).collect();
+
+	let replacements: Vec<String> =
+		monostyle_rules::registry::expand_disabled(&["markdown/heading-structure".to_string()])
+			.into_iter()
+			.filter(|name| name != "markdown/heading-structure")
+			.collect();
+
+	assert!(
+		!replacements.is_empty(),
+		"the retired composite name should expand to its replacement rules"
+	);
+
+	for replacement in replacements {
+		assert!(
+			registered.contains(&replacement.as_str()),
+			"the alias expands to `{replacement}`, which is not a registered rule"
+		);
+	}
+}
+
+/// Extracts a rule name from a markdown table row, if the row's first cell is one.
+///
+/// The table lists rules without their namespace, so a caller comparing against registered names must
+/// compare against the final segment.
+fn backtick_rule_name(line: &str) -> Option<String> {
+	let trimmed = line.trim();
+
+	if !trimmed.starts_with('|') {
+		return None;
+	}
+
+	let cell = trimmed.trim_start_matches('|').split('|').next()?.trim();
+
+	cell.strip_prefix('`')?
+		.strip_suffix('`')
+		.map(str::to_string)
 }

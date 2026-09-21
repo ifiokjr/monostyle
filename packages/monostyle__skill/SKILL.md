@@ -38,23 +38,28 @@ When you are asked to improve a score, work the impact table from the top. Fixin
 
 Readability:
 
-| Rule                               | What it means                                           | What to do                                          |
-| ---------------------------------- | ------------------------------------------------------- | --------------------------------------------------- |
-| `blank-line-before-control-flow`   | An `if`/`for`/`while` is crowded against the line above | Put a blank line before each control-flow statement |
-| `blank-line-before-return`         | A `return` is buried against the code above it          | Put a blank line before the return                  |
-| `group-separation`                 | A long run of statements with no blank lines            | Separate the logical groups within the run          |
-| `deep-nesting`                     | Control flow nested past the limit                      | Flatten with an early return or extract the block   |
-| `excessive-indentation`            | A line indented past the limit                          | Same fix: flatten or extract                        |
-| `long-parameter-list`              | An argument list that should be split                   | One argument per line                               |
-| `overlong-line`                    | A line wider than the readable limit                    | Break it at a logical boundary                      |
-| `oversized-unit`                   | A function too long to hold in your head                | Extract the distinct phases into named helpers      |
-| `oversized-file`                   | A file too large to navigate                            | Split it along its natural seams                    |
-| `mixed-indentation`                | Tabs and spaces in one file                             | Pick one                                            |
-| `comment-required-on-complex-unit` | A complex function with no explanation                  | Add a comment explaining why it is complex          |
-| `comment-explains-why`             | **Credit** for explaining reasoning                     | Keep it                                             |
-| `comment-narrates-code`            | A comment restating the code                            | Delete it or explain why instead                    |
-| `excessive-comments`               | More commentary than the code can carry                 | Keep the why, delete the what                       |
-| `thin-documentation`               | A doc block listing structure without purpose           | Add a sentence on what it is for and why            |
+| Rule                               | What it means                                                                          | What to do                                                                                          |
+| ---------------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `blank-line-before-control-flow`   | An `if`/`for`/`while` is crowded against the line above                                | Put a blank line before each control-flow statement                                                 |
+| `blank-line-before-return`         | A `return` is buried against the code above it                                         | Put a blank line before the return                                                                  |
+| `group-separation`                 | A run of statements longer than `max-statements-per-group` (8 by default) with no gaps | Add a blank line so no group exceeds the limit                                                      |
+| `excessive-blank-lines`            | A run of blank lines longer than the language allows                                   | Delete the extras: one blank is the allowance for Rust, Go, and TypeScript, two for Python and Dart |
+| `deep-nesting`                     | Control flow nested past the limit                                                     | Flatten with an early return or extract the block                                                   |
+| `excessive-indentation`            | A line indented past the limit                                                         | Same fix: flatten or extract                                                                        |
+| `long-parameter-list`              | An argument list that should be split                                                  | One argument per line                                                                               |
+| `overlong-line`                    | A line wider than the readable limit                                                   | Break it at a logical boundary                                                                      |
+| `oversized-unit`                   | A function too long to hold in your head                                               | Extract the distinct phases into named helpers                                                      |
+| `oversized-file`                   | A file too large to navigate                                                           | Split it along its natural seams                                                                    |
+| `mixed-indentation`                | Tabs and spaces in one file                                                            | Pick one                                                                                            |
+| `comment-required-on-complex-unit` | A complex function with no explanation                                                 | Add a comment explaining why it is complex                                                          |
+| `comment-explains-why`             | **Credit** for explaining reasoning                                                    | Keep it                                                                                             |
+| `comment-narrates-code`            | A comment restating the code                                                           | Delete it or explain why instead                                                                    |
+| `excessive-comments`               | More commentary than the code can carry                                                | Keep the why, delete the what                                                                       |
+| `thin-documentation`               | A doc block listing structure without purpose                                          | Add a sentence on what it is for and why                                                            |
+| `magic-number`                     | A meaningful numeric literal left unnamed                                              | Give it a named constant                                                                            |
+| `short-identifier`                 | A name too short to convey meaning                                                     | Rename it to say what it holds                                                                      |
+| `empty-handler`                    | An error handler that discards the error                                               | Log it, propagate it, or explain why it is safe                                                     |
+| `commented-out-code`               | Code commented out instead of deleted                                                  | Delete it; version control remembers                                                                |
 
 Complexity:
 

@@ -7,11 +7,15 @@
 //! Each rule reports where the space is missing and why it matters, so a finding is actionable
 //! without consulting documentation.
 //!
-//! # Why exactly one rule is auto-fixable
+//! # Why only two rules are auto-fixable
 //!
-//! Inserting a blank line before a control-flow statement is the only edit here that is guaranteed to
-//! survive a formatter. Rustfmt, Prettier, Black, and `dart format` all preserve a blank line between
-//! statements and none of them remove one, so the fix cannot fight the project's own tooling.
+//! Inserting a blank line before a control-flow statement, and deleting the blank lines past the
+//! allowance, are the only edits here guaranteed to survive a formatter. Rustfmt, Prettier, Black, and
+//! `dart format` all preserve a blank line between statements and none of them remove one, so neither
+//! fix can fight the project's own tooling.
+//!
+//! Together they are what makes the rest of the module safe to follow automatically: every other rule
+//! asks for a gap without bounding it, and this pair supplies both the gap and the ceiling.
 //!
 //! Every other rule is deliberately left to the reader. Breaking a long line, renaming an identifier,
 //! extracting a function, and adding an explanatory comment are all judgement calls whose automated
@@ -942,6 +946,17 @@ fn check_run(
 ///
 /// Trailing blank lines at the end of a file are not reported: they separate nothing, and the
 /// position of the last line is a matter for the formatter rather than for this rule.
+///
+/// # Why this rule is auto-fixable
+///
+/// Deleting a blank line is an edit every formatter leaves alone, and the number to keep is already
+/// decided — it is the same allowance the finding measured against, so the fix cannot disagree with the
+/// rule. Applying it is therefore idempotent: the second run finds a run of exactly the allowance and
+/// reports nothing.
+///
+/// This is also what makes the rest of the module safe to follow automatically. The other whitespace
+/// rules ask for gaps without ever bounding them, so a fixer that only inserts blank lines can grow a
+/// gap until the file is mostly whitespace; this fix is the counterweight that brings it back.
 pub fn excessive_blank_lines(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	let allowed = config
 		.max_consecutive_blank_lines
@@ -952,56 +967,73 @@ pub fn excessive_blank_lines(file: &LexedFile, config: &RulesConfig) -> Vec<Find
 	}
 
 	let mut findings = Vec::new();
-	let mut run_start: Option<usize> = None;
+	let mut run: Vec<&LexedLine> = Vec::new();
 
 	for line in &file.lines {
 		if line.is_blank() {
-			run_start.get_or_insert(line.number);
+			run.push(line);
 
 			continue;
 		}
 
-		let Some(start) = run_start.take() else {
-			continue;
-		};
-
-		// `line.number` is one past the run's last line, so the run's length is the difference.
-		let length = line.number.saturating_sub(start);
-
-		if length <= allowed {
-			continue;
+		if let Some(finding) = blank_run_finding(&run, allowed) {
+			findings.push(finding);
 		}
 
-		let Some(first) = file
-			.lines
-			.iter()
-			.find(|candidate| candidate.number == start)
-		else {
-			continue;
-		};
-
-		findings.push(
-			FindingBuilder::new(
-				"readability/excessive-blank-lines",
-				Category::Readability,
-				line_span(first),
-			)
-			.severity(Severity::Minor)
-			.weight(1.0)
-			.message(format!(
-				"{length} consecutive blank lines, over the limit of {allowed}"
-			))
-			.suggestion(
-				"Delete the extra blank lines. One blank line separates two statements; more than \
-				 that reads as a gap in the code rather than a break between groups.",
-			)
-			.build(),
-		);
+		run.clear();
 	}
 
 	// A trailing run is left alone: it separates nothing, and a file that ends with several blank
 	// lines is a formatting question rather than a readability one.
 	findings
+}
+
+/// Builds the finding for a completed run of blank lines, if it is longer than `allowed`.
+fn blank_run_finding(run: &[&LexedLine], allowed: usize) -> Option<Finding> {
+	let length = run.len();
+
+	if length <= allowed {
+		return None;
+	}
+
+	let first = *run.first()?;
+	let span = line_span(first);
+
+	// The fix deletes every blank line past the allowance, from the end of the last kept line to the
+	// end of the run. Anchoring it at the end rather than rewriting the whole run keeps the edit as
+	// small as possible, so a diff review sees removed lines rather than replaced ones.
+	let kept = *run.get(allowed.checked_sub(1)?)?;
+	let excess = run.get(allowed..)?;
+	let last = *excess.last()?;
+
+	let delete_span = Span::new(
+		kept.end_byte,
+		last.end_byte,
+		kept.number.saturating_add(1),
+		last.number,
+	);
+
+	let fix = Fix::delete(delete_span, format!("remove {} blank lines", excess.len()));
+
+	Some(
+		FindingBuilder::new(
+			"readability/excessive-blank-lines",
+			Category::Readability,
+			span,
+		)
+		.severity(Severity::Minor)
+		.weight(1.0)
+		.message(format!(
+			"{length} consecutive blank lines, over the limit of {allowed}"
+		))
+		.suggestion(format!(
+			"Keep {allowed} blank line{} here. More than that reads as a gap in the code rather \
+			 than a break between groups.",
+			if allowed == 1 { "" } else { "s" }
+		))
+		.fix(fix)
+		.build(),
+	)
 }
 
 /// The number of blank lines a language's own style asks for between top-level items.
