@@ -1,7 +1,6 @@
 # Configuration
 
-monostyle reads `monostyle.toml` from the analyzed directory or any parent. Only the keys you set
-are changed; everything else keeps its default.
+monostyle reads `monostyle.toml` from the analyzed directory or any parent. Only the keys you set are changed; everything else keeps its default.
 
 <!-- {=configExample} -->
 
@@ -26,10 +25,8 @@ generated = true
 
 <!-- {/configExample} -->
 
-Run `monostyle config` to print every available key with its current value. The output is valid TOML
-and can be pasted into a `monostyle.toml` file as a starting point.
+Run `monostyle config` to print every available key with its current value. The output is valid TOML and can be pasted into a `monostyle.toml` file as a starting point.
 
 ## Unknown keys
 
-An unrecognized key is an error rather than a warning. A typo in a threshold name would otherwise be
-silently accepted, and the project would score against settings nobody chose.
+An unrecognized key is an error rather than a warning. A typo in a threshold name would otherwise be silently accepted, and the project would score against settings nobody chose.

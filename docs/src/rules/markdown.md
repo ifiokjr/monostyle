@@ -17,7 +17,4 @@ Code inside documentation is scored too, because README examples are what people
 
 ## Why fences are scored differently from source
 
-Complexity rules are deliberately excluded from fences. A documentation example often walks through
-a messy state on purpose, and penalizing it would push authors toward hiding the very complexity
-they are explaining. Only the layout rules apply, and their findings are mapped back to the Markdown
-file's line numbers so a reader can jump to the exact fence.
+Complexity rules are deliberately excluded from fences. A documentation example often walks through a messy state on purpose, and penalizing it would push authors toward hiding the very complexity they are explaining. Only the layout rules apply, and their findings are mapped back to the Markdown file's line numbers so a reader can jump to the exact fence.

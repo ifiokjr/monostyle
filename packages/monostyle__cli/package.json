@@ -1,47 +1,47 @@
 {
-  "name": "@monostyle-rs/cli",
-  "version": "0.1.0",
-  "type": "module",
-  "description": "Score the complexity and readability of a codebase, a file, or a function",
-  "keywords": [
-    "cli",
-    "code-quality",
-    "complexity",
-    "cyclomatic",
-    "cognitive-complexity",
-    "readability"
-  ],
-  "homepage": "https://github.com/ifiokjr/monostyle",
-  "bugs": {
-    "url": "https://github.com/ifiokjr/monostyle/issues"
-  },
-  "license": "Unlicense",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ifiokjr/monostyle.git"
-  },
-  "bin": {
-    "monostyle": "bin/monostyle.js"
-  },
-  "files": [
-    "bin",
-    "README.md"
-  ],
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
-  "optionalDependencies": {
-    "@monostyle-rs/cli-darwin-arm64": "^0.1.0",
-    "@monostyle-rs/cli-darwin-x64": "^0.1.0",
-    "@monostyle-rs/cli-linux-arm64-gnu": "^0.1.0",
-    "@monostyle-rs/cli-linux-arm64-musl": "^0.1.0",
-    "@monostyle-rs/cli-linux-x64-gnu": "^0.1.0",
-    "@monostyle-rs/cli-linux-x64-musl": "^0.1.0",
-    "@monostyle-rs/cli-win32-arm64-msvc": "^0.1.0",
-    "@monostyle-rs/cli-win32-x64-msvc": "^0.1.0"
-  },
-  "engines": {
-    "node": ">=20"
-  }
+	"name": "@monostyle-rs/cli",
+	"version": "0.1.0",
+	"type": "module",
+	"description": "Score the complexity and readability of a codebase, a file, or a function",
+	"keywords": [
+		"cli",
+		"code-quality",
+		"complexity",
+		"cyclomatic",
+		"cognitive-complexity",
+		"readability"
+	],
+	"homepage": "https://github.com/ifiokjr/monostyle",
+	"bugs": {
+		"url": "https://github.com/ifiokjr/monostyle/issues"
+	},
+	"license": "Unlicense",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ifiokjr/monostyle.git"
+	},
+	"bin": {
+		"monostyle": "bin/monostyle.js"
+	},
+	"files": [
+		"bin",
+		"README.md"
+	],
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"optionalDependencies": {
+		"@monostyle-rs/cli-darwin-arm64": "^0.1.0",
+		"@monostyle-rs/cli-darwin-x64": "^0.1.0",
+		"@monostyle-rs/cli-linux-arm64-gnu": "^0.1.0",
+		"@monostyle-rs/cli-linux-arm64-musl": "^0.1.0",
+		"@monostyle-rs/cli-linux-x64-gnu": "^0.1.0",
+		"@monostyle-rs/cli-linux-x64-musl": "^0.1.0",
+		"@monostyle-rs/cli-win32-arm64-msvc": "^0.1.0",
+		"@monostyle-rs/cli-win32-x64-msvc": "^0.1.0"
+	},
+	"engines": {
+		"node": ">=20"
+	}
 }

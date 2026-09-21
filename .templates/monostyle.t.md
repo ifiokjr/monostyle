@@ -1,28 +1,18 @@
 <!-- {@projectOverview} -->
 
-`monostyle` scores the complexity and readability of a codebase, a file, or a function, out of 100.
-Every point lost is traced to a named rule with an explanation and a suggested fix, so a report is a
-worklist rather than a grade.
+`monostyle` scores the complexity and readability of a codebase, a file, or a function, out of 100. Every point lost is traced to a named rule with an explanation and a suggested fix, so a report is a worklist rather than a grade.
 
-**Readability** measures how the code looks: whether complex sections have room to breathe, whether
-sequential control flow is separated, whether deep nesting has been flattened, and whether comments
-explain the hard parts.
+**Readability** measures how the code looks: whether complex sections have room to breathe, whether sequential control flow is separated, whether deep nesting has been flattened, and whether comments explain the hard parts.
 
-**Complexity** measures how hard the code is to follow and to test: cyclomatic complexity (how many
-independent paths exist) and cognitive complexity (how much nesting taxes the reader).
+**Complexity** measures how hard the code is to follow and to test: cyclomatic complexity (how many independent paths exist) and cognitive complexity (how much nesting taxes the reader).
 
 <!-- {/projectOverview} -->
 
 <!-- {@projectWhy} -->
 
-Code is read far more often than it is written, and the things that make it pleasant to read are
-mostly layout: a blank line before a branch, space around a long argument list, a gap between
-logical groups, and a comment on the one function that is genuinely hard to follow.
+Code is read far more often than it is written, and the things that make it pleasant to read are mostly layout: a blank line before a branch, space around a long argument list, a gap between logical groups, and a comment on the one function that is genuinely hard to follow.
 
-Those things are invisible to every existing metric. Cyclomatic complexity will happily call a flat,
-unreadable function simple; a formatter will happily preserve a 200-line function with no blank
-lines anywhere. monostyle exists to make the visual properties of code measurable, so that "this is
-hard to read" becomes a specific, fixable list.
+Those things are invisible to every existing metric. Cyclomatic complexity will happily call a flat, unreadable function simple; a formatter will happily preserve a 200-line function with no blank lines anywhere. monostyle exists to make the visual properties of code measurable, so that "this is hard to read" becomes a specific, fixable list.
 
 <!-- {/projectWhy} -->
 
@@ -108,36 +98,25 @@ Code inside documentation is scored too, because README examples are what people
 
 <!-- {@supportedLanguages} -->
 
-Rust, C, C++, C#, Java, JavaScript, Kotlin, Mozjs, Python, TypeScript, TSX, **Dart**, Go, Swift,
-Ruby, PHP, Scala, Shell, Lua, Elixir, Haskell, Nix, and Markdown.
+Rust, C, C++, C#, Java, JavaScript, Kotlin, Mozjs, Python, TypeScript, TSX, **Dart**, Go, Swift, Ruby, PHP, Scala, Shell, Lua, Elixir, Haskell, Nix, and Markdown.
 
-The first eleven match what [`rust-code-analysis`](https://github.com/mozilla/rust-code-analysis)
-supports, so numbers from the two tools are comparable. Dart is included because it is the language
-this tool was built for. The remaining ten cover widely used languages that project does not reach.
+The first eleven match what [`rust-code-analysis`](https://github.com/mozilla/rust-code-analysis) supports, so numbers from the two tools are comparable. Dart is included because it is the language this tool was built for. The remaining ten cover widely used languages that project does not reach.
 
 <!-- {/supportedLanguages} -->
 
 <!-- {@scoringModel} -->
 
-Findings carry a `weight`; severity scales it into a penalty. Penalties sum per category and are
-normalized by code volume into a penalty density — findings per 100 lines — so a large well-written
-file is not punished for its size. Density maps to 0–100 through exponential decay:
+Findings carry a `weight`; severity scales it into a penalty. Penalties sum per category and are normalized by code volume into a penalty density — findings per 100 lines — so a large well-written file is not punished for its size. Density maps to 0–100 through exponential decay:
 
 ```
 score = 100 * 2 ^ (-density / half_life)
 ```
 
-The half-life is the density at which a category scores exactly 50, which makes the whole curve
-tunable with one readable number.
+The half-life is the density at which a category scores exactly 50, which makes the whole curve tunable with one readable number.
 
-Good comments earn **negative** penalties. That is how a well-placed explanation raises a score: the
-credit offsets other penalties inside the same density number, so one number always explains the
-result.
+Good comments earn **negative** penalties. That is how a well-placed explanation raises a score: the credit offsets other penalties inside the same density number, so one number always explains the result.
 
-Scores are aggregated by **line-weighted mean**, the same way test coverage is aggregated. A
-ten-line file cannot count as much as a thousand-line file. Three invariants hold, and all three are
-enforced by tests: splitting a file does not change the project score, doubling penalty and volume
-does not change it, and fifty two-line files cannot outweigh one five-thousand-line file.
+Scores are aggregated by **line-weighted mean**, the same way test coverage is aggregated. A ten-line file cannot count as much as a thousand-line file. Three invariants hold, and all three are enforced by tests: splitting a file does not change the project score, doubling penalty and volume does not change it, and fifty two-line files cannot outweigh one five-thousand-line file.
 
 <!-- {/scoringModel} -->
 
@@ -177,8 +156,7 @@ readability: what is costing you points
              a separate decision rather than part of the previous block.
 ```
 
-Each entry names its worst offender as `path:line`, and the report ends with the single
-highest-value fix:
+Each entry names its worst offender as `path:line`, and the report ends with the single highest-value fix:
 
 ```console
 start here
@@ -190,13 +168,9 @@ start here
 
 <!-- {@autofixExplanation} -->
 
-One rule is auto-fixable: inserting a blank line before a control-flow statement. That is the only
-edit guaranteed to survive a formatter — rustfmt, Prettier, Black, and `dart format` all preserve a
-blank line between statements and none of them remove one. A fixer that fights the project's
-formatter produces a diff the next format run reverts, which is worse than the finding itself.
+One rule is auto-fixable: inserting a blank line before a control-flow statement. That is the only edit guaranteed to survive a formatter — rustfmt, Prettier, Black, and `dart format` all preserve a blank line between statements and none of them remove one. A fixer that fights the project's formatter produces a diff the next format run reverts, which is worse than the finding itself.
 
-Every other rule explains itself and leaves the change to you. The fix output shows both: what was
-applied, and what still needs a decision, with the suggestion attached.
+Every other rule explains itself and leaves the change to you. The fix output shows both: what was applied, and what still needs a decision, with the suggestion attached.
 
 <!-- {/autofixExplanation} -->
 
@@ -209,9 +183,7 @@ generated = true # skip generated code (the default)
 include = ["lib/hand_edited.g.dart"] # always score this one
 ```
 
-Recognized as generated: `.g.dart`, `.freezed.dart`, `.pb.rs`, `.pb.go`, `_pb2.py`, `.designer.cs`,
-`.gen.ts`, `.min.js`, `.bundle.js`, and lock files. Ignored directories include `node_modules`,
-`target`, `dist`, `build`, `vendor`, `.venv`, `.dart_tool`, and `__pycache__`.
+Recognized as generated: `.g.dart`, `.freezed.dart`, `.pb.rs`, `.pb.go`, `_pb2.py`, `.designer.cs`, `.gen.ts`, `.min.js`, `.bundle.js`, and lock files. Ignored directories include `node_modules`, `target`, `dist`, `build`, `vendor`, `.venv`, `.dart_tool`, and `__pycache__`.
 
 <!-- {/ignoreConfigExample} -->
 
@@ -232,27 +204,17 @@ Or write the file by hand in `.changeset/`:
 
 # Fix the long-parameter-list rule firing on every call
 
-The rule tested argument count and rendered width separately, so any call over forty columns was
-reported regardless of how many arguments it had. It now requires both, which is what makes the
-finding mean something.
+The rule tested argument count and rendered width separately, so any call over forty columns was reported regardless of how many arguments it had. It now requires both, which is what makes the finding mean something.
 ```
 
-The release workflow reads every changeset, computes the next version for each package, and opens a
-release pull request. Merging that pull request is what cuts the release, so the schedule is
-"whenever a release is worth shipping" rather than a fixed cadence.
+The release workflow reads every changeset, computes the next version for each package, and opens a release pull request. Merging that pull request is what cuts the release, so the schedule is "whenever a release is worth shipping" rather than a fixed cadence.
 
 ## What needs a changeset
 
-A pull request that changes a published package needs one, or the release notes for that version
-would not mention the change. Documentation, tests, snapshots, and examples do not: none of them
-change what a published package does.
+A pull request that changes a published package needs one, or the release notes for that version would not mention the change. Documentation, tests, snapshots, and examples do not: none of them change what a published package does.
 
 ## Trusted publishing
 
-Releases publish with trusted publishing when a verifiable CI identity is available, and fall back
-to the `NPM_TOKEN` and `CARGO_REGISTRY_TOKEN` secrets otherwise. The fallback exists because a
-package has to exist in a registry before it can be enrolled with a trusted publisher, so the first
-publish of anything always uses a token. Set `force_token_auth` when dispatching the publish
-workflow to skip the OIDC exchange deliberately.
+Releases publish with trusted publishing when a verifiable CI identity is available, and fall back to the `NPM_TOKEN` and `CARGO_REGISTRY_TOKEN` secrets otherwise. The fallback exists because a package has to exist in a registry before it can be enrolled with a trusted publisher, so the first publish of anything always uses a token. Set `force_token_auth` when dispatching the publish workflow to skip the OIDC exchange deliberately.
 
 <!-- {/changesetWorkflow} -->

@@ -59,7 +59,9 @@ if (launcher) {
 		const declared = launcher.optionalDependencies?.[dependency];
 
 		if (!declared) {
-			errors.push(`${launcher.name} does not declare optional dependency ${dependency}`);
+			errors.push(
+				`${launcher.name} does not declare optional dependency ${dependency}`,
+			);
 		} else if (declared !== `^${launcher.version}`) {
 			errors.push(
 				`${launcher.name} declares ${dependency} at ${declared}, expected ^${launcher.version}`,
@@ -68,7 +70,10 @@ if (launcher) {
 	}
 
 	// The launcher must actually resolve those packages, or the dependency list is decorative.
-	const launcherSource = fs.readFileSync(path.join(launcherDirectory, "bin", "monostyle.js"), "utf8");
+	const launcherSource = fs.readFileSync(
+		path.join(launcherDirectory, "bin", "monostyle.js"),
+		"utf8",
+	);
 
 	for (const suffix of PLATFORM_SUFFIXES) {
 		if (!launcherSource.includes(`@monostyle-rs/cli-${suffix}`)) {
@@ -86,18 +91,28 @@ for (const suffix of PLATFORM_SUFFIXES) {
 	versions.set(manifest.name, manifest.version);
 
 	if (launcher && manifest.version !== launcher.version) {
-		errors.push(`${manifest.name} is at ${manifest.version}, launcher is at ${launcher.version}`);
+		errors.push(
+			`${manifest.name} is at ${manifest.version}, launcher is at ${launcher.version}`,
+		);
 	}
 
 	// A binary must be present, or the package publishes empty and fails on install.
-	const binary = path.join(directory, "bin", process.platform === "win32" && suffix.includes("win32") ? "monostyle.exe" : "monostyle");
+	const binary = path.join(
+		directory,
+		"bin",
+		process.platform === "win32" && suffix.includes("win32") ? "monostyle.exe" : "monostyle",
+	);
 
 	// Only the host's own platform package is expected to hold a binary during a local run; CI
 	// stages each one on its own runner.
-	const isHostPlatform = suffix.includes(process.platform === "darwin" ? "darwin" : process.platform === "win32" ? "win32" : "linux");
+	const isHostPlatform = suffix.includes(
+		process.platform === "darwin" ? "darwin" : process.platform === "win32" ? "win32" : "linux",
+	);
 
 	if (isHostPlatform && !fs.existsSync(binary)) {
-		console.warn(`note: ${binary} not staged yet (expected locally until a release build runs)`);
+		console.warn(
+			`note: ${binary} not staged yet (expected locally until a release build runs)`,
+		);
 	}
 
 	for (const field of ["os", "cpu", "files", "publishConfig"]) {
@@ -115,7 +130,12 @@ for (const suffix of PLATFORM_SUFFIXES) {
 const distinct = new Set(versions.values());
 
 if (distinct.size > 1) {
-	errors.push(`package versions disagree: ${[...versions.entries()].map(([name, version]) => `${name}@${version}`).join(", ")}`);
+	errors.push(
+		`package versions disagree: ${
+			[...versions.entries()].map(([name, version]) => `${name}@${version}`)
+				.join(", ")
+		}`,
+	);
 }
 
 if (errors.length > 0) {
@@ -128,4 +148,6 @@ if (errors.length > 0) {
 	process.exit(1);
 }
 
-console.log(`package check passed: ${versions.size} packages at ${[...distinct][0]}`);
+console.log(
+	`package check passed: ${versions.size} packages at ${[...distinct][0]}`,
+);

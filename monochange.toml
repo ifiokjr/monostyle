@@ -58,23 +58,23 @@ directory = ".changeset"
 # that describes flags a different version supports is worse than no skill.
 [group.release]
 packages = [
-  "monostyle",
-  "monostyle_core",
-  "monostyle_languages",
-  "monostyle_lexer",
-  "monostyle_markdown",
-  "monostyle_metrics",
-  "monostyle_rules",
-  "@monostyle-rs/cli",
-  "@monostyle-rs/cli-darwin-arm64",
-  "@monostyle-rs/cli-darwin-x64",
-  "@monostyle-rs/cli-linux-arm64-gnu",
-  "@monostyle-rs/cli-linux-arm64-musl",
-  "@monostyle-rs/cli-linux-x64-gnu",
-  "@monostyle-rs/cli-linux-x64-musl",
-  "@monostyle-rs/cli-win32-arm64-msvc",
-  "@monostyle-rs/cli-win32-x64-msvc",
-  "@monostyle-rs/skill",
+	"monostyle",
+	"monostyle_core",
+	"monostyle_languages",
+	"monostyle_lexer",
+	"monostyle_markdown",
+	"monostyle_metrics",
+	"monostyle_rules",
+	"@monostyle-rs/cli",
+	"@monostyle-rs/cli-darwin-arm64",
+	"@monostyle-rs/cli-darwin-x64",
+	"@monostyle-rs/cli-linux-arm64-gnu",
+	"@monostyle-rs/cli-linux-arm64-musl",
+	"@monostyle-rs/cli-linux-x64-gnu",
+	"@monostyle-rs/cli-linux-x64-musl",
+	"@monostyle-rs/cli-win32-arm64-msvc",
+	"@monostyle-rs/cli-win32-x64-msvc",
+	"@monostyle-rs/skill",
 ]
 tag = true
 release = true
@@ -86,8 +86,8 @@ version_format = "primary"
 # The workspace version and the npm manifests both move with the group, so a
 # released tag describes a repository whose manifests agree with it.
 versioned_files = [
-  { path = "Cargo.toml", type = "cargo", fields = ["workspace.package.version"] },
-  { path = "packages/*/package.json", type = "npm", fields = ["dependencies", "devDependencies", "optionalDependencies"] },
+	{ path = "Cargo.toml", type = "cargo", fields = ["workspace.package.version"] },
+	{ path = "packages/*/package.json", type = "npm", fields = ["dependencies", "devDependencies", "optionalDependencies"] },
 ]
 
 # One changelog at the root, listing every package. Each package's own
@@ -256,15 +256,15 @@ comment_on_failure = true
 # Documentation, tests, and snapshots do not need a changeset: none of them
 # change what a published package does.
 ignored_paths = [
-  "**/tests/**",
-  "**/snapshots/**",
-  "docs/**",
-  "examples/**",
-  "**/changelog.md",
-  "changelog.md",
-  "readme.md",
-  "monostyle.toml",
-  ".changeset/*.md",
+	"**/tests/**",
+	"**/snapshots/**",
+	"docs/**",
+	"examples/**",
+	"**/changelog.md",
+	"changelog.md",
+	"readme.md",
+	"monostyle.toml",
+	".changeset/*.md",
 ]
 
 # =============================================================================
@@ -299,18 +299,18 @@ rules = { "npm/workspace-protocol" = "off" }
 [cli.change]
 help_text = "Create a changeset for one or more packages"
 inputs = [
-  { name = "interactive", type = "boolean", default = false, short = "i" },
-  { name = "package", type = "string_list", required = true },
-  { name = "bump", type = "choice", choices = ["none", "patch", "minor", "major"], default = "patch" },
-  { name = "reason", type = "string", required = true },
-  { name = "version", type = "string" },
-  { name = "type", type = "string" },
-  { name = "caused_by", type = "string_list" },
-  { name = "details", type = "string" },
-  { name = "output", type = "path" },
+	{ name = "interactive", type = "boolean", default = false, short = "i" },
+	{ name = "package", type = "string_list", required = true },
+	{ name = "bump", type = "choice", choices = ["none", "patch", "minor", "major"], default = "patch" },
+	{ name = "reason", type = "string", required = true },
+	{ name = "version", type = "string" },
+	{ name = "type", type = "string" },
+	{ name = "caused_by", type = "string_list" },
+	{ name = "details", type = "string" },
+	{ name = "output", type = "path" },
 ]
 steps = [
-  { name = "create change file", type = "CreateChangeFile", inputs = ["interactive", "package", "bump", "version", "reason", "type", "details", "output"] },
+	{ name = "create change file", type = "CreateChangeFile", inputs = ["interactive", "package", "bump", "version", "reason", "type", "details", "output"] },
 ]
 
 # `monochange release` is what the release workflow runs: it plans the version
@@ -319,27 +319,27 @@ steps = [
 [cli.release]
 help_text = "Prepare the release pull request. Intended to run in GitHub Actions."
 inputs = [
-  { name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "text" },
-  { name = "no_verify", type = "boolean", default = true },
-  { name = "commit", help_text = "Whether to commit the changes", type = "boolean", default = false },
-  { name = "create_pr", help_text = "Whether to create the pull request after committing", type = "boolean", default = false },
-  { name = "write_empty_release_record", help_text = "Whether to write a release record when no packages are released", type = "boolean", default = false },
+	{ name = "format", type = "choice", choices = ["text", "json", "json-min", "markdown"], default = "text" },
+	{ name = "no_verify", type = "boolean", default = true },
+	{ name = "commit", help_text = "Whether to commit the changes", type = "boolean", default = false },
+	{ name = "create_pr", help_text = "Whether to create the pull request after committing", type = "boolean", default = false },
+	{ name = "write_empty_release_record", help_text = "Whether to write a release record when no packages are released", type = "boolean", default = false },
 ]
 steps = [
-  { type = "PrepareRelease", name = "plan release", allow_empty_changesets = true, inputs = { format = "{{ inputs.format }}", write_empty_release_record = "{{ inputs.write_empty_release_record }}" } },
-  { type = "Command", name = "generate cargo lockfile", when = "{{ number_of_changesets > 0 }}", command = "cargo generate-lockfile" },
-  { type = "Command", name = "generate pnpm lockfile", when = "{{ number_of_changesets > 0 }}", command = "pnpm install --lockfile-only --no-frozen-lockfile --link-workspace-packages" },
-  # Formatting the version bumps keeps the release commit clean, but a missing formatter must never
-  # block a release: the manifests monochange writes are already well-formed, so the fallback is to
-  # commit them unformatted rather than to fail the release.
-  #
-  # `shell = true` is what makes that redirection and `||` mean anything. A Command step without it
-  # is split into argv and spawned directly, so `2>/dev/null` and the fallback echo were handed to
-  # dprint as file arguments — which it ignored, finding no files to format and exiting 0. The
-  # step was a silent no-op: every release commit up to v0.1.0 was committed unformatted.
-  { type = "Command", name = "format changed files", when = "{{ number_of_changesets > 0 }}", shell = true, command = "dprint fmt --allow-no-files 2>/dev/null || echo 'dprint unavailable; committing without reformatting'" },
-  { type = "CommitRelease", name = "create release commit", when = "{{ number_of_changesets > 0 && inputs.commit }}", inputs = { no_verify = "{{ inputs.no_verify }}", stage_all = true } },
-  { type = "OpenReleaseRequest", name = "create the pull request", when = "{{ number_of_changesets > 0 && inputs.commit && inputs.create_pr }}", inputs = { no_verify = "{{ inputs.no_verify }}", stage_all = true } },
+	{ type = "PrepareRelease", name = "plan release", allow_empty_changesets = true, inputs = { format = "{{ inputs.format }}", write_empty_release_record = "{{ inputs.write_empty_release_record }}" } },
+	{ type = "Command", name = "generate cargo lockfile", when = "{{ number_of_changesets > 0 }}", command = "cargo generate-lockfile" },
+	{ type = "Command", name = "generate pnpm lockfile", when = "{{ number_of_changesets > 0 }}", command = "pnpm install --lockfile-only --no-frozen-lockfile --link-workspace-packages" },
+	# Formatting the version bumps keeps the release commit clean, but a missing formatter must never
+	# block a release: the manifests monochange writes are already well-formed, so the fallback is to
+	# commit them unformatted rather than to fail the release.
+	#
+	# `shell = true` is what makes that redirection and `||` mean anything. A Command step without it
+	# is split into argv and spawned directly, so `2>/dev/null` and the fallback echo were handed to
+	# dprint as file arguments — which it ignored, finding no files to format and exiting 0. The
+	# step was a silent no-op: every release commit up to v0.1.0 was committed unformatted.
+	{ type = "Command", name = "format changed files", when = "{{ number_of_changesets > 0 }}", shell = true, command = "dprint fmt --allow-no-files 2>/dev/null || echo 'dprint unavailable; committing without reformatting'" },
+	{ type = "CommitRelease", name = "create release commit", when = "{{ number_of_changesets > 0 && inputs.commit }}", inputs = { no_verify = "{{ inputs.no_verify }}", stage_all = true } },
+	{ type = "OpenReleaseRequest", name = "create the pull request", when = "{{ number_of_changesets > 0 && inputs.commit && inputs.create_pr }}", inputs = { no_verify = "{{ inputs.no_verify }}", stage_all = true } },
 ]
 
 # A local dry run of the publish path: it reports what would be published and
@@ -348,5 +348,5 @@ steps = [
 help_text = "Validate the release and preview package publishing in dry-run mode"
 dry_run = true
 steps = [
-  { type = "PublishPackages", name = "publish packages dry run" },
+	{ type = "PublishPackages", name = "publish packages dry run" },
 ]

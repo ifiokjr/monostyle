@@ -19,8 +19,14 @@ const PLATFORM_PACKAGES = {
 		x64: ["@monostyle-rs/cli-darwin-x64"],
 	},
 	linux: {
-		arm64: ["@monostyle-rs/cli-linux-arm64-gnu", "@monostyle-rs/cli-linux-arm64-musl"],
-		x64: ["@monostyle-rs/cli-linux-x64-gnu", "@monostyle-rs/cli-linux-x64-musl"],
+		arm64: [
+			"@monostyle-rs/cli-linux-arm64-gnu",
+			"@monostyle-rs/cli-linux-arm64-musl",
+		],
+		x64: [
+			"@monostyle-rs/cli-linux-x64-gnu",
+			"@monostyle-rs/cli-linux-x64-musl",
+		],
 	},
 	win32: {
 		arm64: ["@monostyle-rs/cli-win32-arm64-msvc"],
@@ -57,7 +63,9 @@ function shouldTryNext(result) {
 	// stderr text is what distinguishes "wrong package" from "the tool failed".
 	if (result.status !== 127) return false;
 
-	return /not found|no such file or directory|exec format error/i.test(result.stderr ?? "");
+	return /not found|no such file or directory|exec format error/i.test(
+		result.stderr ?? "",
+	);
 }
 
 /** Runs the first binary that works. */
@@ -85,7 +93,9 @@ function main() {
 		});
 
 		if (shouldTryNext(result)) {
-			failures.push(`${name}: ${result.error?.message ?? result.stderr?.trim() ?? "failed to launch"}`);
+			failures.push(
+				`${name}: ${result.error?.message ?? result.stderr?.trim() ?? "failed to launch"}`,
+			);
 			continue;
 		}
 
@@ -94,7 +104,9 @@ function main() {
 		process.exit(result.status ?? 0);
 	}
 
-	console.error("Unable to find a compatible monostyle binary in the installed npm packages.");
+	console.error(
+		"Unable to find a compatible monostyle binary in the installed npm packages.",
+	);
 	console.error(`Tried: ${names.join(", ")}`);
 
 	if (failures.length > 0) {

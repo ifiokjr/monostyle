@@ -1,21 +1,21 @@
 {
-  "name": "@monostyle-rs/root",
-  "private": true,
-  "type": "module",
-  "description": "Monorepo root for monostyle npm packages",
-  "license": "Unlicense",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/ifiokjr/monostyle.git"
-  },
-  "scripts": {
-    "build": "cargo build --release --package monostyle",
-    "check": "node --check packages/monostyle__cli/bin/monostyle.js",
-    "lint": "node scripts/check-packages.mjs",
-    "stage": "node scripts/stage-binaries.mjs"
-  },
-  "engines": {
-    "node": ">=24.0.0",
-    "pnpm": ">=9"
-  }
+	"name": "@monostyle-rs/root",
+	"private": true,
+	"type": "module",
+	"description": "Monorepo root for monostyle npm packages",
+	"license": "Unlicense",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ifiokjr/monostyle.git"
+	},
+	"scripts": {
+		"build": "cargo build --release --package monostyle",
+		"check": "node --check packages/monostyle__cli/bin/monostyle.js",
+		"lint": "node scripts/check-packages.mjs",
+		"stage": "node scripts/stage-binaries.mjs"
+	},
+	"engines": {
+		"node": ">=24.0.0",
+		"pnpm": ">=9"
+	}
 }
