@@ -1,0 +1,1338 @@
+{
+	"schema_version": "0.7",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-09-21T13:52:11Z",
+	"command": "release",
+	"version": "0.2.0",
+	"versions": {
+		"release": "0.2.0"
+	},
+	"release_targets": [
+		{
+			"id": "release",
+			"kind": "group",
+			"version": "0.2.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.2.0",
+			"members": [
+				"monostyle",
+				"monostyle_core",
+				"monostyle_languages",
+				"monostyle_lexer",
+				"monostyle_markdown",
+				"monostyle_metrics",
+				"monostyle_rules",
+				"@monostyle-rs/cli",
+				"@monostyle-rs/cli-darwin-arm64",
+				"@monostyle-rs/cli-darwin-x64",
+				"@monostyle-rs/cli-linux-arm64-gnu",
+				"@monostyle-rs/cli-linux-arm64-musl",
+				"@monostyle-rs/cli-linux-x64-gnu",
+				"@monostyle-rs/cli-linux-x64-musl",
+				"@monostyle-rs/cli-win32-arm64-msvc",
+				"@monostyle-rs/cli-win32-x64-msvc",
+				"@monostyle-rs/skill"
+			]
+		}
+	],
+	"released_packages": [
+		"@monostyle-rs/cli",
+		"@monostyle-rs/cli-darwin-arm64",
+		"@monostyle-rs/cli-darwin-x64",
+		"@monostyle-rs/cli-linux-arm64-gnu",
+		"@monostyle-rs/cli-linux-arm64-musl",
+		"@monostyle-rs/cli-linux-x64-gnu",
+		"@monostyle-rs/cli-linux-x64-musl",
+		"@monostyle-rs/cli-win32-arm64-msvc",
+		"@monostyle-rs/cli-win32-x64-msvc",
+		"@monostyle-rs/skill",
+		"monostyle",
+		"monostyle_core",
+		"monostyle_languages",
+		"monostyle_lexer",
+		"monostyle_markdown",
+		"monostyle_metrics",
+		"monostyle_rules"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monostyle/Cargo.toml",
+		"crates/monostyle/changelog.md",
+		"crates/monostyle_core/Cargo.toml",
+		"crates/monostyle_core/changelog.md",
+		"crates/monostyle_languages/Cargo.toml",
+		"crates/monostyle_languages/changelog.md",
+		"crates/monostyle_lexer/Cargo.toml",
+		"crates/monostyle_lexer/changelog.md",
+		"crates/monostyle_markdown/Cargo.toml",
+		"crates/monostyle_markdown/changelog.md",
+		"crates/monostyle_metrics/Cargo.toml",
+		"crates/monostyle_metrics/changelog.md",
+		"crates/monostyle_rules/Cargo.toml",
+		"crates/monostyle_rules/changelog.md",
+		"packages/monostyle__cli/changelog.md",
+		"packages/monostyle__cli/package.json",
+		"packages/monostyle__cli-darwin-arm64/changelog.md",
+		"packages/monostyle__cli-darwin-arm64/package.json",
+		"packages/monostyle__cli-darwin-x64/changelog.md",
+		"packages/monostyle__cli-darwin-x64/package.json",
+		"packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-arm64-gnu/package.json",
+		"packages/monostyle__cli-linux-arm64-musl/changelog.md",
+		"packages/monostyle__cli-linux-arm64-musl/package.json",
+		"packages/monostyle__cli-linux-x64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-x64-gnu/package.json",
+		"packages/monostyle__cli-linux-x64-musl/changelog.md",
+		"packages/monostyle__cli-linux-x64-musl/package.json",
+		"packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-arm64-msvc/package.json",
+		"packages/monostyle__cli-win32-x64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-x64-msvc/package.json",
+		"packages/monostyle__skill/changelog.md",
+		"packages/monostyle__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monostyle-rs/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_languages",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_lexer",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_markdown",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_metrics",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_rules",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.2.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monostyle/changelog.md",
+		"crates/monostyle_core/changelog.md",
+		"crates/monostyle_languages/changelog.md",
+		"crates/monostyle_lexer/changelog.md",
+		"crates/monostyle_markdown/changelog.md",
+		"crates/monostyle_metrics/changelog.md",
+		"crates/monostyle_rules/changelog.md",
+		"packages/monostyle__cli/changelog.md",
+		"packages/monostyle__cli-darwin-arm64/changelog.md",
+		"packages/monostyle__cli-darwin-x64/changelog.md",
+		"packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-arm64-musl/changelog.md",
+		"packages/monostyle__cli-linux-x64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-x64-musl/changelog.md",
+		"packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-x64-msvc/changelog.md",
+		"packages/monostyle__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/count-multiline-statements.md",
+		".changeset/fix-rule-correctness.md",
+		".changeset/group-separation-and-registry.md",
+		".changeset/honor-return-separators.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/count-multiline-statements.md",
+			"summary": "Count multiline continuations as one statement",
+			"details": "The group-separation rule now ignores lines that begin inside an open expression or continue a formatted method chain. Multiline calls and collections no longer inflate the statement count, while genuine eight-statement runs remain reportable.",
+			"targets": [
+				{
+					"id": "monostyle_rules",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "e56461704fd90fb51a87026424fed967e8646987",
+						"short_sha": "e564617",
+						"url": "https://github.com/ifiokjr/monostyle/commit/e56461704fd90fb51a87026424fed967e8646987",
+						"authored_at": "2026-09-21T05:21:52+01:00",
+						"committed_at": "2026-09-21T05:21:52+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#15",
+						"title": "fix(rules): count multiline statements once",
+						"url": "https://github.com/ifiokjr/monostyle/pull/15",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "e56461704fd90fb51a87026424fed967e8646987",
+						"short_sha": "e564617",
+						"url": "https://github.com/ifiokjr/monostyle/commit/e56461704fd90fb51a87026424fed967e8646987",
+						"authored_at": "2026-09-21T05:21:52+01:00",
+						"committed_at": "2026-09-21T05:21:52+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#15",
+						"title": "fix(rules): count multiline statements once",
+						"url": "https://github.com/ifiokjr/monostyle/pull/15",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#13",
+						"title": null,
+						"url": "https://github.com/ifiokjr/monostyle/issues/13",
+						"relationship": "closed_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/fix-rule-correctness.md",
+			"summary": "Fix five rule-correctness defects",
+			"details": "Running monostyle across thirteen real repositories surfaced five defects that made a score misleading or made the advice impossible to follow. The unsatisfiable `blank-line-before-return` rule found in the same run is fixed separately.\n\n- **A configuration section discarded the repository-wide rules.** A section's rules replaced `[rules]` instead of layering onto it, so every threshold a section did not restate silently reverted to its default for the paths that section matched. The file read correctly, which made the effect invisible.\n- **The code rules ran against Markdown prose.** A Markdown file lexes as one language, so `magic-number` read a numbered list's `5.` as a numeric literal and `group-separation` read the list as an unbroken statement run. A prose list scored 86.6 where it should score 100.\n- **A bodyless declaration ran to the end of the file.** A trait method ending in `;` never opened a body, so the unit stayed open until the file did, and a one-line declaration was reported as an oversized unit with a low maintainability index.\n- **A rustdoc `# Errors` list was read as commented-out code.** The rule treats `::` as proof of code, and a doc comment listing variants writes them as `Error::Variant`.\n- **A keyword inside an attribute was read as control flow.** `#[serde(default, rename_all = \"kebab-case\")]` was reported as a `default` branch missing its blank line, so the finding asked for a blank line inside an attribute list. A decorator or annotation has the same shape.\n\n**Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.\n\nThese fixes change scores, which is why this is a major bump before 1.0 (monochange applies the pre-1.0 convention, where `major` moves the minor digit): fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.",
+			"targets": [
+				{
+					"id": "monostyle",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monostyle_core",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monostyle_lexer",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monostyle_metrics",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monostyle_rules",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "414accfca76c976943e5edb0363a90c4d1caf50b",
+						"short_sha": "414accf",
+						"url": "https://github.com/ifiokjr/monostyle/commit/414accfca76c976943e5edb0363a90c4d1caf50b",
+						"authored_at": "2026-09-21T14:12:06+01:00",
+						"committed_at": "2026-09-21T14:12:06+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#18",
+						"title": "fix(rules): correct five scoring defects and cap blank lines",
+						"url": "https://github.com/ifiokjr/monostyle/pull/18",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "a20583d51df7dbad7096e1dd2570b6c9f6a8c6c6",
+						"short_sha": "a20583d",
+						"url": "https://github.com/ifiokjr/monostyle/commit/a20583d51df7dbad7096e1dd2570b6c9f6a8c6c6",
+						"authored_at": "2026-09-21T14:38:23+01:00",
+						"committed_at": "2026-09-21T14:38:23+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#20",
+						"title": "chore(release): make the rule fixes a 0.2.0 bump",
+						"url": "https://github.com/ifiokjr/monostyle/pull/20",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#12",
+						"title": null,
+						"url": "https://github.com/ifiokjr/monostyle/issues/12",
+						"relationship": "referenced_by_review_request"
+					}
+				]
+			}
+		},
+		{
+			"path": ".changeset/group-separation-and-registry.md",
+			"summary": "Make grouping measurable, and document what the rules are",
+			"details": "##### `group-separation` now measures what it claims to\n\nThe rule never looked inside a function body. A single flag was set by a type declaration and never cleared, and every statement in a function was classified as a new item, so the runs the rule exists to find went unreported while a struct's fields were counted as statements.\n\nSplitting a long run could not clear the finding either. Each half of a long run stays over the limit, and because the finding points at the run's start, a fixer that inserted a blank line there added whitespace outside the measured run and re-triggered itself on the next pass. That loop is what stacked five and eight consecutive blank lines in downstream repositories.\n\n- The limit is now `max-statements-per-group` (default 8) instead of a hard-coded constant, and a run only violates it when it is longer than the limit, so a run of exactly 8 is legal.\n- The finding names both the run length and the limit, so a run can be split until it clears.\n- Function and control-flow bodies are measured; type bodies, `switch` and `match` arms, and literals are not. A struct's fields are one item, an arm is one alternative, and a twelve-field constructor is data.\n- A body closes when its own block ends, so a declaration nested inside a function no longer silences the statements after it.\n\n##### `excessive-blank-lines` is now auto-fixable\n\n`monostyle fix` deletes the blank lines past the allowance and keeps exactly that many — one in Rust, Go, and TypeScript, two in Python and Dart. The number kept is the one the finding measured against, so the fix cannot disagree with the rule and a second run changes nothing.\n\nTogether with the blank-line insertion the tool already had, this closes the loop the stacking came from: every other layout rule asks for a gap without bounding it, and this pair supplies both the gap and the ceiling.\n\n##### Four Markdown rules can be disabled\n\n`markdown/fence-without-language`, `markdown/fence-language-unknown`, `markdown/no-title`, and `markdown/skipped-heading-level` were documented as rules while being emitted from inside another one, so naming any of them in `disabled-rules` did nothing and `monostyle rules` never listed them. Each is a registry entry now. `markdown/heading-structure` is kept as an alias so configuration written against it still disables both heading rules.\n\n##### Checked-in bundles are skipped\n\nA committed esbuild or webpack bundle is a dependency's code, and scoring it describes the dependency rather than the project. A bundle's banner on the first line is now recognized; a hand-written file that merely mentions a build tool in a comment is still analyzed.\n\n##### Faster on large files\n\nThe expression-depth check walked every earlier line for every line, which made analysis quadratic in file size: a twenty-thousand-line file took sixteen seconds and a forty-thousand-line file took sixty. The depth is now computed once per file and each lookup is constant. The same inputs take about a second.\n\n##### The rule table is complete and guarded\n\nFive registered rules were missing from the documentation (`magic-number`, `short-identifier`, `empty-handler`, `commented-out-code`, and `excessive-blank-lines`), and the two new configuration keys are now documented with the per-language blank-line floor explained. Tests check both directions — every registered rule appears in the table, and every name in the table has a registry entry — so the drift that made four rules impossible to disable cannot return.\n\n##### Why this is a `major` bump before 1.0\n\nThe changeset is `major` because monochange applies the pre-1.0 semver convention, where a `major` bump on `0.y.z` moves the minor digit. For a package below 1.0 that is how you say \"the numbers a user sees will change, and a threshold that was failing may now pass\" without claiming an API break that has not happened. A `minor` bump under the same convention would produce `0.1.1`, which reads as a patch and would understate the change.",
+			"targets": [
+				{
+					"id": "monostyle",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monostyle_core",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monostyle_rules",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "5df7e988acfcb2a3a016f88129c00fcb121fed9c",
+						"short_sha": "5df7e98",
+						"url": "https://github.com/ifiokjr/monostyle/commit/5df7e988acfcb2a3a016f88129c00fcb121fed9c",
+						"authored_at": "2026-09-21T14:24:24+01:00",
+						"committed_at": "2026-09-21T14:24:24+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#19",
+						"title": "fix(rules): measure grouping, register the Markdown rules, and make the depth check linear",
+						"url": "https://github.com/ifiokjr/monostyle/pull/19",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "a20583d51df7dbad7096e1dd2570b6c9f6a8c6c6",
+						"short_sha": "a20583d",
+						"url": "https://github.com/ifiokjr/monostyle/commit/a20583d51df7dbad7096e1dd2570b6c9f6a8c6c6",
+						"authored_at": "2026-09-21T14:38:23+01:00",
+						"committed_at": "2026-09-21T14:38:23+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#20",
+						"title": "chore(release): make the rule fixes a 0.2.0 bump",
+						"url": "https://github.com/ifiokjr/monostyle/pull/20",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/honor-return-separators.md",
+			"summary": "Honor blank separators before returns",
+			"details": "The return-spacing rule now checks the physical separation above a return before looking for the previous code line, so a blank line satisfies the rule instead of being skipped.",
+			"targets": [
+				{
+					"id": "monostyle_rules",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cf0c0ca9d110197fa22d395c6dc9c10628c8bb16",
+						"short_sha": "cf0c0ca",
+						"url": "https://github.com/ifiokjr/monostyle/commit/cf0c0ca9d110197fa22d395c6dc9c10628c8bb16",
+						"authored_at": "2026-09-21T05:21:24+01:00",
+						"committed_at": "2026-09-21T05:21:24+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#14",
+						"title": "fix(rules): honor blank lines before returns",
+						"url": "https://github.com/ifiokjr/monostyle/pull/14",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "cf0c0ca9d110197fa22d395c6dc9c10628c8bb16",
+						"short_sha": "cf0c0ca",
+						"url": "https://github.com/ifiokjr/monostyle/commit/cf0c0ca9d110197fa22d395c6dc9c10628c8bb16",
+						"authored_at": "2026-09-21T05:21:24+01:00",
+						"committed_at": "2026-09-21T05:21:24+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#14",
+						"title": "fix(rules): honor blank lines before returns",
+						"url": "https://github.com/ifiokjr/monostyle/pull/14",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": [
+					{
+						"provider": "github",
+						"host": "github.com",
+						"id": "#12",
+						"title": null,
+						"url": "https://github.com/ifiokjr/monostyle/issues/12",
+						"relationship": "closed_by_review_request"
+					}
+				]
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "release",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [
+					"Grouped release for `release`."
+				],
+				"sections": [
+					{
+						"title": "Breaking changes",
+						"collapsed": false,
+						"entries": [
+							"#### Fix five rule-correctness defects\n\n_Packages:_ 🔴 _monostyle_, 🔴 _monostyle_core_, 🔴 _monostyle_lexer_, 🔴 _monostyle_metrics_, 🔴 _monostyle_rules_\n\nRunning monostyle across thirteen real repositories surfaced five defects that made a score misleading or made the advice impossible to follow. The unsatisfiable `blank-line-before-return` rule found in the same run is fixed separately.\n\n- **A configuration section discarded the repository-wide rules.** A section's rules replaced `[rules]` instead of layering onto it, so every threshold a section did not restate silently reverted to its default for the paths that section matched. The file read correctly, which made the effect invisible.\n- **The code rules ran against Markdown prose.** A Markdown file lexes as one language, so `magic-number` read a numbered list's `5.` as a numeric literal and `group-separation` read the list as an unbroken statement run. A prose list scored 86.6 where it should score 100.\n- **A bodyless declaration ran to the end of the file.** A trait method ending in `;` never opened a body, so the unit stayed open until the file did, and a one-line declaration was reported as an oversized unit with a low maintainability index.\n- **A rustdoc `# Errors` list was read as commented-out code.** The rule treats `::` as proof of code, and a doc comment listing variants writes them as `Error::Variant`.\n- **A keyword inside an attribute was read as control flow.** `#[serde(default, rename_all = \"kebab-case\")]` was reported as a `default` branch missing its blank line, so the finding asked for a blank line inside an attribute list. A decorator or annotation has the same shape.\n\n**Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.\n\nThese fixes change scores, which is why this is a major bump before 1.0 (monochange applies the pre-1.0 convention, where `major` moves the minor digit): fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #18](https://github.com/ifiokjr/monostyle/pull/18) · _Related issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)",
+							"#### Make grouping measurable, and document what the rules are\n\n_Packages:_ 🔴 _monostyle_, 🔴 _monostyle_core_, 🔴 _monostyle_rules_\n\n##### `group-separation` now measures what it claims to\n\nThe rule never looked inside a function body. A single flag was set by a type declaration and never cleared, and every statement in a function was classified as a new item, so the runs the rule exists to find went unreported while a struct's fields were counted as statements.\n\nSplitting a long run could not clear the finding either. Each half of a long run stays over the limit, and because the finding points at the run's start, a fixer that inserted a blank line there added whitespace outside the measured run and re-triggered itself on the next pass. That loop is what stacked five and eight consecutive blank lines in downstream repositories.\n\n- The limit is now `max-statements-per-group` (default 8) instead of a hard-coded constant, and a run only violates it when it is longer than the limit, so a run of exactly 8 is legal.\n- The finding names both the run length and the limit, so a run can be split until it clears.\n- Function and control-flow bodies are measured; type bodies, `switch` and `match` arms, and literals are not. A struct's fields are one item, an arm is one alternative, and a twelve-field constructor is data.\n- A body closes when its own block ends, so a declaration nested inside a function no longer silences the statements after it.\n\n##### `excessive-blank-lines` is now auto-fixable\n\n`monostyle fix` deletes the blank lines past the allowance and keeps exactly that many — one in Rust, Go, and TypeScript, two in Python and Dart. The number kept is the one the finding measured against, so the fix cannot disagree with the rule and a second run changes nothing.\n\nTogether with the blank-line insertion the tool already had, this closes the loop the stacking came from: every other layout rule asks for a gap without bounding it, and this pair supplies both the gap and the ceiling.\n\n##### Four Markdown rules can be disabled\n\n`markdown/fence-without-language`, `markdown/fence-language-unknown`, `markdown/no-title`, and `markdown/skipped-heading-level` were documented as rules while being emitted from inside another one, so naming any of them in `disabled-rules` did nothing and `monostyle rules` never listed them. Each is a registry entry now. `markdown/heading-structure` is kept as an alias so configuration written against it still disables both heading rules.\n\n##### Checked-in bundles are skipped\n\nA committed esbuild or webpack bundle is a dependency's code, and scoring it describes the dependency rather than the project. A bundle's banner on the first line is now recognized; a hand-written file that merely mentions a build tool in a comment is still analyzed.\n\n##### Faster on large files\n\nThe expression-depth check walked every earlier line for every line, which made analysis quadratic in file size: a twenty-thousand-line file took sixteen seconds and a forty-thousand-line file took sixty. The depth is now computed once per file and each lookup is constant. The same inputs take about a second.\n\n##### The rule table is complete and guarded\n\nFive registered rules were missing from the documentation (`magic-number`, `short-identifier`, `empty-handler`, `commented-out-code`, and `excessive-blank-lines`), and the two new configuration keys are now documented with the per-language blank-line floor explained. Tests check both directions — every registered rule appears in the table, and every name in the table has a registry entry — so the drift that made four rules impossible to disable cannot return.\n\n##### Why this is a `major` bump before 1.0\n\nThe changeset is `major` because monochange applies the pre-1.0 semver convention, where a `major` bump on `0.y.z` moves the minor digit. For a package below 1.0 that is how you say \"the numbers a user sees will change, and a threshold that was failing may now pass\" without claiming an API break that has not happened. A `minor` bump under the same convention would produce `0.1.1`, which reads as a patch and would understate the change.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #19](https://github.com/ifiokjr/monostyle/pull/19)"
+						]
+					},
+					{
+						"title": "Fixes",
+						"collapsed": false,
+						"entries": [
+							"- 🟢 **monostyle_rules**: **Count multiline continuations as one statement.** The group-separation rule now ignores lines that begin inside an open expression or continue a formatted method chain. Multiline calls and collections no longer inflate the statement count, while genuine eight-statement runs remain reportable.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #15](https://github.com/ifiokjr/monostyle/pull/15) · _Closed issues:_ [#13](https://github.com/ifiokjr/monostyle/issues/13)",
+							"- 🟢 **monostyle_rules**: **Honor blank separators before returns.** The return-spacing rule now checks the physical separation above a return before looking for the previous code line, so a blank line satisfies the rule instead of being skipped.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #14](https://github.com/ifiokjr/monostyle/pull/14) · _Closed issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\nGrouped release for `release`.\n\n### Breaking changes\n\n#### Fix five rule-correctness defects\n\n_Packages:_ 🔴 _monostyle_, 🔴 _monostyle_core_, 🔴 _monostyle_lexer_, 🔴 _monostyle_metrics_, 🔴 _monostyle_rules_\n\nRunning monostyle across thirteen real repositories surfaced five defects that made a score misleading or made the advice impossible to follow. The unsatisfiable `blank-line-before-return` rule found in the same run is fixed separately.\n\n- **A configuration section discarded the repository-wide rules.** A section's rules replaced `[rules]` instead of layering onto it, so every threshold a section did not restate silently reverted to its default for the paths that section matched. The file read correctly, which made the effect invisible.\n- **The code rules ran against Markdown prose.** A Markdown file lexes as one language, so `magic-number` read a numbered list's `5.` as a numeric literal and `group-separation` read the list as an unbroken statement run. A prose list scored 86.6 where it should score 100.\n- **A bodyless declaration ran to the end of the file.** A trait method ending in `;` never opened a body, so the unit stayed open until the file did, and a one-line declaration was reported as an oversized unit with a low maintainability index.\n- **A rustdoc `# Errors` list was read as commented-out code.** The rule treats `::` as proof of code, and a doc comment listing variants writes them as `Error::Variant`.\n- **A keyword inside an attribute was read as control flow.** `#[serde(default, rename_all = \"kebab-case\")]` was reported as a `default` branch missing its blank line, so the finding asked for a blank line inside an attribute list. A decorator or annotation has the same shape.\n\n**Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.\n\nThese fixes change scores, which is why this is a major bump before 1.0 (monochange applies the pre-1.0 convention, where `major` moves the minor digit): fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #18](https://github.com/ifiokjr/monostyle/pull/18) · _Related issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)\n\n#### Make grouping measurable, and document what the rules are\n\n_Packages:_ 🔴 _monostyle_, 🔴 _monostyle_core_, 🔴 _monostyle_rules_\n\n##### `group-separation` now measures what it claims to\n\nThe rule never looked inside a function body. A single flag was set by a type declaration and never cleared, and every statement in a function was classified as a new item, so the runs the rule exists to find went unreported while a struct's fields were counted as statements.\n\nSplitting a long run could not clear the finding either. Each half of a long run stays over the limit, and because the finding points at the run's start, a fixer that inserted a blank line there added whitespace outside the measured run and re-triggered itself on the next pass. That loop is what stacked five and eight consecutive blank lines in downstream repositories.\n\n- The limit is now `max-statements-per-group` (default 8) instead of a hard-coded constant, and a run only violates it when it is longer than the limit, so a run of exactly 8 is legal.\n- The finding names both the run length and the limit, so a run can be split until it clears.\n- Function and control-flow bodies are measured; type bodies, `switch` and `match` arms, and literals are not. A struct's fields are one item, an arm is one alternative, and a twelve-field constructor is data.\n- A body closes when its own block ends, so a declaration nested inside a function no longer silences the statements after it.\n\n##### `excessive-blank-lines` is now auto-fixable\n\n`monostyle fix` deletes the blank lines past the allowance and keeps exactly that many — one in Rust, Go, and TypeScript, two in Python and Dart. The number kept is the one the finding measured against, so the fix cannot disagree with the rule and a second run changes nothing.\n\nTogether with the blank-line insertion the tool already had, this closes the loop the stacking came from: every other layout rule asks for a gap without bounding it, and this pair supplies both the gap and the ceiling.\n\n##### Four Markdown rules can be disabled\n\n`markdown/fence-without-language`, `markdown/fence-language-unknown`, `markdown/no-title`, and `markdown/skipped-heading-level` were documented as rules while being emitted from inside another one, so naming any of them in `disabled-rules` did nothing and `monostyle rules` never listed them. Each is a registry entry now. `markdown/heading-structure` is kept as an alias so configuration written against it still disables both heading rules.\n\n##### Checked-in bundles are skipped\n\nA committed esbuild or webpack bundle is a dependency's code, and scoring it describes the dependency rather than the project. A bundle's banner on the first line is now recognized; a hand-written file that merely mentions a build tool in a comment is still analyzed.\n\n##### Faster on large files\n\nThe expression-depth check walked every earlier line for every line, which made analysis quadratic in file size: a twenty-thousand-line file took sixteen seconds and a forty-thousand-line file took sixty. The depth is now computed once per file and each lookup is constant. The same inputs take about a second.\n\n##### The rule table is complete and guarded\n\nFive registered rules were missing from the documentation (`magic-number`, `short-identifier`, `empty-handler`, `commented-out-code`, and `excessive-blank-lines`), and the two new configuration keys are now documented with the per-language blank-line floor explained. Tests check both directions — every registered rule appears in the table, and every name in the table has a registry entry — so the drift that made four rules impossible to disable cannot return.\n\n##### Why this is a `major` bump before 1.0\n\nThe changeset is `major` because monochange applies the pre-1.0 semver convention, where a `major` bump on `0.y.z` moves the minor digit. For a package below 1.0 that is how you say \"the numbers a user sees will change, and a threshold that was failing may now pass\" without claiming an API break that has not happened. A `minor` bump under the same convention would produce `0.1.1`, which reads as a patch and would understate the change.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #19](https://github.com/ifiokjr/monostyle/pull/19)\n\n### Fixes\n\n- 🟢 **monostyle_rules**: **Count multiline continuations as one statement.** The group-separation rule now ignores lines that begin inside an open expression or continue a formatted method chain. Multiline calls and collections no longer inflate the statement count, while genuine eight-statement runs remain reportable.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #15](https://github.com/ifiokjr/monostyle/pull/15) · _Closed issues:_ [#13](https://github.com/ifiokjr/monostyle/issues/13)\n- 🟢 **monostyle_rules**: **Honor blank separators before returns.** The return-spacing rule now checks the physical separation above a return before looking for the previous code line, so a blank line satisfies the rule instead of being skipped.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #14](https://github.com/ifiokjr/monostyle/pull/14) · _Closed issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)"
+		},
+		{
+			"owner_id": "monostyle",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Breaking changes",
+						"collapsed": false,
+						"entries": [
+							"#### Fix five rule-correctness defects\n\nRunning monostyle across thirteen real repositories surfaced five defects that made a score misleading or made the advice impossible to follow. The unsatisfiable `blank-line-before-return` rule found in the same run is fixed separately.\n\n- **A configuration section discarded the repository-wide rules.** A section's rules replaced `[rules]` instead of layering onto it, so every threshold a section did not restate silently reverted to its default for the paths that section matched. The file read correctly, which made the effect invisible.\n- **The code rules ran against Markdown prose.** A Markdown file lexes as one language, so `magic-number` read a numbered list's `5.` as a numeric literal and `group-separation` read the list as an unbroken statement run. A prose list scored 86.6 where it should score 100.\n- **A bodyless declaration ran to the end of the file.** A trait method ending in `;` never opened a body, so the unit stayed open until the file did, and a one-line declaration was reported as an oversized unit with a low maintainability index.\n- **A rustdoc `# Errors` list was read as commented-out code.** The rule treats `::` as proof of code, and a doc comment listing variants writes them as `Error::Variant`.\n- **A keyword inside an attribute was read as control flow.** `#[serde(default, rename_all = \"kebab-case\")]` was reported as a `default` branch missing its blank line, so the finding asked for a blank line inside an attribute list. A decorator or annotation has the same shape.\n\n**Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.\n\nThese fixes change scores, which is why this is a major bump before 1.0 (monochange applies the pre-1.0 convention, where `major` moves the minor digit): fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #18](https://github.com/ifiokjr/monostyle/pull/18) · _Related issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)",
+							"#### Make grouping measurable, and document what the rules are\n\n##### `group-separation` now measures what it claims to\n\nThe rule never looked inside a function body. A single flag was set by a type declaration and never cleared, and every statement in a function was classified as a new item, so the runs the rule exists to find went unreported while a struct's fields were counted as statements.\n\nSplitting a long run could not clear the finding either. Each half of a long run stays over the limit, and because the finding points at the run's start, a fixer that inserted a blank line there added whitespace outside the measured run and re-triggered itself on the next pass. That loop is what stacked five and eight consecutive blank lines in downstream repositories.\n\n- The limit is now `max-statements-per-group` (default 8) instead of a hard-coded constant, and a run only violates it when it is longer than the limit, so a run of exactly 8 is legal.\n- The finding names both the run length and the limit, so a run can be split until it clears.\n- Function and control-flow bodies are measured; type bodies, `switch` and `match` arms, and literals are not. A struct's fields are one item, an arm is one alternative, and a twelve-field constructor is data.\n- A body closes when its own block ends, so a declaration nested inside a function no longer silences the statements after it.\n\n##### `excessive-blank-lines` is now auto-fixable\n\n`monostyle fix` deletes the blank lines past the allowance and keeps exactly that many — one in Rust, Go, and TypeScript, two in Python and Dart. The number kept is the one the finding measured against, so the fix cannot disagree with the rule and a second run changes nothing.\n\nTogether with the blank-line insertion the tool already had, this closes the loop the stacking came from: every other layout rule asks for a gap without bounding it, and this pair supplies both the gap and the ceiling.\n\n##### Four Markdown rules can be disabled\n\n`markdown/fence-without-language`, `markdown/fence-language-unknown`, `markdown/no-title`, and `markdown/skipped-heading-level` were documented as rules while being emitted from inside another one, so naming any of them in `disabled-rules` did nothing and `monostyle rules` never listed them. Each is a registry entry now. `markdown/heading-structure` is kept as an alias so configuration written against it still disables both heading rules.\n\n##### Checked-in bundles are skipped\n\nA committed esbuild or webpack bundle is a dependency's code, and scoring it describes the dependency rather than the project. A bundle's banner on the first line is now recognized; a hand-written file that merely mentions a build tool in a comment is still analyzed.\n\n##### Faster on large files\n\nThe expression-depth check walked every earlier line for every line, which made analysis quadratic in file size: a twenty-thousand-line file took sixteen seconds and a forty-thousand-line file took sixty. The depth is now computed once per file and each lookup is constant. The same inputs take about a second.\n\n##### The rule table is complete and guarded\n\nFive registered rules were missing from the documentation (`magic-number`, `short-identifier`, `empty-handler`, `commented-out-code`, and `excessive-blank-lines`), and the two new configuration keys are now documented with the per-language blank-line floor explained. Tests check both directions — every registered rule appears in the table, and every name in the table has a registry entry — so the drift that made four rules impossible to disable cannot return.\n\n##### Why this is a `major` bump before 1.0\n\nThe changeset is `major` because monochange applies the pre-1.0 semver convention, where a `major` bump on `0.y.z` moves the minor digit. For a package below 1.0 that is how you say \"the numbers a user sees will change, and a threshold that was failing may now pass\" without claiming an API break that has not happened. A `minor` bump under the same convention would produce `0.1.1`, which reads as a patch and would understate the change.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #19](https://github.com/ifiokjr/monostyle/pull/19)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Breaking changes\n\n#### Fix five rule-correctness defects\n\nRunning monostyle across thirteen real repositories surfaced five defects that made a score misleading or made the advice impossible to follow. The unsatisfiable `blank-line-before-return` rule found in the same run is fixed separately.\n\n- **A configuration section discarded the repository-wide rules.** A section's rules replaced `[rules]` instead of layering onto it, so every threshold a section did not restate silently reverted to its default for the paths that section matched. The file read correctly, which made the effect invisible.\n- **The code rules ran against Markdown prose.** A Markdown file lexes as one language, so `magic-number` read a numbered list's `5.` as a numeric literal and `group-separation` read the list as an unbroken statement run. A prose list scored 86.6 where it should score 100.\n- **A bodyless declaration ran to the end of the file.** A trait method ending in `;` never opened a body, so the unit stayed open until the file did, and a one-line declaration was reported as an oversized unit with a low maintainability index.\n- **A rustdoc `# Errors` list was read as commented-out code.** The rule treats `::` as proof of code, and a doc comment listing variants writes them as `Error::Variant`.\n- **A keyword inside an attribute was read as control flow.** `#[serde(default, rename_all = \"kebab-case\")]` was reported as a `default` branch missing its blank line, so the finding asked for a blank line inside an attribute list. A decorator or annotation has the same shape.\n\n**Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.\n\nThese fixes change scores, which is why this is a major bump before 1.0 (monochange applies the pre-1.0 convention, where `major` moves the minor digit): fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #18](https://github.com/ifiokjr/monostyle/pull/18) · _Related issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)\n\n#### Make grouping measurable, and document what the rules are\n\n##### `group-separation` now measures what it claims to\n\nThe rule never looked inside a function body. A single flag was set by a type declaration and never cleared, and every statement in a function was classified as a new item, so the runs the rule exists to find went unreported while a struct's fields were counted as statements.\n\nSplitting a long run could not clear the finding either. Each half of a long run stays over the limit, and because the finding points at the run's start, a fixer that inserted a blank line there added whitespace outside the measured run and re-triggered itself on the next pass. That loop is what stacked five and eight consecutive blank lines in downstream repositories.\n\n- The limit is now `max-statements-per-group` (default 8) instead of a hard-coded constant, and a run only violates it when it is longer than the limit, so a run of exactly 8 is legal.\n- The finding names both the run length and the limit, so a run can be split until it clears.\n- Function and control-flow bodies are measured; type bodies, `switch` and `match` arms, and literals are not. A struct's fields are one item, an arm is one alternative, and a twelve-field constructor is data.\n- A body closes when its own block ends, so a declaration nested inside a function no longer silences the statements after it.\n\n##### `excessive-blank-lines` is now auto-fixable\n\n`monostyle fix` deletes the blank lines past the allowance and keeps exactly that many — one in Rust, Go, and TypeScript, two in Python and Dart. The number kept is the one the finding measured against, so the fix cannot disagree with the rule and a second run changes nothing.\n\nTogether with the blank-line insertion the tool already had, this closes the loop the stacking came from: every other layout rule asks for a gap without bounding it, and this pair supplies both the gap and the ceiling.\n\n##### Four Markdown rules can be disabled\n\n`markdown/fence-without-language`, `markdown/fence-language-unknown`, `markdown/no-title`, and `markdown/skipped-heading-level` were documented as rules while being emitted from inside another one, so naming any of them in `disabled-rules` did nothing and `monostyle rules` never listed them. Each is a registry entry now. `markdown/heading-structure` is kept as an alias so configuration written against it still disables both heading rules.\n\n##### Checked-in bundles are skipped\n\nA committed esbuild or webpack bundle is a dependency's code, and scoring it describes the dependency rather than the project. A bundle's banner on the first line is now recognized; a hand-written file that merely mentions a build tool in a comment is still analyzed.\n\n##### Faster on large files\n\nThe expression-depth check walked every earlier line for every line, which made analysis quadratic in file size: a twenty-thousand-line file took sixteen seconds and a forty-thousand-line file took sixty. The depth is now computed once per file and each lookup is constant. The same inputs take about a second.\n\n##### The rule table is complete and guarded\n\nFive registered rules were missing from the documentation (`magic-number`, `short-identifier`, `empty-handler`, `commented-out-code`, and `excessive-blank-lines`), and the two new configuration keys are now documented with the per-language blank-line floor explained. Tests check both directions — every registered rule appears in the table, and every name in the table has a registry entry — so the drift that made four rules impossible to disable cannot return.\n\n##### Why this is a `major` bump before 1.0\n\nThe changeset is `major` because monochange applies the pre-1.0 semver convention, where a `major` bump on `0.y.z` moves the minor digit. For a package below 1.0 that is how you say \"the numbers a user sees will change, and a threshold that was failing may now pass\" without claiming an API break that has not happened. A `minor` bump under the same convention would produce `0.1.1`, which reads as a patch and would understate the change.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #19](https://github.com/ifiokjr/monostyle/pull/19)"
+		},
+		{
+			"owner_id": "monostyle_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Breaking changes",
+						"collapsed": false,
+						"entries": [
+							"#### Fix five rule-correctness defects\n\nRunning monostyle across thirteen real repositories surfaced five defects that made a score misleading or made the advice impossible to follow. The unsatisfiable `blank-line-before-return` rule found in the same run is fixed separately.\n\n- **A configuration section discarded the repository-wide rules.** A section's rules replaced `[rules]` instead of layering onto it, so every threshold a section did not restate silently reverted to its default for the paths that section matched. The file read correctly, which made the effect invisible.\n- **The code rules ran against Markdown prose.** A Markdown file lexes as one language, so `magic-number` read a numbered list's `5.` as a numeric literal and `group-separation` read the list as an unbroken statement run. A prose list scored 86.6 where it should score 100.\n- **A bodyless declaration ran to the end of the file.** A trait method ending in `;` never opened a body, so the unit stayed open until the file did, and a one-line declaration was reported as an oversized unit with a low maintainability index.\n- **A rustdoc `# Errors` list was read as commented-out code.** The rule treats `::` as proof of code, and a doc comment listing variants writes them as `Error::Variant`.\n- **A keyword inside an attribute was read as control flow.** `#[serde(default, rename_all = \"kebab-case\")]` was reported as a `default` branch missing its blank line, so the finding asked for a blank line inside an attribute list. A decorator or annotation has the same shape.\n\n**Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.\n\nThese fixes change scores, which is why this is a major bump before 1.0 (monochange applies the pre-1.0 convention, where `major` moves the minor digit): fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #18](https://github.com/ifiokjr/monostyle/pull/18) · _Related issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)",
+							"#### Make grouping measurable, and document what the rules are\n\n##### `group-separation` now measures what it claims to\n\nThe rule never looked inside a function body. A single flag was set by a type declaration and never cleared, and every statement in a function was classified as a new item, so the runs the rule exists to find went unreported while a struct's fields were counted as statements.\n\nSplitting a long run could not clear the finding either. Each half of a long run stays over the limit, and because the finding points at the run's start, a fixer that inserted a blank line there added whitespace outside the measured run and re-triggered itself on the next pass. That loop is what stacked five and eight consecutive blank lines in downstream repositories.\n\n- The limit is now `max-statements-per-group` (default 8) instead of a hard-coded constant, and a run only violates it when it is longer than the limit, so a run of exactly 8 is legal.\n- The finding names both the run length and the limit, so a run can be split until it clears.\n- Function and control-flow bodies are measured; type bodies, `switch` and `match` arms, and literals are not. A struct's fields are one item, an arm is one alternative, and a twelve-field constructor is data.\n- A body closes when its own block ends, so a declaration nested inside a function no longer silences the statements after it.\n\n##### `excessive-blank-lines` is now auto-fixable\n\n`monostyle fix` deletes the blank lines past the allowance and keeps exactly that many — one in Rust, Go, and TypeScript, two in Python and Dart. The number kept is the one the finding measured against, so the fix cannot disagree with the rule and a second run changes nothing.\n\nTogether with the blank-line insertion the tool already had, this closes the loop the stacking came from: every other layout rule asks for a gap without bounding it, and this pair supplies both the gap and the ceiling.\n\n##### Four Markdown rules can be disabled\n\n`markdown/fence-without-language`, `markdown/fence-language-unknown`, `markdown/no-title`, and `markdown/skipped-heading-level` were documented as rules while being emitted from inside another one, so naming any of them in `disabled-rules` did nothing and `monostyle rules` never listed them. Each is a registry entry now. `markdown/heading-structure` is kept as an alias so configuration written against it still disables both heading rules.\n\n##### Checked-in bundles are skipped\n\nA committed esbuild or webpack bundle is a dependency's code, and scoring it describes the dependency rather than the project. A bundle's banner on the first line is now recognized; a hand-written file that merely mentions a build tool in a comment is still analyzed.\n\n##### Faster on large files\n\nThe expression-depth check walked every earlier line for every line, which made analysis quadratic in file size: a twenty-thousand-line file took sixteen seconds and a forty-thousand-line file took sixty. The depth is now computed once per file and each lookup is constant. The same inputs take about a second.\n\n##### The rule table is complete and guarded\n\nFive registered rules were missing from the documentation (`magic-number`, `short-identifier`, `empty-handler`, `commented-out-code`, and `excessive-blank-lines`), and the two new configuration keys are now documented with the per-language blank-line floor explained. Tests check both directions — every registered rule appears in the table, and every name in the table has a registry entry — so the drift that made four rules impossible to disable cannot return.\n\n##### Why this is a `major` bump before 1.0\n\nThe changeset is `major` because monochange applies the pre-1.0 semver convention, where a `major` bump on `0.y.z` moves the minor digit. For a package below 1.0 that is how you say \"the numbers a user sees will change, and a threshold that was failing may now pass\" without claiming an API break that has not happened. A `minor` bump under the same convention would produce `0.1.1`, which reads as a patch and would understate the change.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #19](https://github.com/ifiokjr/monostyle/pull/19)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Breaking changes\n\n#### Fix five rule-correctness defects\n\nRunning monostyle across thirteen real repositories surfaced five defects that made a score misleading or made the advice impossible to follow. The unsatisfiable `blank-line-before-return` rule found in the same run is fixed separately.\n\n- **A configuration section discarded the repository-wide rules.** A section's rules replaced `[rules]` instead of layering onto it, so every threshold a section did not restate silently reverted to its default for the paths that section matched. The file read correctly, which made the effect invisible.\n- **The code rules ran against Markdown prose.** A Markdown file lexes as one language, so `magic-number` read a numbered list's `5.` as a numeric literal and `group-separation` read the list as an unbroken statement run. A prose list scored 86.6 where it should score 100.\n- **A bodyless declaration ran to the end of the file.** A trait method ending in `;` never opened a body, so the unit stayed open until the file did, and a one-line declaration was reported as an oversized unit with a low maintainability index.\n- **A rustdoc `# Errors` list was read as commented-out code.** The rule treats `::` as proof of code, and a doc comment listing variants writes them as `Error::Variant`.\n- **A keyword inside an attribute was read as control flow.** `#[serde(default, rename_all = \"kebab-case\")]` was reported as a `default` branch missing its blank line, so the finding asked for a blank line inside an attribute list. A decorator or annotation has the same shape.\n\n**Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.\n\nThese fixes change scores, which is why this is a major bump before 1.0 (monochange applies the pre-1.0 convention, where `major` moves the minor digit): fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #18](https://github.com/ifiokjr/monostyle/pull/18) · _Related issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)\n\n#### Make grouping measurable, and document what the rules are\n\n##### `group-separation` now measures what it claims to\n\nThe rule never looked inside a function body. A single flag was set by a type declaration and never cleared, and every statement in a function was classified as a new item, so the runs the rule exists to find went unreported while a struct's fields were counted as statements.\n\nSplitting a long run could not clear the finding either. Each half of a long run stays over the limit, and because the finding points at the run's start, a fixer that inserted a blank line there added whitespace outside the measured run and re-triggered itself on the next pass. That loop is what stacked five and eight consecutive blank lines in downstream repositories.\n\n- The limit is now `max-statements-per-group` (default 8) instead of a hard-coded constant, and a run only violates it when it is longer than the limit, so a run of exactly 8 is legal.\n- The finding names both the run length and the limit, so a run can be split until it clears.\n- Function and control-flow bodies are measured; type bodies, `switch` and `match` arms, and literals are not. A struct's fields are one item, an arm is one alternative, and a twelve-field constructor is data.\n- A body closes when its own block ends, so a declaration nested inside a function no longer silences the statements after it.\n\n##### `excessive-blank-lines` is now auto-fixable\n\n`monostyle fix` deletes the blank lines past the allowance and keeps exactly that many — one in Rust, Go, and TypeScript, two in Python and Dart. The number kept is the one the finding measured against, so the fix cannot disagree with the rule and a second run changes nothing.\n\nTogether with the blank-line insertion the tool already had, this closes the loop the stacking came from: every other layout rule asks for a gap without bounding it, and this pair supplies both the gap and the ceiling.\n\n##### Four Markdown rules can be disabled\n\n`markdown/fence-without-language`, `markdown/fence-language-unknown`, `markdown/no-title`, and `markdown/skipped-heading-level` were documented as rules while being emitted from inside another one, so naming any of them in `disabled-rules` did nothing and `monostyle rules` never listed them. Each is a registry entry now. `markdown/heading-structure` is kept as an alias so configuration written against it still disables both heading rules.\n\n##### Checked-in bundles are skipped\n\nA committed esbuild or webpack bundle is a dependency's code, and scoring it describes the dependency rather than the project. A bundle's banner on the first line is now recognized; a hand-written file that merely mentions a build tool in a comment is still analyzed.\n\n##### Faster on large files\n\nThe expression-depth check walked every earlier line for every line, which made analysis quadratic in file size: a twenty-thousand-line file took sixteen seconds and a forty-thousand-line file took sixty. The depth is now computed once per file and each lookup is constant. The same inputs take about a second.\n\n##### The rule table is complete and guarded\n\nFive registered rules were missing from the documentation (`magic-number`, `short-identifier`, `empty-handler`, `commented-out-code`, and `excessive-blank-lines`), and the two new configuration keys are now documented with the per-language blank-line floor explained. Tests check both directions — every registered rule appears in the table, and every name in the table has a registry entry — so the drift that made four rules impossible to disable cannot return.\n\n##### Why this is a `major` bump before 1.0\n\nThe changeset is `major` because monochange applies the pre-1.0 semver convention, where a `major` bump on `0.y.z` moves the minor digit. For a package below 1.0 that is how you say \"the numbers a user sees will change, and a threshold that was failing may now pass\" without claiming an API break that has not happened. A `minor` bump under the same convention would produce `0.1.1`, which reads as a patch and would understate the change.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #19](https://github.com/ifiokjr/monostyle/pull/19)"
+		},
+		{
+			"owner_id": "monostyle_languages",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_languages/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monostyle_languages` was updated to 0.2.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monostyle_languages` was updated to 0.2.0 as part of group `release`."
+		},
+		{
+			"owner_id": "monostyle_lexer",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_lexer/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Breaking changes",
+						"collapsed": false,
+						"entries": [
+							"#### Fix five rule-correctness defects\n\nRunning monostyle across thirteen real repositories surfaced five defects that made a score misleading or made the advice impossible to follow. The unsatisfiable `blank-line-before-return` rule found in the same run is fixed separately.\n\n- **A configuration section discarded the repository-wide rules.** A section's rules replaced `[rules]` instead of layering onto it, so every threshold a section did not restate silently reverted to its default for the paths that section matched. The file read correctly, which made the effect invisible.\n- **The code rules ran against Markdown prose.** A Markdown file lexes as one language, so `magic-number` read a numbered list's `5.` as a numeric literal and `group-separation` read the list as an unbroken statement run. A prose list scored 86.6 where it should score 100.\n- **A bodyless declaration ran to the end of the file.** A trait method ending in `;` never opened a body, so the unit stayed open until the file did, and a one-line declaration was reported as an oversized unit with a low maintainability index.\n- **A rustdoc `# Errors` list was read as commented-out code.** The rule treats `::` as proof of code, and a doc comment listing variants writes them as `Error::Variant`.\n- **A keyword inside an attribute was read as control flow.** `#[serde(default, rename_all = \"kebab-case\")]` was reported as a `default` branch missing its blank line, so the finding asked for a blank line inside an attribute list. A decorator or annotation has the same shape.\n\n**Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.\n\nThese fixes change scores, which is why this is a major bump before 1.0 (monochange applies the pre-1.0 convention, where `major` moves the minor digit): fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #18](https://github.com/ifiokjr/monostyle/pull/18) · _Related issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Breaking changes\n\n#### Fix five rule-correctness defects\n\nRunning monostyle across thirteen real repositories surfaced five defects that made a score misleading or made the advice impossible to follow. The unsatisfiable `blank-line-before-return` rule found in the same run is fixed separately.\n\n- **A configuration section discarded the repository-wide rules.** A section's rules replaced `[rules]` instead of layering onto it, so every threshold a section did not restate silently reverted to its default for the paths that section matched. The file read correctly, which made the effect invisible.\n- **The code rules ran against Markdown prose.** A Markdown file lexes as one language, so `magic-number` read a numbered list's `5.` as a numeric literal and `group-separation` read the list as an unbroken statement run. A prose list scored 86.6 where it should score 100.\n- **A bodyless declaration ran to the end of the file.** A trait method ending in `;` never opened a body, so the unit stayed open until the file did, and a one-line declaration was reported as an oversized unit with a low maintainability index.\n- **A rustdoc `# Errors` list was read as commented-out code.** The rule treats `::` as proof of code, and a doc comment listing variants writes them as `Error::Variant`.\n- **A keyword inside an attribute was read as control flow.** `#[serde(default, rename_all = \"kebab-case\")]` was reported as a `default` branch missing its blank line, so the finding asked for a blank line inside an attribute list. A decorator or annotation has the same shape.\n\n**Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.\n\nThese fixes change scores, which is why this is a major bump before 1.0 (monochange applies the pre-1.0 convention, where `major` moves the minor digit): fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #18](https://github.com/ifiokjr/monostyle/pull/18) · _Related issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)"
+		},
+		{
+			"owner_id": "monostyle_markdown",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_markdown/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monostyle_markdown` was updated to 0.2.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `monostyle_markdown` was updated to 0.2.0 as part of group `release`."
+		},
+		{
+			"owner_id": "monostyle_metrics",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_metrics/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Breaking changes",
+						"collapsed": false,
+						"entries": [
+							"#### Fix five rule-correctness defects\n\nRunning monostyle across thirteen real repositories surfaced five defects that made a score misleading or made the advice impossible to follow. The unsatisfiable `blank-line-before-return` rule found in the same run is fixed separately.\n\n- **A configuration section discarded the repository-wide rules.** A section's rules replaced `[rules]` instead of layering onto it, so every threshold a section did not restate silently reverted to its default for the paths that section matched. The file read correctly, which made the effect invisible.\n- **The code rules ran against Markdown prose.** A Markdown file lexes as one language, so `magic-number` read a numbered list's `5.` as a numeric literal and `group-separation` read the list as an unbroken statement run. A prose list scored 86.6 where it should score 100.\n- **A bodyless declaration ran to the end of the file.** A trait method ending in `;` never opened a body, so the unit stayed open until the file did, and a one-line declaration was reported as an oversized unit with a low maintainability index.\n- **A rustdoc `# Errors` list was read as commented-out code.** The rule treats `::` as proof of code, and a doc comment listing variants writes them as `Error::Variant`.\n- **A keyword inside an attribute was read as control flow.** `#[serde(default, rename_all = \"kebab-case\")]` was reported as a `default` branch missing its blank line, so the finding asked for a blank line inside an attribute list. A decorator or annotation has the same shape.\n\n**Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.\n\nThese fixes change scores, which is why this is a major bump before 1.0 (monochange applies the pre-1.0 convention, where `major` moves the minor digit): fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #18](https://github.com/ifiokjr/monostyle/pull/18) · _Related issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Breaking changes\n\n#### Fix five rule-correctness defects\n\nRunning monostyle across thirteen real repositories surfaced five defects that made a score misleading or made the advice impossible to follow. The unsatisfiable `blank-line-before-return` rule found in the same run is fixed separately.\n\n- **A configuration section discarded the repository-wide rules.** A section's rules replaced `[rules]` instead of layering onto it, so every threshold a section did not restate silently reverted to its default for the paths that section matched. The file read correctly, which made the effect invisible.\n- **The code rules ran against Markdown prose.** A Markdown file lexes as one language, so `magic-number` read a numbered list's `5.` as a numeric literal and `group-separation` read the list as an unbroken statement run. A prose list scored 86.6 where it should score 100.\n- **A bodyless declaration ran to the end of the file.** A trait method ending in `;` never opened a body, so the unit stayed open until the file did, and a one-line declaration was reported as an oversized unit with a low maintainability index.\n- **A rustdoc `# Errors` list was read as commented-out code.** The rule treats `::` as proof of code, and a doc comment listing variants writes them as `Error::Variant`.\n- **A keyword inside an attribute was read as control flow.** `#[serde(default, rename_all = \"kebab-case\")]` was reported as a `default` branch missing its blank line, so the finding asked for a blank line inside an attribute list. A decorator or annotation has the same shape.\n\n**Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.\n\nThese fixes change scores, which is why this is a major bump before 1.0 (monochange applies the pre-1.0 convention, where `major` moves the minor digit): fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #18](https://github.com/ifiokjr/monostyle/pull/18) · _Related issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)"
+		},
+		{
+			"owner_id": "monostyle_rules",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_rules/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Breaking changes",
+						"collapsed": false,
+						"entries": [
+							"#### Fix five rule-correctness defects\n\nRunning monostyle across thirteen real repositories surfaced five defects that made a score misleading or made the advice impossible to follow. The unsatisfiable `blank-line-before-return` rule found in the same run is fixed separately.\n\n- **A configuration section discarded the repository-wide rules.** A section's rules replaced `[rules]` instead of layering onto it, so every threshold a section did not restate silently reverted to its default for the paths that section matched. The file read correctly, which made the effect invisible.\n- **The code rules ran against Markdown prose.** A Markdown file lexes as one language, so `magic-number` read a numbered list's `5.` as a numeric literal and `group-separation` read the list as an unbroken statement run. A prose list scored 86.6 where it should score 100.\n- **A bodyless declaration ran to the end of the file.** A trait method ending in `;` never opened a body, so the unit stayed open until the file did, and a one-line declaration was reported as an oversized unit with a low maintainability index.\n- **A rustdoc `# Errors` list was read as commented-out code.** The rule treats `::` as proof of code, and a doc comment listing variants writes them as `Error::Variant`.\n- **A keyword inside an attribute was read as control flow.** `#[serde(default, rename_all = \"kebab-case\")]` was reported as a `default` branch missing its blank line, so the finding asked for a blank line inside an attribute list. A decorator or annotation has the same shape.\n\n**Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.\n\nThese fixes change scores, which is why this is a major bump before 1.0 (monochange applies the pre-1.0 convention, where `major` moves the minor digit): fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #18](https://github.com/ifiokjr/monostyle/pull/18) · _Related issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)",
+							"#### Make grouping measurable, and document what the rules are\n\n##### `group-separation` now measures what it claims to\n\nThe rule never looked inside a function body. A single flag was set by a type declaration and never cleared, and every statement in a function was classified as a new item, so the runs the rule exists to find went unreported while a struct's fields were counted as statements.\n\nSplitting a long run could not clear the finding either. Each half of a long run stays over the limit, and because the finding points at the run's start, a fixer that inserted a blank line there added whitespace outside the measured run and re-triggered itself on the next pass. That loop is what stacked five and eight consecutive blank lines in downstream repositories.\n\n- The limit is now `max-statements-per-group` (default 8) instead of a hard-coded constant, and a run only violates it when it is longer than the limit, so a run of exactly 8 is legal.\n- The finding names both the run length and the limit, so a run can be split until it clears.\n- Function and control-flow bodies are measured; type bodies, `switch` and `match` arms, and literals are not. A struct's fields are one item, an arm is one alternative, and a twelve-field constructor is data.\n- A body closes when its own block ends, so a declaration nested inside a function no longer silences the statements after it.\n\n##### `excessive-blank-lines` is now auto-fixable\n\n`monostyle fix` deletes the blank lines past the allowance and keeps exactly that many — one in Rust, Go, and TypeScript, two in Python and Dart. The number kept is the one the finding measured against, so the fix cannot disagree with the rule and a second run changes nothing.\n\nTogether with the blank-line insertion the tool already had, this closes the loop the stacking came from: every other layout rule asks for a gap without bounding it, and this pair supplies both the gap and the ceiling.\n\n##### Four Markdown rules can be disabled\n\n`markdown/fence-without-language`, `markdown/fence-language-unknown`, `markdown/no-title`, and `markdown/skipped-heading-level` were documented as rules while being emitted from inside another one, so naming any of them in `disabled-rules` did nothing and `monostyle rules` never listed them. Each is a registry entry now. `markdown/heading-structure` is kept as an alias so configuration written against it still disables both heading rules.\n\n##### Checked-in bundles are skipped\n\nA committed esbuild or webpack bundle is a dependency's code, and scoring it describes the dependency rather than the project. A bundle's banner on the first line is now recognized; a hand-written file that merely mentions a build tool in a comment is still analyzed.\n\n##### Faster on large files\n\nThe expression-depth check walked every earlier line for every line, which made analysis quadratic in file size: a twenty-thousand-line file took sixteen seconds and a forty-thousand-line file took sixty. The depth is now computed once per file and each lookup is constant. The same inputs take about a second.\n\n##### The rule table is complete and guarded\n\nFive registered rules were missing from the documentation (`magic-number`, `short-identifier`, `empty-handler`, `commented-out-code`, and `excessive-blank-lines`), and the two new configuration keys are now documented with the per-language blank-line floor explained. Tests check both directions — every registered rule appears in the table, and every name in the table has a registry entry — so the drift that made four rules impossible to disable cannot return.\n\n##### Why this is a `major` bump before 1.0\n\nThe changeset is `major` because monochange applies the pre-1.0 semver convention, where a `major` bump on `0.y.z` moves the minor digit. For a package below 1.0 that is how you say \"the numbers a user sees will change, and a threshold that was failing may now pass\" without claiming an API break that has not happened. A `minor` bump under the same convention would produce `0.1.1`, which reads as a patch and would understate the change.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #19](https://github.com/ifiokjr/monostyle/pull/19)"
+						]
+					},
+					{
+						"title": "Fixes",
+						"collapsed": false,
+						"entries": [
+							"- **Count multiline continuations as one statement.** The group-separation rule now ignores lines that begin inside an open expression or continue a formatted method chain. Multiline calls and collections no longer inflate the statement count, while genuine eight-statement runs remain reportable.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #15](https://github.com/ifiokjr/monostyle/pull/15) · _Closed issues:_ [#13](https://github.com/ifiokjr/monostyle/issues/13)",
+							"- **Honor blank separators before returns.** The return-spacing rule now checks the physical separation above a return before looking for the previous code line, so a blank line satisfies the rule instead of being skipped.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #14](https://github.com/ifiokjr/monostyle/pull/14) · _Closed issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Breaking changes\n\n#### Fix five rule-correctness defects\n\nRunning monostyle across thirteen real repositories surfaced five defects that made a score misleading or made the advice impossible to follow. The unsatisfiable `blank-line-before-return` rule found in the same run is fixed separately.\n\n- **A configuration section discarded the repository-wide rules.** A section's rules replaced `[rules]` instead of layering onto it, so every threshold a section did not restate silently reverted to its default for the paths that section matched. The file read correctly, which made the effect invisible.\n- **The code rules ran against Markdown prose.** A Markdown file lexes as one language, so `magic-number` read a numbered list's `5.` as a numeric literal and `group-separation` read the list as an unbroken statement run. A prose list scored 86.6 where it should score 100.\n- **A bodyless declaration ran to the end of the file.** A trait method ending in `;` never opened a body, so the unit stayed open until the file did, and a one-line declaration was reported as an oversized unit with a low maintainability index.\n- **A rustdoc `# Errors` list was read as commented-out code.** The rule treats `::` as proof of code, and a doc comment listing variants writes them as `Error::Variant`.\n- **A keyword inside an attribute was read as control flow.** `#[serde(default, rename_all = \"kebab-case\")]` was reported as a `default` branch missing its blank line, so the finding asked for a blank line inside an attribute list. A decorator or annotation has the same shape.\n\n**Added:** `readability/excessive-blank-lines`. Every layout rule asks for a gap and none capped one, so following the tool's own advice could grow a gap without limit; five blank lines between two `match` arms satisfied every rule that asked for a separation. The rule takes the larger of the configured maximum and the language's own convention, so PEP 8's two blank lines before a top-level Python definition are respected.\n\nThese fixes change scores, which is why this is a major bump before 1.0 (monochange applies the pre-1.0 convention, where `major` moves the minor digit): fewer findings are reported on the same code, and a repository that was failing a threshold may now pass it.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #18](https://github.com/ifiokjr/monostyle/pull/18) · _Related issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)\n\n#### Make grouping measurable, and document what the rules are\n\n##### `group-separation` now measures what it claims to\n\nThe rule never looked inside a function body. A single flag was set by a type declaration and never cleared, and every statement in a function was classified as a new item, so the runs the rule exists to find went unreported while a struct's fields were counted as statements.\n\nSplitting a long run could not clear the finding either. Each half of a long run stays over the limit, and because the finding points at the run's start, a fixer that inserted a blank line there added whitespace outside the measured run and re-triggered itself on the next pass. That loop is what stacked five and eight consecutive blank lines in downstream repositories.\n\n- The limit is now `max-statements-per-group` (default 8) instead of a hard-coded constant, and a run only violates it when it is longer than the limit, so a run of exactly 8 is legal.\n- The finding names both the run length and the limit, so a run can be split until it clears.\n- Function and control-flow bodies are measured; type bodies, `switch` and `match` arms, and literals are not. A struct's fields are one item, an arm is one alternative, and a twelve-field constructor is data.\n- A body closes when its own block ends, so a declaration nested inside a function no longer silences the statements after it.\n\n##### `excessive-blank-lines` is now auto-fixable\n\n`monostyle fix` deletes the blank lines past the allowance and keeps exactly that many — one in Rust, Go, and TypeScript, two in Python and Dart. The number kept is the one the finding measured against, so the fix cannot disagree with the rule and a second run changes nothing.\n\nTogether with the blank-line insertion the tool already had, this closes the loop the stacking came from: every other layout rule asks for a gap without bounding it, and this pair supplies both the gap and the ceiling.\n\n##### Four Markdown rules can be disabled\n\n`markdown/fence-without-language`, `markdown/fence-language-unknown`, `markdown/no-title`, and `markdown/skipped-heading-level` were documented as rules while being emitted from inside another one, so naming any of them in `disabled-rules` did nothing and `monostyle rules` never listed them. Each is a registry entry now. `markdown/heading-structure` is kept as an alias so configuration written against it still disables both heading rules.\n\n##### Checked-in bundles are skipped\n\nA committed esbuild or webpack bundle is a dependency's code, and scoring it describes the dependency rather than the project. A bundle's banner on the first line is now recognized; a hand-written file that merely mentions a build tool in a comment is still analyzed.\n\n##### Faster on large files\n\nThe expression-depth check walked every earlier line for every line, which made analysis quadratic in file size: a twenty-thousand-line file took sixteen seconds and a forty-thousand-line file took sixty. The depth is now computed once per file and each lookup is constant. The same inputs take about a second.\n\n##### The rule table is complete and guarded\n\nFive registered rules were missing from the documentation (`magic-number`, `short-identifier`, `empty-handler`, `commented-out-code`, and `excessive-blank-lines`), and the two new configuration keys are now documented with the per-language blank-line floor explained. Tests check both directions — every registered rule appears in the table, and every name in the table has a registry entry — so the drift that made four rules impossible to disable cannot return.\n\n##### Why this is a `major` bump before 1.0\n\nThe changeset is `major` because monochange applies the pre-1.0 semver convention, where a `major` bump on `0.y.z` moves the minor digit. For a package below 1.0 that is how you say \"the numbers a user sees will change, and a threshold that was failing may now pass\" without claiming an API break that has not happened. A `minor` bump under the same convention would produce `0.1.1`, which reads as a patch and would understate the change.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #19](https://github.com/ifiokjr/monostyle/pull/19)\n\n### Fixes\n\n- **Count multiline continuations as one statement.** The group-separation rule now ignores lines that begin inside an open expression or continue a formatted method chain. Multiline calls and collections no longer inflate the statement count, while genuine eight-statement runs remain reportable.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #15](https://github.com/ifiokjr/monostyle/pull/15) · _Closed issues:_ [#13](https://github.com/ifiokjr/monostyle/issues/13)\n- **Honor blank separators before returns.** The return-spacing rule now checks the physical separation above a return before looking for the previous code line, so a blank line satisfies the rule instead of being skipped.\n  _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #14](https://github.com/ifiokjr/monostyle/pull/14) · _Closed issues:_ [#12](https://github.com/ifiokjr/monostyle/issues/12)"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli` was updated to 0.2.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli` was updated to 0.2.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-darwin-arm64` was updated to 0.2.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-darwin-arm64` was updated to 0.2.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-darwin-x64` was updated to 0.2.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-darwin-x64` was updated to 0.2.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-gnu` was updated to 0.2.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-gnu` was updated to 0.2.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-musl` was updated to 0.2.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-musl` was updated to 0.2.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-gnu` was updated to 0.2.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-gnu` was updated to 0.2.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-musl` was updated to 0.2.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-musl` was updated to 0.2.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-win32-arm64-msvc` was updated to 0.2.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-win32-arm64-msvc` was updated to 0.2.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-win32-x64-msvc` was updated to 0.2.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-win32-x64-msvc` was updated to 0.2.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/skill` was updated to 0.2.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/skill` was updated to 0.2.0 as part of group `release`."
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "ifiokjr",
+		"repo": "monostyle",
+		"host": null
+	}
+}
