@@ -10,28 +10,28 @@ importers:
   packages/monostyle__cli:
     optionalDependencies:
       "@monostyle-rs/cli-darwin-arm64":
-        specifier: ^0.2.0
+        specifier: ^0.2.1
         version: link:../monostyle__cli-darwin-arm64
       "@monostyle-rs/cli-darwin-x64":
-        specifier: ^0.2.0
+        specifier: ^0.2.1
         version: link:../monostyle__cli-darwin-x64
       "@monostyle-rs/cli-linux-arm64-gnu":
-        specifier: ^0.2.0
+        specifier: ^0.2.1
         version: link:../monostyle__cli-linux-arm64-gnu
       "@monostyle-rs/cli-linux-arm64-musl":
-        specifier: ^0.2.0
+        specifier: ^0.2.1
         version: link:../monostyle__cli-linux-arm64-musl
       "@monostyle-rs/cli-linux-x64-gnu":
-        specifier: ^0.2.0
+        specifier: ^0.2.1
         version: link:../monostyle__cli-linux-x64-gnu
       "@monostyle-rs/cli-linux-x64-musl":
-        specifier: ^0.2.0
+        specifier: ^0.2.1
         version: link:../monostyle__cli-linux-x64-musl
       "@monostyle-rs/cli-win32-arm64-msvc":
-        specifier: ^0.2.0
+        specifier: ^0.2.1
         version: link:../monostyle__cli-win32-arm64-msvc
       "@monostyle-rs/cli-win32-x64-msvc":
-        specifier: ^0.2.0
+        specifier: ^0.2.1
         version: link:../monostyle__cli-win32-x64-msvc
 
   packages/monostyle__cli-darwin-arm64: {}

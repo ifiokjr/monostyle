@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.1) (2026-09-22)
+
+Grouped release for `release`.
+
+### Fixes
+
+#### List every fixable rule in `monostyle rules --fixable`
+
+_Packages:_ 🟢 _monostyle_
+
+The listing worked by running each rule over a hard-coded sample and keeping the ones that produced an edit. The sample contained a crowded control-flow statement but no stacked blank lines, so the blank-line collapse added in this release never appeared in the list: `monostyle rules --fixable` reported one fixable rule where there were two.
+
+The sample now holds one problem of every fixable shape. The approach itself — discovering fixability by running the rule rather than declaring it — is unchanged, and is the right one: a declared flag is a second place to forget, as this bug demonstrates.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #22](https://github.com/ifiokjr/monostyle/pull/22)
+
 ## [0.2.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.2.0) (2026-09-21)
 
 Grouped release for `release`.
