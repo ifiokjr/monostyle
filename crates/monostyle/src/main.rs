@@ -33,8 +33,8 @@ const EXIT_BELOW_THRESHOLD: u8 = 1;
 /// missing from it once, because the sample contained no stacked blank lines to collapse.
 ///
 /// The shapes: a crowded control-flow statement, a stacked blank run, a statement crowded against the
-/// block above it, and a comment detached from its code by a blank.
-const SAMPLE_FOR_FIXABILITY: &str = "fn a() {\n    work();\n\n\n\n\n    if x {\n        work();\n    }\n    match run() {\n        Err(_) => {}\n        Ok(v) => use_it(v),\n    }\n    // explains the rebinding below\n\n    let v = use_it(v);\n}\n";
+/// block above it, a comment detached from its code by a blank, and a return crowded against work.
+const SAMPLE_FOR_FIXABILITY: &str = "fn a() {\n    work();\n\n\n\n\n    if x {\n        work();\n    }\n    match run() {\n        Err(_) => {}\n        Ok(v) => use_it(v),\n    }\n    // explains the rebinding below\n\n    let v = use_it(v);\n    return v;\n}\n";
 
 /// Exit code used when the run itself failed.
 const EXIT_FAILURE: u8 = 2;
