@@ -26,7 +26,6 @@ fn finding(category: Category, severity: Severity, weight: f64) -> Finding {
 // ---------------------------------------------------------------------------
 // Severity
 // ---------------------------------------------------------------------------
-
 #[test]
 fn severity_multipliers_are_ordered() {
 	assert!(Severity::Info.penalty_factor() < Severity::Minor.penalty_factor());
@@ -67,7 +66,6 @@ fn severity_orders_from_least_to_most_serious() {
 // ---------------------------------------------------------------------------
 // Findings
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_finding_penalty_is_its_weight_scaled_by_severity() {
 	let finding = finding(Category::Readability, Severity::Major, 2.0);
@@ -141,7 +139,6 @@ fn an_absent_fix_is_omitted_from_json() {
 // ---------------------------------------------------------------------------
 // Categories
 // ---------------------------------------------------------------------------
-
 #[test]
 fn categories_have_labels_matching_their_serialized_form() {
 	for category in Category::ALL {
@@ -161,7 +158,6 @@ fn there_are_exactly_two_categories() {
 // ---------------------------------------------------------------------------
 // Scoring
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_clean_body_scores_perfectly() {
 	let score = Score::from_findings(&[], Category::Readability, 100, ScoringConfig::default());
@@ -361,7 +357,6 @@ fn scores_serialize_with_their_components() {
 // ---------------------------------------------------------------------------
 // Spans
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_span_reports_its_line_count_inclusively() {
 	assert_eq!(Span::new(0, 10, 1, 1).line_count(), 1);
@@ -387,7 +382,6 @@ fn a_span_serializes_its_offsets_and_lines() {
 // ---------------------------------------------------------------------------
 // Fixes
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_replace_fix_covers_its_range() {
 	let fix = Fix::replace(Span::new(0, 5, 1, 1), "text", "a test edit");
@@ -428,7 +422,6 @@ fn a_zero_width_empty_fix_is_empty() {
 // ---------------------------------------------------------------------------
 // Languages
 // ---------------------------------------------------------------------------
-
 #[test]
 fn languages_display_as_their_names() {
 	assert_eq!(Language::Rust.to_string(), "rust");

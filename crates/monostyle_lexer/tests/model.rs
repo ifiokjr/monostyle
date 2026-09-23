@@ -13,7 +13,6 @@ use monostyle_lexer::lex;
 // ---------------------------------------------------------------------------
 // Profile accessors
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_language_with_no_line_comments_reports_none() {
 	// Markdown has no comment syntax of its own, so the lookup must return nothing rather than inventing
@@ -231,8 +230,6 @@ fn every_block_style_is_used_by_at_least_one_language() {
 // ---------------------------------------------------------------------------
 // Line model
 // ---------------------------------------------------------------------------
-
-/// Returns the first line of a snippet.
 fn line_of(source: &str) -> monostyle_lexer::LexedLine {
 	lex(source, Language::Rust)
 		.lines
@@ -383,7 +380,6 @@ fn a_masked_line_hides_literal_contents() {
 // ---------------------------------------------------------------------------
 // Line endings
 // ---------------------------------------------------------------------------
-
 #[test]
 fn windows_line_endings_do_not_add_a_phantom_line() {
 	// CRLF is one line break, not two. Treating the carriage return as its own break would double the
@@ -437,7 +433,6 @@ fn byte_offsets_survive_crlf() {
 // ---------------------------------------------------------------------------
 // Indentation
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_mixed_indentation_file_is_detected() {
 	let lexed = lex("fn a() {\n\twork();\n    other();\n}\n", Language::Rust);
@@ -472,7 +467,6 @@ fn a_tab_indent_expands_to_four_columns() {
 // ---------------------------------------------------------------------------
 // Interpolation and raw strings
 // ---------------------------------------------------------------------------
-
 #[test]
 fn rust_raw_string_with_hashes_is_not_closed_by_a_bare_quote() {
 	let source = "let s = r#\"contains \" a quote\"#;\nlet t = 1;\n";

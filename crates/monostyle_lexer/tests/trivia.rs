@@ -45,7 +45,6 @@ fn kinds(source: &str, language: Language) -> Vec<LineKind> {
 // ---------------------------------------------------------------------------
 // Dart
 // ---------------------------------------------------------------------------
-
 #[test]
 fn dart_triple_quoted_string_does_not_end_at_first_quote() {
 	// The opening delimiter is three characters; a scanner that closes on the first `'`
@@ -124,7 +123,6 @@ fn dart_question_mark_inside_string_is_not_a_ternary() {
 // ---------------------------------------------------------------------------
 // Rust
 // ---------------------------------------------------------------------------
-
 #[test]
 fn rust_nested_block_comments_close_at_the_matching_terminator() {
 	// `/* /* */ */` closes at the second terminator. A scanner that closes at the first
@@ -210,7 +208,6 @@ fn rust_apostrophe_in_lifetime_is_not_an_unterminated_string() {
 // ---------------------------------------------------------------------------
 // JavaScript and TypeScript
 // ---------------------------------------------------------------------------
-
 #[test]
 fn javascript_regex_is_not_division() {
 	// In operand position `/` opens a regex; a scanner that ignores this hides the rest of
@@ -322,7 +319,6 @@ fn typescript_optional_chaining_counts_as_a_path() {
 // ---------------------------------------------------------------------------
 // Python
 // ---------------------------------------------------------------------------
-
 #[test]
 fn python_fstring_nested_braces_do_not_end_the_literal() {
 	// `{…}` nests inside an f-string, and the inner expression may contain quotes.
@@ -412,7 +408,6 @@ fn python_single_quote_apostrophe_does_not_swallow_the_rest() {
 // ---------------------------------------------------------------------------
 // Shell
 // ---------------------------------------------------------------------------
-
 #[test]
 fn shell_heredoc_body_is_not_code() {
 	// The body is data until the delimiter line, even when it looks like shell.
@@ -490,7 +485,6 @@ echo done
 // ---------------------------------------------------------------------------
 // Nix
 // ---------------------------------------------------------------------------
-
 #[test]
 fn nix_indented_string_escape_sequences_do_not_close_it() {
 	// `''$`, `'''`, and `''\` are escapes. A scanner that ignores them ends the string at the
@@ -553,7 +547,6 @@ fn nix_real_interpolation_does_not_leak_into_masked_code() {
 // ---------------------------------------------------------------------------
 // Ruby, Lua, and Go
 // ---------------------------------------------------------------------------
-
 #[test]
 fn ruby_hash_interpolation_hides_contents() {
 	let source = r#"message = "value: #{compute("inner")} end"
@@ -649,7 +642,6 @@ if query != \"\" {
 // ---------------------------------------------------------------------------
 // Cross-language invariants
 // ---------------------------------------------------------------------------
-
 #[test]
 fn unterminated_multiline_construct_is_reported_not_silently_ignored() {
 	// An unclosed triple-quoted string is a real problem, and the scanner must say so rather

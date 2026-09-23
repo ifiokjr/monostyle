@@ -31,7 +31,6 @@ fn first_unit(source: &str, language: Language) -> monostyle_metrics::CodeUnit {
 // ---------------------------------------------------------------------------
 // Brace languages
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_rust_function_is_detected() {
 	assert!(names("fn compute() -> i32 { 1 }\n", Language::Rust).contains(&"compute".to_string()));
@@ -135,7 +134,6 @@ fn a_typescript_arrow_function_assignment_is_detected_by_its_parameter_list() {
 // ---------------------------------------------------------------------------
 // Indentation languages
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_python_function_is_detected_with_its_indented_body() {
 	let source = "def compute(a, b):\n    total = a + b\n    return total\n\nx = 1\n";
@@ -166,7 +164,6 @@ fn a_python_body_ends_at_a_dedent() {
 // ---------------------------------------------------------------------------
 // End-keyword languages
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_ruby_method_is_detected_with_its_end() {
 	let source = "def compute(a)\n  a + 1\nend\n";
@@ -189,7 +186,6 @@ fn a_shell_function_is_detected() {
 // ---------------------------------------------------------------------------
 // Span properties
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_unit_reports_its_line_count() {
 	let source = "fn a() {\n    work();\n    work();\n}\n";

@@ -147,12 +147,6 @@ fn the_result_is_identical_whatever_order_the_fixes_arrive_in() {
 // ---------------------------------------------------------------------------
 // The blank-line collapse fix, end to end
 // ---------------------------------------------------------------------------
-
-/// Runs the whitespace rules over `source` and applies every fix they offer.
-///
-/// This is the closest thing to `monostyle fix` that a test can express without touching the
-/// filesystem, and it is the level the idempotence property has to hold at: the fix and the rule that
-/// produced it must agree, or a second pass finds the same problem again.
 fn collapse_blank_runs(source: &str, language: Language) -> String {
 	let lexed = lex(source, language);
 	let config = RulesConfig::default();
@@ -257,4 +251,82 @@ fn the_collapse_fix_leaves_a_file_with_no_problems_untouched() {
 	let source = "fn clean() {\n    let a = 1;\n\n    let b = 2;\n}\n";
 
 	assert_eq!(collapse_blank_runs(source, Language::Rust), source);
+}
+
+#[test]
+fn a_detached_comment_is_reattached_on_disk() {
+	// The damage reported from review: a comment describing an `if` was left on the far side of the
+	// padding the fixer inserted. The fix moves the blank above the comment, which is where it always
+	// belonged.
+	let source = "fn work() {\n    loop {\n        // Position at end of line.\n\n        if done {\n            break;\n        }\n    }\n}\n";
+
+	let lexed = lex(source, Language::Rust);
+	let config = RulesConfig::default();
+	let fixes: Vec<Fix> = whitespace::detached_comment(&lexed, &config)
+		.into_iter()
+		.filter_map(|finding| finding.fix)
+		.collect();
+
+	let (reattached, conflicts) = apply_fixes(source, &fixes);
+
+	assert_eq!(conflicts, 0, "the attachment fix should not overlap");
+	assert_eq!(
+		reattached,
+		"fn work() {\n    loop {\n        // Position at end of line.\n        if done {\n            break;\n        }\n    }\n}\n"
+	);
+}
+
+#[test]
+fn a_padded_block_gets_a_trailing_blank_on_disk() {
+	// The other half of the padding contract: the blank after a control-flow block, before the next
+	// statement in the same scope.
+	let source = "fn work() {\n    if ready {\n        go();\n    }\n    let done = true;\n}\n";
+
+	let lexed = lex(source, Language::Rust);
+	let config = RulesConfig::default();
+	let fixes: Vec<Fix> = whitespace::blank_line_after_control_flow(&lexed, &config)
+		.into_iter()
+		.filter_map(|finding| finding.fix)
+		.collect();
+
+	let (padded, conflicts) = apply_fixes(source, &fixes);
+
+	assert_eq!(conflicts, 0);
+	assert_eq!(
+		padded,
+		"fn work() {\n    if ready {\n        go();\n    }\n\n    let done = true;\n}\n"
+	);
+}
+
+#[test]
+fn both_new_fixes_survive_a_second_pass() {
+	// The idempotence property the whole fixer hangs on: after one pass the rules must find nothing
+	// left to change.
+	let source = "fn work() {\n    loop {\n        // Position at end of line.\n\n        if done {\n            break;\n        }\n    }\n    let done = true;\n}\n";
+
+	let fix_all = |source: &str| {
+		let lexed = lex(source, Language::Rust);
+		let config = RulesConfig::default();
+		let fixes: Vec<Fix> = whitespace::detached_comment(&lexed, &config)
+			.into_iter()
+			.filter_map(|finding| finding.fix)
+			.chain(
+				whitespace::blank_line_after_control_flow(&lexed, &config)
+					.into_iter()
+					.filter_map(|finding| finding.fix),
+			)
+			.collect();
+		let (pass_result, _) = apply_fixes(source, &fixes);
+
+		pass_result
+	};
+
+	let once = fix_all(source);
+	let twice = fix_all(&once);
+
+	assert_eq!(once, twice, "the second pass must be a no-op");
+	assert_eq!(
+		once,
+		"fn work() {\n    loop {\n        // Position at end of line.\n        if done {\n            break;\n        }\n    }\n\n    let done = true;\n}\n"
+	);
 }

@@ -38,7 +38,6 @@ fn uncached() -> AnalysisOptions {
 // ---------------------------------------------------------------------------
 // Language resolution through paths
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_known_extension_resolves_a_language() {
 	assert_eq!(
@@ -96,7 +95,6 @@ fn analyzing_with_an_explicit_language_does_not_consult_the_path() {
 // ---------------------------------------------------------------------------
 // Path collection
 // ---------------------------------------------------------------------------
-
 #[test]
 fn collection_skips_unreadable_and_unrecognized_files() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
@@ -132,7 +130,6 @@ fn collection_honours_the_ignore_patterns() {
 // ---------------------------------------------------------------------------
 // The cache-hit path
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_cached_run_produces_the_same_report_as_an_uncached_one() {
 	// The cache-hit path builds a report from lines that were serialized and restored, so a field lost in
@@ -231,7 +228,6 @@ fn a_cached_run_reports_unit_scores_too() {
 // ---------------------------------------------------------------------------
 // Cache disable
 // ---------------------------------------------------------------------------
-
 #[test]
 fn disabling_the_cache_skips_discovery() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
@@ -259,7 +255,6 @@ fn disabling_the_cache_skips_discovery() {
 // ---------------------------------------------------------------------------
 // Workspace formats
 // ---------------------------------------------------------------------------
-
 #[test]
 fn an_npm_workspaces_array_is_detected() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
@@ -476,7 +471,6 @@ fn a_cargo_manifest_with_no_package_section_is_skipped() {
 // ---------------------------------------------------------------------------
 // Report conditionals
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_report_with_tokenizer_warnings_prints_them() {
 	// An unterminated construct makes a score less trustworthy, and the report has to say so.

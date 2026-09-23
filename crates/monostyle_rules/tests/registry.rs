@@ -53,6 +53,9 @@ pub fn process(input: &Input, mode: Mode, flags: Flags, cache: &Cache) -> Result
     }
     // Increment the retry counter
     let x = compute(ab, cd, ef, gh, input.scale, input.offset, input.limit, input.target);
+    // Explain the final value.
+
+    Ok(x)
 
 
 
@@ -302,13 +305,17 @@ fn only_the_formatter_safe_rules_produce_a_fix() {
 	unique.sort_unstable();
 	unique.dedup();
 
+	unique.sort_unstable();
+
 	assert_eq!(
 		unique,
 		vec![
+			"readability/blank-line-after-control-flow",
 			"readability/blank-line-before-control-flow",
+			"readability/detached-comment",
 			"readability/excessive-blank-lines"
 		],
-		"only the two formatter-safe rules should be auto-fixable"
+		"only the formatter-safe rules should be auto-fixable"
 	);
 }
 
@@ -340,11 +347,6 @@ fn every_finding_of_a_fixable_rule_carries_a_fix() {
 // ---------------------------------------------------------------------------
 // Documentation drift
 // ---------------------------------------------------------------------------
-
-/// Returns the text of the rule-table template at the workspace root.
-///
-/// The template is the single source the readme, the mdbook pages, and the shipped skill are all
-/// generated from, so checking it covers every published copy at once.
 fn rule_table_template() -> String {
 	let path = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 		.parent()

@@ -453,6 +453,7 @@ impl Scanner {
 				} else {
 					self.current_byte
 				};
+
 				let number = line.number;
 
 				self.crlf_pending = false;
@@ -1074,6 +1075,7 @@ impl Scanner {
 		} else {
 			after
 		};
+
 		let after = after.trim_start();
 
 		let delimiter: String = match after.chars().next() {

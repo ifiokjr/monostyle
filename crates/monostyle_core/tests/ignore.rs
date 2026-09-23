@@ -30,7 +30,6 @@ fn config(patterns: &[&str], include: &[&str]) -> IgnoreConfig {
 // ---------------------------------------------------------------------------
 // Defaults
 // ---------------------------------------------------------------------------
-
 #[test]
 fn dependency_caches_are_ignored_at_any_depth() {
 	for directory in [
@@ -112,7 +111,6 @@ fn defaults_can_be_disabled() {
 // ---------------------------------------------------------------------------
 // Generated detection
 // ---------------------------------------------------------------------------
-
 #[test]
 fn dart_codegen_suffixes_are_recognized() {
 	for path in [
@@ -197,7 +195,6 @@ fn generated_files_can_be_included() {
 // ---------------------------------------------------------------------------
 // Patterns
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_bare_pattern_matches_at_any_depth() {
 	let config = config(&["*.spec.ts"], &[]);
@@ -278,7 +275,6 @@ fn multiple_patterns_are_all_applied() {
 // ---------------------------------------------------------------------------
 // Precedence
 // ---------------------------------------------------------------------------
-
 #[test]
 fn an_include_entry_beats_a_pattern() {
 	let config = config(&["src/**"], &["src/keep.rs"]);
@@ -308,7 +304,6 @@ fn an_include_entry_beats_generated_detection() {
 // ---------------------------------------------------------------------------
 // Bulk helpers
 // ---------------------------------------------------------------------------
-
 #[test]
 fn apply_filters_a_list_of_paths() {
 	let paths = vec![

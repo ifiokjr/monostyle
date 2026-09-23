@@ -37,7 +37,6 @@ fn analyze(relative: &str) -> monostyle::analysis::ProjectReport {
 // ---------------------------------------------------------------------------
 // Text rendering
 // ---------------------------------------------------------------------------
-
 #[test]
 fn the_report_states_both_scores() {
 	let rendered = report::render_project(&analyze("bad"), false, false);
@@ -207,7 +206,6 @@ fn an_empty_report_renders_without_panicking() {
 // ---------------------------------------------------------------------------
 // JSON rendering
 // ---------------------------------------------------------------------------
-
 #[test]
 fn json_output_has_the_documented_shape() {
 	let report_value = analyze("bad");
@@ -291,7 +289,6 @@ fn a_missing_fix_is_omitted_from_json() {
 // ---------------------------------------------------------------------------
 // Package detection
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_cargo_workspace_is_detected() {
 	let packages = detect_packages(&fixture("workspace"));

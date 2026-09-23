@@ -219,7 +219,6 @@ fn an_empty_profile_reports_zero_rather_than_dividing_by_zero() {
 // ---------------------------------------------------------------------------
 // Halstead
 // ---------------------------------------------------------------------------
-
 #[test]
 fn halstead_counts_operators_and_operands() {
 	let source = "fn a() { let x = 1 + 2; }\n";

@@ -198,7 +198,6 @@ fn rust_declares_hash_counted_raw_strings() {
 // ---------------------------------------------------------------------------
 // Profile lookups
 // ---------------------------------------------------------------------------
-
 #[test]
 fn the_longest_comment_token_wins() {
 	// `///` must be recognized before `//`, or a doc comment is classified as an ordinary one.
@@ -329,7 +328,6 @@ fn regex_position_is_never_allowed_in_languages_without_regex_literals() {
 // ---------------------------------------------------------------------------
 // Language resolution
 // ---------------------------------------------------------------------------
-
 #[test]
 fn languages_resolve_from_their_own_names() {
 	for language in Language::ALL {
@@ -471,7 +469,6 @@ fn canonical_extensions_are_declared() {
 // These are `const fn`, and a `const fn` called only from a `const` context is evaluated at compile
 // time, which LLVM's coverage instrumentation does not observe. Calling each one at runtime gives the
 // instrumentation something to record, so the constructors are measured rather than reported as dead.
-
 #[test]
 fn every_literal_constructor_produces_its_documented_shape() {
 	use monostyle_languages::StringRule;
@@ -537,7 +534,6 @@ fn profile_lookups_run_at_runtime() {
 // ---------------------------------------------------------------------------
 // Fence tag aliases
 // ---------------------------------------------------------------------------
-
 #[test]
 fn every_fence_alias_resolves() {
 	// Every alias is a spelling someone will type in a fence, and an unresolved one means a code example

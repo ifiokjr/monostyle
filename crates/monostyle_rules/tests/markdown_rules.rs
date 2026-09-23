@@ -45,7 +45,6 @@ fn findings_for(source: &str, rule: &str) -> Vec<monostyle_core::Finding> {
 // ---------------------------------------------------------------------------
 // Fence language tags
 // ---------------------------------------------------------------------------
-
 #[test]
 fn an_untagged_fence_is_reported() {
 	let names = rules("```\nsome content\n```\n");
@@ -95,7 +94,6 @@ fn an_empty_fence_is_not_reported_for_its_contents() {
 // ---------------------------------------------------------------------------
 // Fence contents
 // ---------------------------------------------------------------------------
-
 #[test]
 fn cramped_code_inside_a_fence_is_scored() {
 	// The layout rules apply to fences with their locations mapped back to the document.
@@ -224,7 +222,6 @@ fn a_fence_with_extra_info_still_resolves_its_language() {
 // ---------------------------------------------------------------------------
 // Prose and structure
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_long_prose_run_is_reported() {
 	let prose: String = (0..20)

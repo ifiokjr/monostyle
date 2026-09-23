@@ -53,7 +53,6 @@ fn push_numbered(text: &mut String, count: usize, template: impl Fn(usize) -> St
 // ---------------------------------------------------------------------------
 // The boundary
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_run_longer_than_the_limit_is_reported_with_the_limit_in_the_message() {
 	let findings = groups_in(&statements(9), Language::Dart);
@@ -98,7 +97,6 @@ fn a_run_below_the_limit_is_not_reported() {
 // ---------------------------------------------------------------------------
 // Splitting must clear the finding
 // ---------------------------------------------------------------------------
-
 #[test]
 fn splitting_a_long_run_in_two_still_reports_each_half_over_the_limit() {
 	// Two halves of twelve are each over the limit of eight, so the split has not gone far enough and
@@ -146,7 +144,6 @@ fn splitting_a_long_run_until_every_group_fits_clears_the_finding() {
 // ---------------------------------------------------------------------------
 // Function bodies are measured
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_long_run_inside_a_function_body_is_reported() {
 	// The blind spot: every statement in a function body was classified as a new item, so a run inside
@@ -228,7 +225,6 @@ fn a_declaration_without_a_keyword_breaks_the_run() {
 // ---------------------------------------------------------------------------
 // Items and data are not statements
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_type_body_of_many_members_is_not_reported() {
 	// A struct's fields are one item, not ten statements. Reporting them was the false positive that
@@ -304,7 +300,6 @@ fn a_struct_literal_of_many_fields_is_not_reported() {
 // ---------------------------------------------------------------------------
 // State does not leak between bodies
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_closed_declaration_does_not_silence_the_statements_after_it() {
 	// The old flag was never cleared, so one `fn` made the rest of the file invisible to the rule.
@@ -353,7 +348,6 @@ fn a_declaration_nested_in_a_function_ends_with_its_own_body() {
 // ---------------------------------------------------------------------------
 // Statement shapes
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_formatted_multiline_call_counts_as_one_statement() {
 	let source = "\
@@ -464,7 +458,6 @@ fn a_balanced_one_line_block_does_not_corrupt_the_run() {
 // ---------------------------------------------------------------------------
 // Languages and configuration
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_long_run_inside_a_python_function_is_reported() {
 	let mut source = String::from("def work():\n");
