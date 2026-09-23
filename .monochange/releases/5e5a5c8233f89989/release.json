@@ -1,0 +1,941 @@
+{
+	"schema_version": "0.7",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-09-23T00:31:44Z",
+	"command": "release",
+	"version": "0.3.0",
+	"versions": {
+		"release": "0.3.0"
+	},
+	"release_targets": [
+		{
+			"id": "release",
+			"kind": "group",
+			"version": "0.3.0",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.3.0",
+			"members": [
+				"monostyle",
+				"monostyle_core",
+				"monostyle_languages",
+				"monostyle_lexer",
+				"monostyle_markdown",
+				"monostyle_metrics",
+				"monostyle_rules",
+				"@monostyle-rs/cli",
+				"@monostyle-rs/cli-darwin-arm64",
+				"@monostyle-rs/cli-darwin-x64",
+				"@monostyle-rs/cli-linux-arm64-gnu",
+				"@monostyle-rs/cli-linux-arm64-musl",
+				"@monostyle-rs/cli-linux-x64-gnu",
+				"@monostyle-rs/cli-linux-x64-musl",
+				"@monostyle-rs/cli-win32-arm64-msvc",
+				"@monostyle-rs/cli-win32-x64-msvc",
+				"@monostyle-rs/skill"
+			]
+		}
+	],
+	"released_packages": [
+		"@monostyle-rs/cli",
+		"@monostyle-rs/cli-darwin-arm64",
+		"@monostyle-rs/cli-darwin-x64",
+		"@monostyle-rs/cli-linux-arm64-gnu",
+		"@monostyle-rs/cli-linux-arm64-musl",
+		"@monostyle-rs/cli-linux-x64-gnu",
+		"@monostyle-rs/cli-linux-x64-musl",
+		"@monostyle-rs/cli-win32-arm64-msvc",
+		"@monostyle-rs/cli-win32-x64-msvc",
+		"@monostyle-rs/skill",
+		"monostyle",
+		"monostyle_core",
+		"monostyle_languages",
+		"monostyle_lexer",
+		"monostyle_markdown",
+		"monostyle_metrics",
+		"monostyle_rules"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monostyle/Cargo.toml",
+		"crates/monostyle/changelog.md",
+		"crates/monostyle_core/Cargo.toml",
+		"crates/monostyle_core/changelog.md",
+		"crates/monostyle_languages/Cargo.toml",
+		"crates/monostyle_languages/changelog.md",
+		"crates/monostyle_lexer/Cargo.toml",
+		"crates/monostyle_lexer/changelog.md",
+		"crates/monostyle_markdown/Cargo.toml",
+		"crates/monostyle_markdown/changelog.md",
+		"crates/monostyle_metrics/Cargo.toml",
+		"crates/monostyle_metrics/changelog.md",
+		"crates/monostyle_rules/Cargo.toml",
+		"crates/monostyle_rules/changelog.md",
+		"packages/monostyle__cli/changelog.md",
+		"packages/monostyle__cli/package.json",
+		"packages/monostyle__cli-darwin-arm64/changelog.md",
+		"packages/monostyle__cli-darwin-arm64/package.json",
+		"packages/monostyle__cli-darwin-x64/changelog.md",
+		"packages/monostyle__cli-darwin-x64/package.json",
+		"packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-arm64-gnu/package.json",
+		"packages/monostyle__cli-linux-arm64-musl/changelog.md",
+		"packages/monostyle__cli-linux-arm64-musl/package.json",
+		"packages/monostyle__cli-linux-x64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-x64-gnu/package.json",
+		"packages/monostyle__cli-linux-x64-musl/changelog.md",
+		"packages/monostyle__cli-linux-x64-musl/package.json",
+		"packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-arm64-msvc/package.json",
+		"packages/monostyle__cli-win32-x64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-x64-msvc/package.json",
+		"packages/monostyle__skill/changelog.md",
+		"packages/monostyle__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monostyle-rs/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_languages",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_lexer",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_markdown",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_metrics",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_rules",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.0",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monostyle/changelog.md",
+		"crates/monostyle_core/changelog.md",
+		"crates/monostyle_languages/changelog.md",
+		"crates/monostyle_lexer/changelog.md",
+		"crates/monostyle_markdown/changelog.md",
+		"crates/monostyle_metrics/changelog.md",
+		"crates/monostyle_rules/changelog.md",
+		"packages/monostyle__cli/changelog.md",
+		"packages/monostyle__cli-darwin-arm64/changelog.md",
+		"packages/monostyle__cli-darwin-x64/changelog.md",
+		"packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-arm64-musl/changelog.md",
+		"packages/monostyle__cli-linux-x64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-x64-musl/changelog.md",
+		"packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-x64-msvc/changelog.md",
+		"packages/monostyle__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/comment-attachment.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/comment-attachment.md",
+			"summary": "Padding is symmetric, and comments stay attached",
+			"details": "Reviewing the fixes from this release cycle on real pull requests surfaced two one-sided rules.\n\n##### New: `readability/blank-line-after-control-flow`\n\nThe existing rule puts a blank line before a branch; nothing put one after its block. A `}` crowded against the next `let` reads as though the branch were still open, so the new rule asks for the same gap on the way out — when statements follow in the same scope. It stays quiet at the end of an enclosing body, where closing punctuation asks for nothing, and leaves the blanks its sibling rules already report to them, so one missing line is never counted twice.\n\n##### New: `readability/detached-comment`\n\nA comment above a line describes that line, so the blank the old remediation runs inserted between a comment and its `if` did not make the comment breathe — it orphaned it. Comments belong downward: padding goes above the comment, never between the comment and its code. The rule reports the detachment with a fix that re-attaches it, which repairs the mdt damage directly: the `// Position at\nend of line` comment the report came from is now flagged and fixed by the tool itself.\n\nBoth rules carry fixes, are formatter-safe, and are on by default. The `--fixable` discovery sample now exercises all four fixable shapes, so `monostyle rules --fixable` lists them.\n\n##### Why major before 1.0\n\nTwo new on-by-default rules change what a run reports on unchanged code. Under the pre-1.0 semver convention monochange applies, `major` moves the minor digit: 0.2.1 to 0.3.0.",
+			"targets": [
+				{
+					"id": "monostyle",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monostyle_rules",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				},
+				{
+					"id": "monostyle_core",
+					"kind": "package",
+					"bump": "major",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "major"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "293f0a146a125ad22e0e1cc318c3c718aeb40327",
+						"short_sha": "293f0a1",
+						"url": "https://github.com/ifiokjr/monostyle/commit/293f0a146a125ad22e0e1cc318c3c718aeb40327",
+						"authored_at": "2026-09-23T01:31:09+01:00",
+						"committed_at": "2026-09-23T01:31:09+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#24",
+						"title": "feat(rules): symmetric padding and comment attachment",
+						"url": "https://github.com/ifiokjr/monostyle/pull/24",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "293f0a146a125ad22e0e1cc318c3c718aeb40327",
+						"short_sha": "293f0a1",
+						"url": "https://github.com/ifiokjr/monostyle/commit/293f0a146a125ad22e0e1cc318c3c718aeb40327",
+						"authored_at": "2026-09-23T01:31:09+01:00",
+						"committed_at": "2026-09-23T01:31:09+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#24",
+						"title": "feat(rules): symmetric padding and comment attachment",
+						"url": "https://github.com/ifiokjr/monostyle/pull/24",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "release",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [
+					"Grouped release for `release`."
+				],
+				"sections": [
+					{
+						"title": "Breaking changes",
+						"collapsed": false,
+						"entries": [
+							"#### Padding is symmetric, and comments stay attached\n\n_Packages:_ 🔴 _monostyle_, 🔴 _monostyle_core_, 🔴 _monostyle_rules_\n\nReviewing the fixes from this release cycle on real pull requests surfaced two one-sided rules.\n\n##### New: `readability/blank-line-after-control-flow`\n\nThe existing rule puts a blank line before a branch; nothing put one after its block. A `}` crowded against the next `let` reads as though the branch were still open, so the new rule asks for the same gap on the way out — when statements follow in the same scope. It stays quiet at the end of an enclosing body, where closing punctuation asks for nothing, and leaves the blanks its sibling rules already report to them, so one missing line is never counted twice.\n\n##### New: `readability/detached-comment`\n\nA comment above a line describes that line, so the blank the old remediation runs inserted between a comment and its `if` did not make the comment breathe — it orphaned it. Comments belong downward: padding goes above the comment, never between the comment and its code. The rule reports the detachment with a fix that re-attaches it, which repairs the mdt damage directly: the `// Position at\nend of line` comment the report came from is now flagged and fixed by the tool itself.\n\nBoth rules carry fixes, are formatter-safe, and are on by default. The `--fixable` discovery sample now exercises all four fixable shapes, so `monostyle rules --fixable` lists them.\n\n##### Why major before 1.0\n\nTwo new on-by-default rules change what a run reports on unchanged code. Under the pre-1.0 semver convention monochange applies, `major` moves the minor digit: 0.2.1 to 0.3.0.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #24](https://github.com/ifiokjr/monostyle/pull/24)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\nGrouped release for `release`.\n\n### Breaking changes\n\n#### Padding is symmetric, and comments stay attached\n\n_Packages:_ 🔴 _monostyle_, 🔴 _monostyle_core_, 🔴 _monostyle_rules_\n\nReviewing the fixes from this release cycle on real pull requests surfaced two one-sided rules.\n\n##### New: `readability/blank-line-after-control-flow`\n\nThe existing rule puts a blank line before a branch; nothing put one after its block. A `}` crowded against the next `let` reads as though the branch were still open, so the new rule asks for the same gap on the way out — when statements follow in the same scope. It stays quiet at the end of an enclosing body, where closing punctuation asks for nothing, and leaves the blanks its sibling rules already report to them, so one missing line is never counted twice.\n\n##### New: `readability/detached-comment`\n\nA comment above a line describes that line, so the blank the old remediation runs inserted between a comment and its `if` did not make the comment breathe — it orphaned it. Comments belong downward: padding goes above the comment, never between the comment and its code. The rule reports the detachment with a fix that re-attaches it, which repairs the mdt damage directly: the `// Position at\nend of line` comment the report came from is now flagged and fixed by the tool itself.\n\nBoth rules carry fixes, are formatter-safe, and are on by default. The `--fixable` discovery sample now exercises all four fixable shapes, so `monostyle rules --fixable` lists them.\n\n##### Why major before 1.0\n\nTwo new on-by-default rules change what a run reports on unchanged code. Under the pre-1.0 semver convention monochange applies, `major` moves the minor digit: 0.2.1 to 0.3.0.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #24](https://github.com/ifiokjr/monostyle/pull/24)"
+		},
+		{
+			"owner_id": "monostyle",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Breaking changes",
+						"collapsed": false,
+						"entries": [
+							"#### Padding is symmetric, and comments stay attached\n\nReviewing the fixes from this release cycle on real pull requests surfaced two one-sided rules.\n\n##### New: `readability/blank-line-after-control-flow`\n\nThe existing rule puts a blank line before a branch; nothing put one after its block. A `}` crowded against the next `let` reads as though the branch were still open, so the new rule asks for the same gap on the way out — when statements follow in the same scope. It stays quiet at the end of an enclosing body, where closing punctuation asks for nothing, and leaves the blanks its sibling rules already report to them, so one missing line is never counted twice.\n\n##### New: `readability/detached-comment`\n\nA comment above a line describes that line, so the blank the old remediation runs inserted between a comment and its `if` did not make the comment breathe — it orphaned it. Comments belong downward: padding goes above the comment, never between the comment and its code. The rule reports the detachment with a fix that re-attaches it, which repairs the mdt damage directly: the `// Position at\nend of line` comment the report came from is now flagged and fixed by the tool itself.\n\nBoth rules carry fixes, are formatter-safe, and are on by default. The `--fixable` discovery sample now exercises all four fixable shapes, so `monostyle rules --fixable` lists them.\n\n##### Why major before 1.0\n\nTwo new on-by-default rules change what a run reports on unchanged code. Under the pre-1.0 semver convention monochange applies, `major` moves the minor digit: 0.2.1 to 0.3.0.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #24](https://github.com/ifiokjr/monostyle/pull/24)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Breaking changes\n\n#### Padding is symmetric, and comments stay attached\n\nReviewing the fixes from this release cycle on real pull requests surfaced two one-sided rules.\n\n##### New: `readability/blank-line-after-control-flow`\n\nThe existing rule puts a blank line before a branch; nothing put one after its block. A `}` crowded against the next `let` reads as though the branch were still open, so the new rule asks for the same gap on the way out — when statements follow in the same scope. It stays quiet at the end of an enclosing body, where closing punctuation asks for nothing, and leaves the blanks its sibling rules already report to them, so one missing line is never counted twice.\n\n##### New: `readability/detached-comment`\n\nA comment above a line describes that line, so the blank the old remediation runs inserted between a comment and its `if` did not make the comment breathe — it orphaned it. Comments belong downward: padding goes above the comment, never between the comment and its code. The rule reports the detachment with a fix that re-attaches it, which repairs the mdt damage directly: the `// Position at\nend of line` comment the report came from is now flagged and fixed by the tool itself.\n\nBoth rules carry fixes, are formatter-safe, and are on by default. The `--fixable` discovery sample now exercises all four fixable shapes, so `monostyle rules --fixable` lists them.\n\n##### Why major before 1.0\n\nTwo new on-by-default rules change what a run reports on unchanged code. Under the pre-1.0 semver convention monochange applies, `major` moves the minor digit: 0.2.1 to 0.3.0.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #24](https://github.com/ifiokjr/monostyle/pull/24)"
+		},
+		{
+			"owner_id": "monostyle_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Breaking changes",
+						"collapsed": false,
+						"entries": [
+							"#### Padding is symmetric, and comments stay attached\n\nReviewing the fixes from this release cycle on real pull requests surfaced two one-sided rules.\n\n##### New: `readability/blank-line-after-control-flow`\n\nThe existing rule puts a blank line before a branch; nothing put one after its block. A `}` crowded against the next `let` reads as though the branch were still open, so the new rule asks for the same gap on the way out — when statements follow in the same scope. It stays quiet at the end of an enclosing body, where closing punctuation asks for nothing, and leaves the blanks its sibling rules already report to them, so one missing line is never counted twice.\n\n##### New: `readability/detached-comment`\n\nA comment above a line describes that line, so the blank the old remediation runs inserted between a comment and its `if` did not make the comment breathe — it orphaned it. Comments belong downward: padding goes above the comment, never between the comment and its code. The rule reports the detachment with a fix that re-attaches it, which repairs the mdt damage directly: the `// Position at\nend of line` comment the report came from is now flagged and fixed by the tool itself.\n\nBoth rules carry fixes, are formatter-safe, and are on by default. The `--fixable` discovery sample now exercises all four fixable shapes, so `monostyle rules --fixable` lists them.\n\n##### Why major before 1.0\n\nTwo new on-by-default rules change what a run reports on unchanged code. Under the pre-1.0 semver convention monochange applies, `major` moves the minor digit: 0.2.1 to 0.3.0.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #24](https://github.com/ifiokjr/monostyle/pull/24)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Breaking changes\n\n#### Padding is symmetric, and comments stay attached\n\nReviewing the fixes from this release cycle on real pull requests surfaced two one-sided rules.\n\n##### New: `readability/blank-line-after-control-flow`\n\nThe existing rule puts a blank line before a branch; nothing put one after its block. A `}` crowded against the next `let` reads as though the branch were still open, so the new rule asks for the same gap on the way out — when statements follow in the same scope. It stays quiet at the end of an enclosing body, where closing punctuation asks for nothing, and leaves the blanks its sibling rules already report to them, so one missing line is never counted twice.\n\n##### New: `readability/detached-comment`\n\nA comment above a line describes that line, so the blank the old remediation runs inserted between a comment and its `if` did not make the comment breathe — it orphaned it. Comments belong downward: padding goes above the comment, never between the comment and its code. The rule reports the detachment with a fix that re-attaches it, which repairs the mdt damage directly: the `// Position at\nend of line` comment the report came from is now flagged and fixed by the tool itself.\n\nBoth rules carry fixes, are formatter-safe, and are on by default. The `--fixable` discovery sample now exercises all four fixable shapes, so `monostyle rules --fixable` lists them.\n\n##### Why major before 1.0\n\nTwo new on-by-default rules change what a run reports on unchanged code. Under the pre-1.0 semver convention monochange applies, `major` moves the minor digit: 0.2.1 to 0.3.0.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #24](https://github.com/ifiokjr/monostyle/pull/24)"
+		},
+		{
+			"owner_id": "monostyle_languages",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_languages/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monostyle_languages` was updated to 0.3.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Changed\n\n#### No package-specific changes were recorded; `monostyle_languages` was updated to 0.3.0 as part of group `release`."
+		},
+		{
+			"owner_id": "monostyle_lexer",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_lexer/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monostyle_lexer` was updated to 0.3.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Changed\n\n#### No package-specific changes were recorded; `monostyle_lexer` was updated to 0.3.0 as part of group `release`."
+		},
+		{
+			"owner_id": "monostyle_markdown",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_markdown/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monostyle_markdown` was updated to 0.3.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Changed\n\n#### No package-specific changes were recorded; `monostyle_markdown` was updated to 0.3.0 as part of group `release`."
+		},
+		{
+			"owner_id": "monostyle_metrics",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_metrics/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `monostyle_metrics` was updated to 0.3.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Changed\n\n#### No package-specific changes were recorded; `monostyle_metrics` was updated to 0.3.0 as part of group `release`."
+		},
+		{
+			"owner_id": "monostyle_rules",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_rules/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Breaking changes",
+						"collapsed": false,
+						"entries": [
+							"#### Padding is symmetric, and comments stay attached\n\nReviewing the fixes from this release cycle on real pull requests surfaced two one-sided rules.\n\n##### New: `readability/blank-line-after-control-flow`\n\nThe existing rule puts a blank line before a branch; nothing put one after its block. A `}` crowded against the next `let` reads as though the branch were still open, so the new rule asks for the same gap on the way out — when statements follow in the same scope. It stays quiet at the end of an enclosing body, where closing punctuation asks for nothing, and leaves the blanks its sibling rules already report to them, so one missing line is never counted twice.\n\n##### New: `readability/detached-comment`\n\nA comment above a line describes that line, so the blank the old remediation runs inserted between a comment and its `if` did not make the comment breathe — it orphaned it. Comments belong downward: padding goes above the comment, never between the comment and its code. The rule reports the detachment with a fix that re-attaches it, which repairs the mdt damage directly: the `// Position at\nend of line` comment the report came from is now flagged and fixed by the tool itself.\n\nBoth rules carry fixes, are formatter-safe, and are on by default. The `--fixable` discovery sample now exercises all four fixable shapes, so `monostyle rules --fixable` lists them.\n\n##### Why major before 1.0\n\nTwo new on-by-default rules change what a run reports on unchanged code. Under the pre-1.0 semver convention monochange applies, `major` moves the minor digit: 0.2.1 to 0.3.0.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #24](https://github.com/ifiokjr/monostyle/pull/24)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Breaking changes\n\n#### Padding is symmetric, and comments stay attached\n\nReviewing the fixes from this release cycle on real pull requests surfaced two one-sided rules.\n\n##### New: `readability/blank-line-after-control-flow`\n\nThe existing rule puts a blank line before a branch; nothing put one after its block. A `}` crowded against the next `let` reads as though the branch were still open, so the new rule asks for the same gap on the way out — when statements follow in the same scope. It stays quiet at the end of an enclosing body, where closing punctuation asks for nothing, and leaves the blanks its sibling rules already report to them, so one missing line is never counted twice.\n\n##### New: `readability/detached-comment`\n\nA comment above a line describes that line, so the blank the old remediation runs inserted between a comment and its `if` did not make the comment breathe — it orphaned it. Comments belong downward: padding goes above the comment, never between the comment and its code. The rule reports the detachment with a fix that re-attaches it, which repairs the mdt damage directly: the `// Position at\nend of line` comment the report came from is now flagged and fixed by the tool itself.\n\nBoth rules carry fixes, are formatter-safe, and are on by default. The `--fixable` discovery sample now exercises all four fixable shapes, so `monostyle rules --fixable` lists them.\n\n##### Why major before 1.0\n\nTwo new on-by-default rules change what a run reports on unchanged code. Under the pre-1.0 semver convention monochange applies, `major` moves the minor digit: 0.2.1 to 0.3.0.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #24](https://github.com/ifiokjr/monostyle/pull/24)"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli` was updated to 0.3.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli` was updated to 0.3.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-darwin-arm64` was updated to 0.3.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-darwin-arm64` was updated to 0.3.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-darwin-x64` was updated to 0.3.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-darwin-x64` was updated to 0.3.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-gnu` was updated to 0.3.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-gnu` was updated to 0.3.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-musl` was updated to 0.3.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-musl` was updated to 0.3.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-gnu` was updated to 0.3.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-gnu` was updated to 0.3.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-musl` was updated to 0.3.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-musl` was updated to 0.3.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-win32-arm64-msvc` was updated to 0.3.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-win32-arm64-msvc` was updated to 0.3.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/cli-win32-x64-msvc` was updated to 0.3.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/cli-win32-x64-msvc` was updated to 0.3.0 as part of group `release`."
+		},
+		{
+			"owner_id": "@monostyle-rs/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"#### No package-specific changes were recorded; `@monostyle-rs/skill` was updated to 0.3.0 as part of group `release`."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)\n\n### Changed\n\n#### No package-specific changes were recorded; `@monostyle-rs/skill` was updated to 0.3.0 as part of group `release`."
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "ifiokjr",
+		"repo": "monostyle",
+		"host": null
+	}
+}
