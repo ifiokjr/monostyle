@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.2) (2026-09-23)
+
+Grouped release for `release`.
+
+### Features
+
+#### `blank-line-before-return` is now auto-fixable
+
+_Packages:_ 🟠 _monostyle_, 🟠 _monostyle_rules_
+
+The return rule asked for a blank line but carried no fix, which made the largest single finding class in every repository a manual chore. The fix inserts the blank above the return — the same edit, and the same formatter-safety argument, as the blank-line insertion the before-control-flow rule has always carried: Rustfmt, Prettier, Black, and `dart format` all preserve blank lines between statements and none of them add one.
+
+`monostyle rules --fixable` now lists five fixable rules, and the discovery sample fires on every one of them. The idempotence property holds: a second `monostyle fix` run changes nothing.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #28](https://github.com/ifiokjr/monostyle/pull/28)
+
 ## [0.3.1](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.1) (2026-09-23)
 
 Grouped release for `release`.
