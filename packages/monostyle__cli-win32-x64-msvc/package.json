@@ -1,6 +1,6 @@
 {
 	"name": "@monostyle-rs/cli-win32-x64-msvc",
-	"version": "0.3.0",
+	"version": "0.3.1",
 	"description": "Prebuilt monostyle binary for Windows x64",
 	"homepage": "https://github.com/ifiokjr/monostyle",
 	"bugs": {
