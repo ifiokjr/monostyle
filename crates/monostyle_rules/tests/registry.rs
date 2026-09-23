@@ -52,10 +52,11 @@ pub fn process(input: &Input, mode: Mode, flags: Flags, cache: &Cache) -> Result
         Ok(value) => use_it(value),
     }
     // Increment the retry counter
-    let x = compute(ab, cd, ef, gh, input.scale, input.offset, input.limit, input.target);
-    // Explain the final value.
 
-    Ok(x)
+    let x = compute(ab, cd, ef, gh, input.scale, input.offset, input.limit, input.target);
+    // The retry count is final once validated.
+    let total = x.scale + input.offset;
+    return Ok(total);
 
 
 
@@ -312,6 +313,7 @@ fn only_the_formatter_safe_rules_produce_a_fix() {
 		vec![
 			"readability/blank-line-after-control-flow",
 			"readability/blank-line-before-control-flow",
+			"readability/blank-line-before-return",
 			"readability/detached-comment",
 			"readability/excessive-blank-lines"
 		],

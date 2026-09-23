@@ -513,6 +513,7 @@ fn only_the_formatter_safe_rules_are_listed_as_fixable() {
 		vec![
 			"readability/blank-line-after-control-flow",
 			"readability/blank-line-before-control-flow",
+			"readability/blank-line-before-return",
 			"readability/detached-comment",
 			"readability/excessive-blank-lines"
 		],

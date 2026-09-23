@@ -7,15 +7,14 @@
 //! Each rule reports where the space is missing and why it matters, so a finding is actionable
 //! without consulting documentation.
 //!
-//! # Why only two rules are auto-fixable
+//! # Why only these rules are auto-fixable
 //!
-//! Inserting a blank line before a control-flow statement, and deleting the blank lines past the
-//! allowance, are the only edits here guaranteed to survive a formatter. Rustfmt, Prettier, Black, and
-//! `dart format` all preserve a blank line between statements and none of them remove one, so neither
-//! fix can fight the project's own tooling.
+//! Every fix here is a blank line added or removed — an edit Rustfmt, Prettier, Black, and `dart format`
+//! all preserve, and none of them perform, so the fixes cannot fight the project's own tooling.
 //!
-//! Together they are what makes the rest of the module safe to follow automatically: every other rule
-//! asks for a gap without bounding it, and this pair supplies both the gap and the ceiling.
+//! Together they are what makes the rest of the module safe to follow automatically: the rules ask for
+//! gaps before branches and returns, after blocks, and between groups, and the ceiling rule bounds how
+//! large any of those gaps may grow.
 //!
 //! Every other rule is deliberately left to the reader. Breaking a long line, renaming an identifier,
 //! extracting a function, and adding an explanatory comment are all judgement calls whose automated
@@ -359,6 +358,9 @@ pub fn blank_line_before_return(file: &LexedFile, config: &RulesConfig) -> Vec<F
 			continue;
 		}
 
+		let anchor = Span::new(line.start_byte, line.start_byte, line.number, line.number);
+		let fix = Fix::insert(anchor, "\n", "insert a blank line above the return");
+
 		findings.push(
 			FindingBuilder::new(
 				"readability/blank-line-before-return",
@@ -370,10 +372,9 @@ pub fn blank_line_before_return(file: &LexedFile, config: &RulesConfig) -> Vec<F
 			.message("the return follows other work with no blank line before it")
 			.suggestion(
 				"Add a blank line before the return so the exit from this function is visible \
-				 at a glance. This is left to you rather than fixed automatically: a formatter may \
-				 reflow the surrounding block, and a rewrite that fights the formatter is worse than \
-				 the missing line.",
+				 at a glance.",
 			)
+			.fix(fix)
 			.build(),
 		);
 	}
