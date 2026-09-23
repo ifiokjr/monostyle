@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.1) (2026-09-23)
+
+Grouped release for `release`.
+
+### Fixes
+
+#### Fix Dart raw strings swallowing the rest of the file
+
+_Packages:_ 🟢 _monostyle_, 🟢 _monostyle_lexer_, 🟢 _monostyle_rules_
+
+In Dart, `r'...'` is a raw string: the backslash is an ordinary character, not an escape. The scanner honored `\'` inside `r'...'` anyway, so a raw string holding a backslash never closed. Every following line was classified as blank string content, with two consequences: the layout rules went blind for the rest of the file, and the blank-line fixer deleted the "blank" lines — real code — as formatting. On a downstream repository the fixer removed seven lines of live Dart from a build script this way.
+
+Raw prefixed forms no longer honor escapes, and a backslash at the end of a raw line no longer continues the literal. The file now lexes as code, and the fixer leaves it alone.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #26](https://github.com/ifiokjr/monostyle/pull/26)
+
 ## [0.3.0](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.0) (2026-09-23)
 
 Grouped release for `release`.
