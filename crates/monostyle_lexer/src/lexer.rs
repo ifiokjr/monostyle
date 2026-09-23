@@ -929,6 +929,7 @@ impl Scanner {
 				rule,
 				opener_length: rule.open.chars().count(),
 				hashes: 0,
+				raw: false,
 				multiline: rule.multiline,
 			});
 		}
@@ -958,6 +959,7 @@ impl Scanner {
 					hashes,
 					// A raw string spans lines whether or not it carries hashes.
 					multiline: true,
+					raw: true,
 				});
 			}
 		}
@@ -976,6 +978,9 @@ impl Scanner {
 			rule,
 			opener_length: 1 + rule.open.chars().count(),
 			hashes: 0,
+			// A prefixed form such as `r"..."` is a raw literal: the prefix changes the quote's meaning,
+			// so the escapes the plain rule allows do not apply inside it.
+			raw: *character == 'r',
 			multiline: true,
 		})
 	}
@@ -994,6 +999,7 @@ impl Scanner {
 			opener_length,
 			hashes,
 			multiline,
+			raw,
 		} = start;
 		let end = closing_delimiter(rule, hashes);
 
@@ -1001,13 +1007,18 @@ impl Scanner {
 		// caller passes the remainder of the line rather than the bounded peek window used for
 		// delimiter matching.
 		let body = line_remainder.get(rule.open.len()..).unwrap_or_default();
+
+		// In a raw form a backslash is an ordinary character, so `r'\''` closes at the second quote and
+		// `r'\'` does not escape at all.
+		let effective_escapes = rule.escapes && !raw;
 		let has_close = hashes > 0
-			|| find_literal_close(body, &end, rule.escapes, rule.extra_escapes).is_some();
+			|| find_literal_close(body, &end, effective_escapes, rule.extra_escapes).is_some();
 
 		// A backslash at end of line continues a string in most languages, so the literal really
 		// does span lines even though it was declared single-line. Rust and Shell both rely on
-		// this, and rejecting it would read the following lines as code.
-		let continues = body.trim_end().ends_with('\\');
+		// this, and rejecting it would read the following lines as code. A raw form has no
+		// line continuations either: the backslash is data.
+		let continues = !raw && body.trim_end().ends_with('\\');
 
 		// A single-line literal with no closer and no continuation is a mis-read rather than an
 		// unterminated literal — an apostrophe in a comment, most often — so it is emitted as code
@@ -1022,7 +1033,8 @@ impl Scanner {
 		// tell which of the two owns the current character.
 		self.literals.push(Literal {
 			end,
-			escapes: rule.escapes,
+			// A raw prefix disables the escapes the plain rule would honor.
+			escapes: rule.escapes && !raw,
 			multiline: multiline || continues,
 			interpolation: rule.interpolates.then(|| {
 				// Every interpolating language in the profile table has a style; defaulting to
@@ -1449,6 +1461,13 @@ struct LiteralStart {
 	/// rule's own `multiline` flag does not apply. Reading a raw string as single-line closed it at the end
 	/// of its first line, which leaked the rest of its contents into the analysis as code.
 	multiline: bool,
+	/// Whether the prefix form is raw, which disables backslash escapes inside the literal.
+	///
+	/// Dart's `r'...'` is the case that matters: in a raw string `\'` is a backslash followed by a quote,
+	/// not an escaped quote. Honoring the escape left the literal open to end of file, and every line
+	/// after it was classified as blank string content — which the blank-line fixer then deleted as
+	/// formatting.
+	raw: bool,
 }
 
 /// Builds the delimiter that closes a literal opened with `hashes` hashes.

@@ -848,3 +848,42 @@ fn line_numbers_are_one_based_and_contiguous() {
 		}
 	}
 }
+
+#[test]
+fn a_dart_raw_string_backslash_does_not_swallow_the_file() {
+	// `r'\'` is a raw string whose content is one backslash: in a raw string a backslash is data, not
+	// an escape. Honoring it as an escape left the literal open, every following line was classified as
+	// blank string content, and the blank-line fixer deleted them as formatting — seven lines of real
+	// Dart disappeared from a script in a downstream repository.
+	let source = "\
+void main() {
+    if (char == r'\\') {
+        index += 1;
+    }
+    return index;
+}
+";
+	let lexed = lex(source, Language::Dart);
+
+	let kinds: Vec<_> = lexed
+		.lines
+		.iter()
+		.map(|line| (line.number, line.kind))
+		.collect();
+
+	assert!(
+		lexed.unterminated.is_empty(),
+		"the string should close: {:?}",
+		lexed.unterminated
+	);
+
+	for (number, kind) in kinds {
+		if [2, 3, 4, 5].contains(&number) {
+			assert_eq!(
+				kind,
+				LineKind::Code,
+				"line {number} is real Dart and must be code, got {kind:?}"
+			);
+		}
+	}
+}
