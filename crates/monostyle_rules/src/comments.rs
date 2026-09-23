@@ -238,7 +238,6 @@ pub fn excessive_comments(file: &LexedFile, config: &RulesConfig) -> Vec<Finding
 
 	// A file needs enough code for a ratio to be meaningful; below this, a short file with a
 	// couple of explanatory comments trips the limit for no good reason.
-
 	if code_lines < MIN_CODE_LINES {
 		return Vec::new();
 	}

@@ -183,6 +183,140 @@ fn has_separation_above(lines: &[LexedLine], index: usize, required_blanks: usiz
 	false
 }
 
+/// Reports a control-flow block whose closing brace is followed straight by another statement.
+///
+/// Padding is symmetric: the space before a branch announces that a decision is starting, and the space
+/// after its block announces that it finished. A `}` crowded against the next `let` reads as though the
+/// branch were still open.
+///
+/// The rule stays quiet where another rule already owns the blank, so a single missing line is never
+/// reported twice: the next line being control flow belongs to [`blank_line_before_control_flow`], and
+/// the next line being a `return` belongs to [`blank_line_before_return`]. Closing punctuation — the
+/// brace that ends the enclosing function, a wrapped expression's final paren — is not a statement, so
+/// the end of a body asks for nothing.
+///
+/// [`blank_line_before_control_flow`]: fn@crate::whitespace::blank_line_before_control_flow
+/// [`blank_line_before_return`]: fn@crate::whitespace::blank_line_before_return
+pub fn blank_line_after_control_flow(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
+	if !config.require_blank_line_after_control_flow {
+		return Vec::new();
+	}
+
+	let mut findings = Vec::new();
+
+	// The depth each decision-opened body lives at, with the line that opened it, innermost last. Only
+	// bodies opened by a decision are tracked: a function or type body ending asks for nothing, because
+	// the space between two items is a different question from the space around a branch.
+	let mut opened: Vec<(usize, usize)> = Vec::new();
+	let mut depth: usize = 0;
+
+	for (index, line) in file.lines.iter().enumerate() {
+		if !line.is_code() {
+			continue;
+		}
+
+		let code = line.masked_code.trim_start();
+		let opens = line.masked_code.matches('{').count();
+		let closes = line.masked_code.matches('}').count();
+		let depth_before = depth;
+
+		depth = depth_before.saturating_add(opens).saturating_sub(closes);
+
+		// A body whose braces balance on the opener's own line — `if ready { work(); }` — never opened
+		// a region, so it can never close one either.
+		let spanned = depth > depth_before;
+
+		if spanned && !line.decisions.is_empty() {
+			opened.push((depth_before, index));
+		}
+
+		// A line that both closes and reopens — `} else {` — continues the same decision, so the chain
+		// is reported once, at the brace that ends its last branch.
+		if code.starts_with('}') && !code.ends_with('{') {
+			let mut ended_decision = false;
+
+			// A body lives one depth below its opener, so it has closed once the depth drops back to
+			// the level the decision was written at.
+			opened.retain(|(body_depth, opened_at)| {
+				let keep = *body_depth < depth;
+
+				if !keep && index > *opened_at {
+					ended_decision = true;
+				}
+
+				keep
+			});
+
+			if ended_decision && let Some(finding) = missing_line_after(file, index) {
+				findings.push(finding);
+			}
+		}
+	}
+
+	findings
+}
+
+/// Builds the finding for a statement crowded against the control-flow block above it.
+///
+/// A comment between the brace and the statement belongs to the statement — it describes what comes
+/// next — so the blank goes above the comment rather than between the two, and the fix is anchored
+/// there.
+fn missing_line_after(file: &LexedFile, closer: usize) -> Option<Finding> {
+	let next = file.lines.get(closer.checked_add(1)?)?;
+
+	// A blank line is already the padding the rule asks for.
+	if next.is_blank() {
+		return None;
+	}
+
+	// A comment belongs to the code below it, so the blank goes above the comment rather than between
+	// the comment and the statement it describes.
+	if next.is_comment() {
+		return Some(missing_line_finding(next));
+	}
+
+	// Closing punctuation: the brace that ends the enclosing body, or the final delimiter of a wrapped
+	// expression. The end of a scope is not a statement and asks for nothing. A literal line is data,
+	// not the start of a statement either.
+	if !next.is_code() {
+		return None;
+	}
+
+	if next.masked_code.trim_start().starts_with('}') || !next.starts_statement() {
+		return None;
+	}
+
+	// Control flow and returns are owned by their own rules, which report the same missing blank with
+	// their own explanation. The lexer's decision table is what the before-rule fires on, so consulting
+	// the same table here is what keeps one missing line from being counted twice.
+	if !next.decisions.is_empty() || next.is_return {
+		return None;
+	}
+
+	Some(missing_line_finding(next))
+}
+
+/// Builds the finding for one line missing the blank above it.
+fn missing_line_finding(next: &LexedLine) -> Finding {
+	let anchor = Span::new(next.start_byte, next.start_byte, next.number, next.number);
+	let fix = Fix::insert(anchor, "\n", "insert a blank line after the block above");
+
+	FindingBuilder::new(
+		"readability/blank-line-after-control-flow",
+		Category::Readability,
+		line_span(next),
+	)
+	.severity(Severity::Minor)
+	.weight(1.0)
+	.message("this statement follows a control-flow block with no blank line between them")
+	.suggestion(
+		"Add a blank line so the branch or loop reads as finished rather than running into the \
+		 statement that follows it.",
+	)
+	.fix(fix)
+	.build()
+}
+
 /// Reports a `return` that is crowded against complex code above it.
 ///
 /// A return is where control leaves, so giving it a blank line announces the departure
@@ -707,15 +841,7 @@ fn body_kind(file: &LexedFile, line: &LexedLine) -> Option<BodyKind> {
 		return Some(BodyKind::Alternatives);
 	}
 
-	// A decision or nesting keyword is the plainest block there is: `if x {`, `while ready {`.
-	if !(line.decisions.is_empty() && line.nesting.is_empty()) {
-		return Some(BodyKind::Statements);
-	}
-
-	let trimmed = line.masked_code.trim_end();
-
-	// A block marker that is not a keyword: a `do` block, a `then` branch, an `=>` arm.
-	if trimmed.ends_with("=>") || trimmed.ends_with("then") || trimmed.ends_with("do") {
+	if opens_statement_block(line) {
 		return Some(BodyKind::Statements);
 	}
 
@@ -730,11 +856,31 @@ fn body_kind(file: &LexedFile, line: &LexedLine) -> Option<BodyKind> {
 		return None;
 	}
 
-	if brace_opens_a_block(line) {
-		return Some(BodyKind::Statements);
+	Some(literal_or_block(line))
+}
+
+/// Returns true when a line opens a block of statements rather than a list of items or alternatives.
+///
+/// A decision or nesting keyword is the plainest block there is — `if x {`, `while ready {` — followed
+/// by the block markers that are not keywords: a `do` block, a `then` branch, an `=>` arm.
+fn opens_statement_block(line: &LexedLine) -> bool {
+	if !(line.decisions.is_empty() && line.nesting.is_empty()) {
+		return true;
 	}
 
-	Some(BodyKind::Data)
+	let trimmed = line.masked_code.trim_end();
+
+	trimmed.ends_with("=>") || trimmed.ends_with("then") || trimmed.ends_with("do")
+}
+
+/// Classifies a brace that is neither a declaration nor a decision: it opens a statement block when the
+/// brace begins a scope (`fn a() {`, a bare block) and a literal otherwise.
+fn literal_or_block(line: &LexedLine) -> BodyKind {
+	if brace_opens_a_block(line) {
+		BodyKind::Statements
+	} else {
+		BodyKind::Data
+	}
 }
 
 /// Returns true when a line opens a body whose members are alternatives rather than steps.
@@ -1003,6 +1149,141 @@ fn check_run(
 		))
 		.build(),
 	);
+}
+
+/// Reports a comment separated from the code it documents.
+///
+/// A comment above a line is read as describing that line, so a blank line between them does not make
+/// the comment breathe — it orphans it. The comment belongs downward, always: padding a branch asks for
+/// the blank *above* the comment, never between the comment and its code.
+///
+/// The same attachment governs chains: several comment blocks in a row are read as one description, so
+/// a blank anywhere between the first block and the code it documents is reported, at the first blank.
+///
+/// # Why some separations are exempt
+///
+/// A block of `//!` at the top of a file is a header, not an attachment, and the blank after it is how
+/// every file in this repository separates that header from its imports. The same is true of the first
+/// comment block in a file, which is where license and copyright notices live. Neither is describing
+/// the line below, so neither is held to it.
+pub fn detached_comment(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
+	if !config.require_attached_comments {
+		return Vec::new();
+	}
+
+	let mut findings = Vec::new();
+	let mut index = 0;
+
+	while let Some(block) = CommentBlock::starting_at(file, index) {
+		if let Some(finding) = block.detachment(file) {
+			findings.push(finding);
+		}
+
+		index = block.resumes_after();
+	}
+
+	findings
+}
+
+/// A comment block and the line it documents.
+///
+/// Walking forward from a block, comment lines are read as one description and blank lines are read as
+/// the gap; the first code line after it all is what the description belongs to.
+struct CommentBlock {
+	/// Index of the block's first line.
+	start: usize,
+	/// Index of the first blank line past the block, when the block is separated from what follows.
+	gap: Option<usize>,
+	/// Index of the documented line.
+	attached: usize,
+}
+
+impl CommentBlock {
+	/// Finds the next comment block at or after `index`.
+	///
+	/// Returns `None` at end of file, including the case of a trailing comment block with no code after
+	/// it — a comment that documents nothing below has nothing to detach from.
+	fn starting_at(file: &LexedFile, index: usize) -> Option<Self> {
+		let start = (index..file.lines.len())
+			.find(|i| file.lines.get(*i).is_some_and(LexedLine::is_comment))?;
+
+		let mut cursor = start;
+		let mut gap = None;
+
+		loop {
+			let line = file.lines.get(cursor)?;
+
+			if line.is_comment() {
+				cursor += 1;
+			} else if line.is_blank() {
+				gap.get_or_insert(cursor);
+				cursor += 1;
+			} else {
+				return Some(Self {
+					start,
+					gap,
+					attached: cursor,
+				});
+			}
+		}
+	}
+
+	/// The finding for a block separated from its code, if the separation counts.
+	fn detachment(&self, file: &LexedFile) -> Option<Finding> {
+		let gap = self.gap?;
+		let blank_line = file.lines.get(gap)?;
+		let attached = file.lines.get(self.attached)?;
+
+		// A block at the very top of the file is a header when it is not an outer doc comment: `//!`
+		// introduces the file, and a plain comment carries license or copyright text, so the blank after
+		// either is formatting rather than a detachment. An outer doc block (`///`) at that position is
+		// different — it is attached to the item below by definition, which is what makes a blank before
+		// the item a mistake.
+		let opener = file
+			.lines
+			.get(self.start)
+			.map(|line| line.text.trim_start())
+			.unwrap_or_default();
+		let is_header =
+			self.start == 0 && !(opener.starts_with("///") || opener.starts_with("/**"));
+
+		if is_header {
+			return None;
+		}
+
+		Some(
+			FindingBuilder::new(
+				"readability/detached-comment",
+				Category::Readability,
+				line_span(blank_line),
+			)
+			.severity(Severity::Minor)
+			.weight(0.75)
+			.message(format!(
+				"this comment is separated from line {} by a blank line",
+				attached.number
+			))
+			.suggestion(
+				"A comment belongs to the code below it. Delete the blank line, or move the comment \
+				 down if it describes something else.",
+			)
+			.fix(Fix::delete(
+				Span::new(
+					blank_line.start_byte,
+					attached.start_byte,
+					blank_line.number,
+					attached.number,
+				),
+				"attach the comment to the line it documents",
+			))
+			.build(),
+		)
+	}
+
+	/// The index the scan resumes at: the documented line, which cannot start another block.
+	fn resumes_after(&self) -> usize {
+		self.attached
+	}
 }
 
 /// Reports runs of blank lines longer than the configured maximum.

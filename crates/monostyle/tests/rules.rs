@@ -105,7 +105,6 @@ use std::process::Command;
 // ---------------------------------------------------------------------------
 // The registry is what `monostyle rules` shows and what `disabled-rules` matches
 // ---------------------------------------------------------------------------
-
 #[test]
 fn the_rule_listing_names_the_markdown_rules() {
 	// Four of these were documented as rules while being emitted from inside another one, so they were
@@ -246,8 +245,6 @@ fn the_disable_flag_works_for_a_new_rule() {
 // ---------------------------------------------------------------------------
 // group-separation through the real pipeline
 // ---------------------------------------------------------------------------
-
-/// Builds a function whose body holds `count` unseparated statements.
 fn crowded_function(count: usize) -> String {
 	let mut source = String::from("fn work() {\n");
 
@@ -417,7 +414,6 @@ fn build() -> Point {
 // ---------------------------------------------------------------------------
 // The blank-line ceiling and its fix
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_stacked_blank_run_is_reported_and_named() {
 	// The ceiling exists because every other layout rule asks for a gap without bounding one. A gap
@@ -505,32 +501,28 @@ fn fix_targets_the_collapse_by_rule_name() {
 }
 
 #[test]
-fn both_formatter_safe_rules_are_listed_as_fixable() {
-	// Inserting a blank line and deleting the ones past the allowance are the two edits a formatter
-	// leaves alone. A third fixable rule needs the same argument made for it, so the list is pinned.
-	let output = stdout(&["rules", "--fixable", "--format", "json"]);
-	let decoded: serde_json::Value = serde_json::from_str(&output).expect("valid JSON");
-	let names: Vec<&str> = decoded
-		.as_array()
-		.expect("an array")
-		.iter()
-		.map(|rule| rule["name"].as_str().expect("a name"))
-		.collect();
+fn only_the_formatter_safe_rules_are_listed_as_fixable() {
+	// Every fixable rule is an edit a formatter leaves alone: inserting a blank line, deleting the ones
+	// past the allowance, padding after a block, and re-attaching a comment. A new fixable rule needs
+	// the same argument made for it, so the list is pinned.
+	let mut names = listed_rules(&["rules", "--fixable", "--format", "json"]);
+	names.sort();
 
 	assert_eq!(
 		names,
 		vec![
+			"readability/blank-line-after-control-flow",
 			"readability/blank-line-before-control-flow",
+			"readability/detached-comment",
 			"readability/excessive-blank-lines"
 		],
-		"only the two formatter-safe rules should be fixable"
+		"only the formatter-safe rules should be fixable"
 	);
 }
 
 // ---------------------------------------------------------------------------
 // Markdown prose versus the code inside it
 // ---------------------------------------------------------------------------
-
 #[test]
 fn prose_is_never_scored_but_fence_code_is() {
 	// Both halves in one document: the numbered list is prose, so a code rule must not read it, while the
@@ -604,7 +596,6 @@ fn fence_findings_are_attributed_to_the_example() {
 // ---------------------------------------------------------------------------
 // A checked-in bundle is a dependency, not the project
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_bundled_dependency_is_skipped_and_can_be_included() {
 	// The two halves of the ignore decision: a bundle banner means the file is somebody else's code, and

@@ -214,6 +214,7 @@ impl Cache {
 
 					Some(entry.to_lines())
 				}
+
 				_ => {
 					self.record_miss();
 
@@ -398,6 +399,7 @@ impl CachedLine {
 				3 => LineKind::CodeWithComment,
 				_ => LineKind::Literal,
 			},
+
 			code_start_column: self.code_start_column,
 			trailing_comment_column: self.trailing_comment_column,
 			comment_intent: self.comment_intent.and_then(intent_from_index),

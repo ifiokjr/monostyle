@@ -20,8 +20,6 @@ use crate::profile::StringRule;
 // ---------------------------------------------------------------------------
 // Shared tables
 // ---------------------------------------------------------------------------
-
-/// Line comments shared by the C family.
 const C_LINE_COMMENTS: &[&str] = &["//"];
 
 /// Block comments shared by the C family.
@@ -71,11 +69,6 @@ const NULLISH: &[&str] = &["??", "?.", "??="];
 // ---------------------------------------------------------------------------
 // Per-language tables
 // ---------------------------------------------------------------------------
-
-/// Rust string rules.
-///
-/// Hashed raw literals are absent because they are resolved from the hash count at open
-/// time rather than from a fixed delimiter pair.
 const RUST_STRINGS: &[StringRule] = &[
 	StringRule::escaped("\"", "\""),
 	StringRule::escaped("'", "'"),
@@ -419,8 +412,6 @@ const SHELL_END: &[&str] = &["fi", "done", "esac"];
 // ---------------------------------------------------------------------------
 // Profiles
 // ---------------------------------------------------------------------------
-
-/// The base profile every C-family language specializes.
 fn c_family(language: Language) -> LanguageProfile {
 	LanguageProfile {
 		language,

@@ -24,6 +24,14 @@ pub struct RulesConfig {
 	pub require_blank_line_before_control_flow: bool,
 	/// Minimum gap, in lines, between two consecutive control-flow statements.
 	pub min_blank_lines_between_control_flow: usize,
+	/// Whether a control-flow block must be followed by a blank line when more statements follow it in
+	/// the same scope.
+	pub require_blank_line_after_control_flow: bool,
+	/// Whether a comment must sit directly against the code it documents.
+	///
+	/// A comment above a line describes that line, so a blank between them orphans it. The blank
+	/// belongs above the comment instead.
+	pub require_attached_comments: bool,
 	/// Whether a blank line is required before a trailing `return` in a multi-statement body.
 	pub require_blank_line_before_return: bool,
 	/// Whether logical groups of statements must be separated.
@@ -116,6 +124,8 @@ impl Default for RulesConfig {
 
 			require_blank_line_before_control_flow: true,
 			min_blank_lines_between_control_flow: 1,
+			require_blank_line_after_control_flow: true,
+			require_attached_comments: true,
 			require_blank_line_before_return: true,
 			require_group_separation: true,
 			max_statements_per_group: 8,

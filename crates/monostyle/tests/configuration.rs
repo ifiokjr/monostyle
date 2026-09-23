@@ -201,7 +201,6 @@ fn the_severe_line_width_tracks_the_configured_limit() {
 // ---------------------------------------------------------------------------
 // Error paths and edge cases
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_value_of_the_wrong_type_is_an_error() {
 	// A string where a number belongs should fail loudly rather than being ignored, because the score
@@ -295,7 +294,6 @@ fn tolerance_flags_also_move_the_path_limit() {
 // ---------------------------------------------------------------------------
 // Unknown-key reporting
 // ---------------------------------------------------------------------------
-
 #[test]
 fn an_unknown_nested_key_is_reported_with_its_full_path() {
 	let result = apply_config(

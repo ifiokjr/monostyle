@@ -129,6 +129,7 @@ impl Score {
 		} else {
 			DEFAULT_HALF_LIFE
 		};
+
 		let raw = Score::PERFECT * 2f64.powf(-density / half_life);
 
 		Self {
@@ -150,6 +151,7 @@ impl Score {
 		} else {
 			DEFAULT_HALF_LIFE
 		};
+
 		let raw = Score::PERFECT * 2f64.powf(-density / half_life);
 
 		Self {

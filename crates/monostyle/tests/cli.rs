@@ -86,7 +86,6 @@ fn fixture_str(relative: &str) -> String {
 // ---------------------------------------------------------------------------
 // Basic invocations
 // ---------------------------------------------------------------------------
-
 #[test]
 fn the_version_flag_prints_a_version() {
 	let output = stdout(&["--version"]);
@@ -177,7 +176,6 @@ fn a_directory_with_no_analyzable_files_is_not_an_error() {
 // ---------------------------------------------------------------------------
 // Output formats
 // ---------------------------------------------------------------------------
-
 #[test]
 fn json_output_is_valid_and_structured() {
 	let output = stdout(&[
@@ -214,7 +212,6 @@ fn output_can_be_written_to_a_file() {
 // ---------------------------------------------------------------------------
 // Filters and flags
 // ---------------------------------------------------------------------------
-
 #[test]
 fn units_adds_a_function_table() {
 	let output = stdout(&[
@@ -362,7 +359,6 @@ fn quiet_suppresses_the_summary_line() {
 // ---------------------------------------------------------------------------
 // Rules and config
 // ---------------------------------------------------------------------------
-
 #[test]
 fn rules_lists_every_rule() {
 	let output = stdout(&["rules"]);
@@ -404,10 +400,11 @@ fn rules_can_be_filtered_to_fixable_ones() {
 
 	let listed = decoded.as_array().expect("an array");
 
-	// Only the blank-line rule is fixable, so this should be a short list rather than everything.
-	assert!(
-		listed.len() <= 3,
-		"only a few rules are fixable, got {}",
+	// Only the edits a formatter leaves alone are fixable, so this stays a short list.
+	assert_eq!(
+		listed.len(),
+		4,
+		"four rules are fixable, got {}",
 		listed.len()
 	);
 }
@@ -484,7 +481,6 @@ fn an_explicit_config_path_is_used() {
 // ---------------------------------------------------------------------------
 // Fix
 // ---------------------------------------------------------------------------
-
 #[test]
 fn fix_dry_run_writes_nothing() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
@@ -587,8 +583,6 @@ fn fix_on_an_already_clean_file_does_nothing() {
 // ---------------------------------------------------------------------------
 // Unit filters
 // ---------------------------------------------------------------------------
-
-/// Writes a file with several functions of differing quality.
 fn messy_fixture(directory: &std::path::Path) -> PathBuf {
 	let path = directory.join("messy.rs");
 
@@ -686,7 +680,6 @@ fn top_alone_is_accepted_without_units() {
 // ---------------------------------------------------------------------------
 // Output routing
 // ---------------------------------------------------------------------------
-
 #[test]
 fn toml_format_is_accepted_by_check() {
 	// The format enum is shared with the config command, so `check` must accept every value.
@@ -755,7 +748,6 @@ fn fail_under_reports_which_score_was_low() {
 // ---------------------------------------------------------------------------
 // Rule listing
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_rule_description_is_reported_in_json() {
 	let output = stdout(&["rules", "readability/deep-nesting", "--format", "json"]);
@@ -807,7 +799,6 @@ fn the_printed_config_can_be_read_back() {
 // ---------------------------------------------------------------------------
 // Fix command
 // ---------------------------------------------------------------------------
-
 #[test]
 fn fix_reports_conflicts_when_edits_overlap() {
 	// Two adjacent statements each needing a blank line produce edits that do not overlap, so this

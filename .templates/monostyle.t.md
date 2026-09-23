@@ -51,6 +51,8 @@ monostyle config                   # print the effective configuration
 | Rule                               | What it catches                                                         |
 | ---------------------------------- | ----------------------------------------------------------------------- |
 | `blank-line-before-control-flow`   | An `if`/`for`/`while` crowded against the statement above               |
+| `blank-line-after-control-flow`    | A statement crowded against the block above it                          |
+| `detached-comment`                 | A comment separated by a blank line from the code it documents          |
 | `blank-line-before-return`         | A `return` buried against the code above it                             |
 | `group-separation`                 | A run of statements longer than `max-statements-per-group` with no gaps |
 | `excessive-blank-lines`            | A run of blank lines longer than the language allows                    |

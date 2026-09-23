@@ -84,7 +84,6 @@ fn run_documentation(source: &str) -> Vec<monostyle_core::Finding> {
 // ---------------------------------------------------------------------------
 // Nesting
 // ---------------------------------------------------------------------------
-
 #[test]
 fn deeply_nested_control_flow_is_reported() {
 	let source = "\
@@ -171,7 +170,6 @@ fn a() {
 // ---------------------------------------------------------------------------
 // Parameter lists
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_wide_argument_list_is_reported() {
 	// The rule reports on count past a grace margin or on width. This call trips the count: six arguments
@@ -252,7 +250,6 @@ fn parentheses_inside_a_string_do_not_count_as_arguments() {
 // ---------------------------------------------------------------------------
 // Size
 // ---------------------------------------------------------------------------
-
 #[test]
 fn an_oversized_file_is_reported() {
 	let lines: String = (0..700)
@@ -340,7 +337,6 @@ fn a_file_limit_of_zero_disables_the_rule() {
 // ---------------------------------------------------------------------------
 // Comments
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_complex_unit_without_an_explanation_is_reported() {
 	let source = "\
@@ -590,7 +586,6 @@ fn a_short_documentation_block_is_below_the_threshold() {
 // ---------------------------------------------------------------------------
 // Configuration switches
 // ---------------------------------------------------------------------------
-
 #[test]
 fn comment_rules_can_be_turned_off() {
 	// A block whose only prose is a handful of words, which is what the thin-documentation rule targets.
@@ -624,7 +619,6 @@ fn add(a: i32, b: i32) -> i32 {
 // ---------------------------------------------------------------------------
 // Exit counting
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_unit_with_many_returns_is_reported() {
 	// Early returns are preferred to nesting, so the rule only fires well past the point where guards are
@@ -723,7 +717,6 @@ fn a_unit_within_the_exit_limit_is_accepted() {
 // ---------------------------------------------------------------------------
 // NPath and maintainability
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_unit_with_many_paths_is_reported() {
 	let arms: String = (0..14)

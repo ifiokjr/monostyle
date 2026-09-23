@@ -117,7 +117,6 @@ fn a_longer_closing_fence_is_accepted() {
 // ---------------------------------------------------------------------------
 // Headings
 // ---------------------------------------------------------------------------
-
 #[test]
 fn headings_are_extracted_with_their_levels() {
 	let document = analyze("# One\n\n## Two\n\n### Three\n");
@@ -210,7 +209,6 @@ fn a_level_repeated_is_not_a_skip() {
 // ---------------------------------------------------------------------------
 // Prose
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_prose_run_is_recorded_with_its_length() {
 	// The analyzer records every run and leaves the threshold to the rule, so `max-prose-run` is a real

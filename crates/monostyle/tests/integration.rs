@@ -101,7 +101,6 @@ fn score_summary(report: &ProjectReport) -> String {
 // ---------------------------------------------------------------------------
 // Positive and negative controls
 // ---------------------------------------------------------------------------
-
 #[test]
 fn well_written_code_produces_no_penalizing_findings() {
 	let report = analyze("good");
@@ -175,7 +174,6 @@ fn bad_fixture_scores_snapshot() {
 // ---------------------------------------------------------------------------
 // Ignoring
 // ---------------------------------------------------------------------------
-
 #[test]
 fn generated_files_are_excluded_by_default() {
 	let report = analyze_allow_empty("generated");
@@ -299,7 +297,6 @@ fn generated_detection_recognizes_each_ecosystem() {
 // ---------------------------------------------------------------------------
 // Languages
 // ---------------------------------------------------------------------------
-
 #[test]
 fn each_language_fixture_is_detected_and_scored() {
 	let report = analyze("languages");
@@ -354,7 +351,6 @@ fn doc_comments_are_recognized_across_languages() {
 // ---------------------------------------------------------------------------
 // Markdown
 // ---------------------------------------------------------------------------
-
 #[test]
 fn markdown_prose_is_never_reported_for_line_length() {
 	let report = analyze("markdown");
@@ -401,7 +397,6 @@ fn markdown_measures_code_inside_fences() {
 // ---------------------------------------------------------------------------
 // Workspaces
 // ---------------------------------------------------------------------------
-
 #[test]
 fn workspace_packages_are_detected_and_scored_separately() {
 	let report = analyze("workspace");
@@ -458,7 +453,6 @@ fn packages_are_scored_independently() {
 // ---------------------------------------------------------------------------
 // Determinism and robustness
 // ---------------------------------------------------------------------------
-
 #[test]
 fn analysis_is_deterministic() {
 	let first = analyze("bad");
@@ -550,7 +544,6 @@ fn json_output_round_trips() {
 // ---------------------------------------------------------------------------
 // Determinism
 // ---------------------------------------------------------------------------
-
 #[test]
 fn repeated_analysis_of_many_files_is_identical() {
 	// The bug this pins: per-unit metrics were memoized by the `LexedFile`'s memory address. Rayon drops

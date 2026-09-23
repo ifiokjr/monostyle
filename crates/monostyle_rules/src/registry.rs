@@ -48,6 +48,18 @@ pub fn all_rules() -> Vec<Rule> {
 			run: whitespace::blank_line_before_control_flow,
 		},
 		Rule {
+			name: "readability/blank-line-after-control-flow",
+			description: "Requires a blank line after a control-flow block when statements follow it.",
+			prose: false,
+			run: whitespace::blank_line_after_control_flow,
+		},
+		Rule {
+			name: "readability/detached-comment",
+			description: "Flags comments separated by a blank line from the code they document.",
+			prose: false,
+			run: whitespace::detached_comment,
+		},
+		Rule {
 			name: "readability/blank-line-before-return",
 			description: "Requires a blank line before a return that follows complex code.",
 			prose: false,

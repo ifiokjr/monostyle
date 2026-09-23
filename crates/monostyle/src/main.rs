@@ -27,11 +27,14 @@ const EXIT_BELOW_THRESHOLD: u8 = 1;
 /// Source used to discover which rules can produce a fix.
 ///
 /// A rule is fixable when it emits an edit for at least one input, so a source with one problem of each
-/// shape is enough to find them all. Every fixable rule has to fire on this sample: `monostyle rules
-/// --fixable` works by running each rule over it and keeping the ones that produced an edit, so a shape
-/// left out here silently disappears from the list — which is how the blank-line collapse went missing
-/// from it, because the sample contained no stacked blank lines to collapse.
-const SAMPLE_FOR_FIXABILITY: &str = "fn a() {\n    work();\n\n\n\n\n    if x {\n        work();\n    }\n    match run() {\n        Err(_) => {}\n        Ok(v) => use_it(v),\n    }\n}\n";
+/// fixable shape is enough to find them all. Every fixable rule has to fire on this sample: `monostyle
+/// rules --fixable` works by running each rule over it and keeping the ones that produced an edit, so a
+/// shape left out here silently disappears from the list — which is how the blank-line collapse went
+/// missing from it once, because the sample contained no stacked blank lines to collapse.
+///
+/// The shapes: a crowded control-flow statement, a stacked blank run, a statement crowded against the
+/// block above it, and a comment detached from its code by a blank.
+const SAMPLE_FOR_FIXABILITY: &str = "fn a() {\n    work();\n\n\n\n\n    if x {\n        work();\n    }\n    match run() {\n        Err(_) => {}\n        Ok(v) => use_it(v),\n    }\n    // explains the rebinding below\n\n    let v = use_it(v);\n}\n";
 
 /// Exit code used when the run itself failed.
 const EXIT_FAILURE: u8 = 2;

@@ -29,7 +29,6 @@ fn run_lines(source: &str) -> Vec<monostyle_core::Finding> {
 // ---------------------------------------------------------------------------
 // Magic numbers
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_meaningful_literal_is_reported() {
 	let findings = run(
@@ -100,7 +99,6 @@ fn magic_numbers_can_be_turned_off() {
 // ---------------------------------------------------------------------------
 // Short identifiers
 // ---------------------------------------------------------------------------
-
 #[test]
 fn an_unconventional_short_name_is_reported() {
 	let findings = run(quality::short_identifiers, "let ab = compute();\n");
@@ -148,7 +146,6 @@ fn short_identifiers_can_be_turned_off() {
 // ---------------------------------------------------------------------------
 // Empty handlers
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_handler_with_an_empty_body_is_reported() {
 	let findings = run(
@@ -208,7 +205,6 @@ fn empty_handlers_can_be_turned_off() {
 // ---------------------------------------------------------------------------
 // Commented-out code
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_block_of_commented_out_code_is_reported() {
 	let findings = run(
@@ -271,7 +267,6 @@ fn commented_out_code_can_be_turned_off() {
 // ---------------------------------------------------------------------------
 // Line length
 // ---------------------------------------------------------------------------
-
 #[test]
 fn a_long_breakable_line_is_reported() {
 	// A call with several arguments has somewhere to wrap to, so a finding is actionable.
@@ -402,7 +397,6 @@ fn markdown_prose_is_never_reported() {
 // ---------------------------------------------------------------------------
 // Line length inside fences
 // ---------------------------------------------------------------------------
-
 #[test]
 fn an_overlong_line_inside_a_markdown_fence_is_reported_against_the_document() {
 	// The Markdown rule path forwards to the line-length rule, so a missing forwarding call would make
