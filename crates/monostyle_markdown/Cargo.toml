@@ -1,6 +1,6 @@
 [package]
 name = "monostyle_markdown"
-version = "0.3.2"
+version = "0.3.3"
 authors.workspace = true
 categories.workspace = true
 edition.workspace = true

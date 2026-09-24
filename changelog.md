@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)
+
+Grouped release for `release`.
+
+### Features
+
+#### Inline annotations on GitHub pull requests
+
+_Packages:_ 🟠 _monostyle_
+
+`monostyle check . --format github` now emits every finding as a GitHub Actions workflow command. GitHub renders those as inline annotations on the pull request diff — the same surface an ESLint or Clippy annotation uses — so a reviewer sees where the improvements are without opening the full report.
+
+Severity maps to the annotation level: `Minor` findings are warnings and `Major` and `Critical` findings are errors. The `%`, `\r`, and `\n` characters in the message are encoded, so a message containing a percent sign or a newline cannot truncate the annotation.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #30](https://github.com/ifiokjr/monostyle/pull/30)
+
 ## [0.3.2](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.2) (2026-09-23)
 
 Grouped release for `release`.

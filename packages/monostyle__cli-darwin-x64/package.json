@@ -1,6 +1,6 @@
 {
 	"name": "@monostyle-rs/cli-darwin-x64",
-	"version": "0.3.2",
+	"version": "0.3.3",
 	"description": "Prebuilt monostyle binary for macOS x64",
 	"homepage": "https://github.com/ifiokjr/monostyle",
 	"bugs": {
