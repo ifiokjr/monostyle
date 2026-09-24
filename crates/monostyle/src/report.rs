@@ -22,6 +22,7 @@ use std::path::Path;
 use std::path::PathBuf;
 
 use monostyle_core::Finding;
+use monostyle_core::Severity;
 
 use crate::aggregate::RuleImpact;
 use crate::analysis::FileReport;
@@ -579,4 +580,52 @@ fn display_path(path: &Path) -> String {
 	}
 
 	path.display().to_string()
+}
+
+/// Renders every finding as a GitHub Actions workflow command.
+///
+/// GitHub reads `::warning file=…,line=…,endLine=…::message` lines from a workflow step's output and
+/// renders them as inline annotations on the pull request diff — the same surface an
+/// `ESLint` or `Clippy` annotation appears on. Severity maps to the annotation level: `Minor` findings are warnings and
+/// `Major` and `Critical` findings are errors, which is how a reviewer sees the rules the repository
+/// chose to enforce without opening the full report.
+pub fn render_project_github(report: &ProjectReport) -> String {
+	let mut commands = String::new();
+
+	for file in &report.files {
+		let path = display_path(&file.path);
+
+		for finding in &file.findings {
+			let level = match finding.severity {
+				Severity::Minor => "warning",
+				Severity::Info => "notice",
+				Severity::Major | Severity::Critical => "error",
+			};
+
+			let message = format!("[{}] {}", finding.rule, finding.message);
+			let escaped = escape_workflow_command(&message);
+			let mut command = String::new();
+			write!(
+				command,
+				"::{} file={path},line={},endLine={},title={}::{}",
+				level, finding.span.start_line, finding.span.end_line, finding.rule, escaped,
+			)
+			.expect("a String write cannot fail");
+
+			commands.push_str(&command);
+			commands.push('\n');
+		}
+	}
+
+	commands
+}
+
+/// Escapes text for a GitHub Actions workflow command's message field.
+///
+/// The `%`, `\r`, and `\n` characters have structural meaning in the workflow-command syntax, so each
+/// is replaced with its encoded form before the text reaches the annotation.
+fn escape_workflow_command(text: &str) -> String {
+	text.replace('%', "%25")
+		.replace('\r', "%0D")
+		.replace('\n', "%0A")
 }
