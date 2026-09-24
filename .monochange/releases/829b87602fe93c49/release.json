@@ -1,0 +1,925 @@
+{
+	"schema_version": "0.7",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-09-24T20:22:51Z",
+	"command": "release",
+	"version": "0.3.3",
+	"versions": {
+		"release": "0.3.3"
+	},
+	"release_targets": [
+		{
+			"id": "release",
+			"kind": "group",
+			"version": "0.3.3",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.3.3",
+			"members": [
+				"monostyle",
+				"monostyle_core",
+				"monostyle_languages",
+				"monostyle_lexer",
+				"monostyle_markdown",
+				"monostyle_metrics",
+				"monostyle_rules",
+				"@monostyle-rs/cli",
+				"@monostyle-rs/cli-darwin-arm64",
+				"@monostyle-rs/cli-darwin-x64",
+				"@monostyle-rs/cli-linux-arm64-gnu",
+				"@monostyle-rs/cli-linux-arm64-musl",
+				"@monostyle-rs/cli-linux-x64-gnu",
+				"@monostyle-rs/cli-linux-x64-musl",
+				"@monostyle-rs/cli-win32-arm64-msvc",
+				"@monostyle-rs/cli-win32-x64-msvc",
+				"@monostyle-rs/skill"
+			]
+		}
+	],
+	"released_packages": [
+		"@monostyle-rs/cli",
+		"@monostyle-rs/cli-darwin-arm64",
+		"@monostyle-rs/cli-darwin-x64",
+		"@monostyle-rs/cli-linux-arm64-gnu",
+		"@monostyle-rs/cli-linux-arm64-musl",
+		"@monostyle-rs/cli-linux-x64-gnu",
+		"@monostyle-rs/cli-linux-x64-musl",
+		"@monostyle-rs/cli-win32-arm64-msvc",
+		"@monostyle-rs/cli-win32-x64-msvc",
+		"@monostyle-rs/skill",
+		"monostyle",
+		"monostyle_core",
+		"monostyle_languages",
+		"monostyle_lexer",
+		"monostyle_markdown",
+		"monostyle_metrics",
+		"monostyle_rules"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monostyle/Cargo.toml",
+		"crates/monostyle/changelog.md",
+		"crates/monostyle_core/Cargo.toml",
+		"crates/monostyle_core/changelog.md",
+		"crates/monostyle_languages/Cargo.toml",
+		"crates/monostyle_languages/changelog.md",
+		"crates/monostyle_lexer/Cargo.toml",
+		"crates/monostyle_lexer/changelog.md",
+		"crates/monostyle_markdown/Cargo.toml",
+		"crates/monostyle_markdown/changelog.md",
+		"crates/monostyle_metrics/Cargo.toml",
+		"crates/monostyle_metrics/changelog.md",
+		"crates/monostyle_rules/Cargo.toml",
+		"crates/monostyle_rules/changelog.md",
+		"packages/monostyle__cli/changelog.md",
+		"packages/monostyle__cli/package.json",
+		"packages/monostyle__cli-darwin-arm64/changelog.md",
+		"packages/monostyle__cli-darwin-arm64/package.json",
+		"packages/monostyle__cli-darwin-x64/changelog.md",
+		"packages/monostyle__cli-darwin-x64/package.json",
+		"packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-arm64-gnu/package.json",
+		"packages/monostyle__cli-linux-arm64-musl/changelog.md",
+		"packages/monostyle__cli-linux-arm64-musl/package.json",
+		"packages/monostyle__cli-linux-x64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-x64-gnu/package.json",
+		"packages/monostyle__cli-linux-x64-musl/changelog.md",
+		"packages/monostyle__cli-linux-x64-musl/package.json",
+		"packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-arm64-msvc/package.json",
+		"packages/monostyle__cli-win32-x64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-x64-msvc/package.json",
+		"packages/monostyle__skill/changelog.md",
+		"packages/monostyle__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monostyle-rs/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_languages",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_lexer",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_markdown",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_metrics",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_rules",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.3",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monostyle/changelog.md",
+		"crates/monostyle_core/changelog.md",
+		"crates/monostyle_languages/changelog.md",
+		"crates/monostyle_lexer/changelog.md",
+		"crates/monostyle_markdown/changelog.md",
+		"crates/monostyle_metrics/changelog.md",
+		"crates/monostyle_rules/changelog.md",
+		"packages/monostyle__cli/changelog.md",
+		"packages/monostyle__cli-darwin-arm64/changelog.md",
+		"packages/monostyle__cli-darwin-x64/changelog.md",
+		"packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-arm64-musl/changelog.md",
+		"packages/monostyle__cli-linux-x64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-x64-musl/changelog.md",
+		"packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-x64-msvc/changelog.md",
+		"packages/monostyle__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/github-annotations.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/github-annotations.md",
+			"summary": "Inline annotations on GitHub pull requests",
+			"details": "`monostyle check . --format github` now emits every finding as a GitHub Actions workflow command. GitHub renders those as inline annotations on the pull request diff — the same surface an ESLint or Clippy annotation uses — so a reviewer sees where the improvements are without opening the full report.\n\nSeverity maps to the annotation level: `Minor` findings are warnings and `Major` and `Critical` findings are errors. The `%`, `\\r`, and `\\n` characters in the message are encoded, so a message containing a percent sign or a newline cannot truncate the annotation.",
+			"targets": [
+				{
+					"id": "monostyle",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "b28ba6bb613d403cf8b0157cbcfcf3b23eadaf23",
+						"short_sha": "b28ba6b",
+						"url": "https://github.com/ifiokjr/monostyle/commit/b28ba6bb613d403cf8b0157cbcfcf3b23eadaf23",
+						"authored_at": "2026-09-24T21:22:15+01:00",
+						"committed_at": "2026-09-24T21:22:15+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#30",
+						"title": "feat(cli): inline annotations on GitHub pull request diffs",
+						"url": "https://github.com/ifiokjr/monostyle/pull/30",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "b28ba6bb613d403cf8b0157cbcfcf3b23eadaf23",
+						"short_sha": "b28ba6b",
+						"url": "https://github.com/ifiokjr/monostyle/commit/b28ba6bb613d403cf8b0157cbcfcf3b23eadaf23",
+						"authored_at": "2026-09-24T21:22:15+01:00",
+						"committed_at": "2026-09-24T21:22:15+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#30",
+						"title": "feat(cli): inline annotations on GitHub pull request diffs",
+						"url": "https://github.com/ifiokjr/monostyle/pull/30",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "release",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [
+					"Grouped release for `release`."
+				],
+				"sections": [
+					{
+						"title": "Features",
+						"collapsed": false,
+						"entries": [
+							"#### Inline annotations on GitHub pull requests\n\n_Packages:_ 🟠 _monostyle_\n\n`monostyle check . --format github` now emits every finding as a GitHub Actions workflow command. GitHub renders those as inline annotations on the pull request diff — the same surface an ESLint or Clippy annotation uses — so a reviewer sees where the improvements are without opening the full report.\n\nSeverity maps to the annotation level: `Minor` findings are warnings and `Major` and `Critical` findings are errors. The `%`, `\\r`, and `\\n` characters in the message are encoded, so a message containing a percent sign or a newline cannot truncate the annotation.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #30](https://github.com/ifiokjr/monostyle/pull/30)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\nGrouped release for `release`.\n\n### Features\n\n#### Inline annotations on GitHub pull requests\n\n_Packages:_ 🟠 _monostyle_\n\n`monostyle check . --format github` now emits every finding as a GitHub Actions workflow command. GitHub renders those as inline annotations on the pull request diff — the same surface an ESLint or Clippy annotation uses — so a reviewer sees where the improvements are without opening the full report.\n\nSeverity maps to the annotation level: `Minor` findings are warnings and `Major` and `Critical` findings are errors. The `%`, `\\r`, and `\\n` characters in the message are encoded, so a message containing a percent sign or a newline cannot truncate the annotation.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #30](https://github.com/ifiokjr/monostyle/pull/30)"
+		},
+		{
+			"owner_id": "monostyle",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Features",
+						"collapsed": false,
+						"entries": [
+							"#### Inline annotations on GitHub pull requests\n\n`monostyle check . --format github` now emits every finding as a GitHub Actions workflow command. GitHub renders those as inline annotations on the pull request diff — the same surface an ESLint or Clippy annotation uses — so a reviewer sees where the improvements are without opening the full report.\n\nSeverity maps to the annotation level: `Minor` findings are warnings and `Major` and `Critical` findings are errors. The `%`, `\\r`, and `\\n` characters in the message are encoded, so a message containing a percent sign or a newline cannot truncate the annotation.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #30](https://github.com/ifiokjr/monostyle/pull/30)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Features\n\n#### Inline annotations on GitHub pull requests\n\n`monostyle check . --format github` now emits every finding as a GitHub Actions workflow command. GitHub renders those as inline annotations on the pull request diff — the same surface an ESLint or Clippy annotation uses — so a reviewer sees where the improvements are without opening the full report.\n\nSeverity maps to the annotation level: `Minor` findings are warnings and `Major` and `Critical` findings are errors. The `%`, `\\r`, and `\\n` characters in the message are encoded, so a message containing a percent sign or a newline cannot truncate the annotation.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #30](https://github.com/ifiokjr/monostyle/pull/30)"
+		},
+		{
+			"owner_id": "monostyle_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_core` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_core` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_languages",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_languages/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_languages` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_languages` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_lexer",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_lexer/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_lexer` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_lexer` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_markdown",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_markdown/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_markdown` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_markdown` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_metrics",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_metrics/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_metrics` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_metrics` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_rules",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_rules/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_rules` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_rules` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-arm64` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-arm64` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-x64` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-x64` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-gnu` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-gnu` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-musl` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-musl` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-gnu` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-gnu` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-musl` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-musl` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-arm64-msvc` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-arm64-msvc` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-x64-msvc` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-x64-msvc` was updated to 0.3.3 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/skill` was updated to 0.3.3 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.3](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.3) (2026-09-24)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/skill` was updated to 0.3.3 as part of group `release`.**"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "ifiokjr",
+		"repo": "monostyle",
+		"host": null
+	}
+}
