@@ -998,3 +998,58 @@ fn a_file_that_merely_mentions_a_bundler_is_still_analyzed() {
 		"the file should have been analyzed"
 	);
 }
+
+#[test]
+fn github_format_emits_workflow_commands() {
+	// The GitHub Actions workflow-command syntax is what makes findings appear as inline annotations on
+	// the pull request diff — the same surface an ESLint or Clippy annotation uses. A finding that
+	// doesn't render here is invisible to the reviewer.
+	let output = stdout(&[
+		"check",
+		fixture("bad/rust.rs").to_str().unwrap(),
+		"--no-ignore",
+		"--format",
+		"github",
+		"--no-color",
+	]);
+
+	assert!(
+		output.contains("::warning file="),
+		"minor findings should render as warnings: {output}"
+	);
+	assert!(
+		output.contains("line="),
+		"the annotation should carry the line number"
+	);
+	assert!(
+		output.contains("title=readability/"),
+		"the annotation should carry the rule name"
+	);
+}
+
+#[test]
+fn github_format_escapes_workflow_command_characters() {
+	// A finding message containing `%` must be encoded, or GitHub truncates the annotation at the `%`.
+	let temp = tempfile::tempdir().expect("a temporary directory");
+	let path = temp.path().join("sample.rs");
+
+	std::fs::write(
+		&path,
+		"fn work() {\n    if 100 % 3 == 1 {\n        work();\n    }\n}\n",
+	)
+	.expect("write");
+
+	let output = stdout(&[
+		"check",
+		path.to_str().unwrap(),
+		"--no-ignore",
+		"--format",
+		"github",
+		"--no-color",
+	]);
+
+	assert!(
+		!output.contains("::error file=") || output.contains("%25"),
+		"a % in the message should be encoded as %25: {output}"
+	);
+}

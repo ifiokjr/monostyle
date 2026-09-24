@@ -264,6 +264,7 @@ fn render_report(
 ) -> Result<String, Box<dyn std::error::Error>> {
 	Ok(match args.format {
 		OutputFormat::Json => report::render_project_json(report)?,
+		OutputFormat::Github => report::render_project_github(report),
 		OutputFormat::Text | OutputFormat::Toml => {
 			report::render_project(report, args.explain, args.units)
 		}

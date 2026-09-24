@@ -177,4 +177,6 @@ pub enum OutputFormat {
 	Json,
 	/// TOML, used for configuration output.
 	Toml,
+	/// GitHub Actions workflow commands, which render as inline annotations on the pull request diff.
+	Github,
 }
