@@ -549,10 +549,13 @@ fn dart(language: Language) -> LanguageProfile {
 }
 
 /// Swift adds `guard`, `repeat`, multiline strings, and nestable comments.
+///
+/// Interpolation is `\(expression)`, which is why it has a style of its own: treating it as
+/// a `${…}` dialect read every literal `{` inside a Swift string as a hole opener.
 fn swift(language: Language) -> LanguageProfile {
 	LanguageProfile {
 		strings: SWIFT_STRINGS,
-		interpolation: Some(Interpolation::Dollar { braced: true }),
+		interpolation: Some(Interpolation::BackslashParen),
 		nestable_comments: true,
 		decision_keywords: SWIFT_DECISIONS,
 		nesting_keywords: SWIFT_NESTING,
@@ -580,7 +583,7 @@ fn php(language: Language) -> LanguageProfile {
 		line_comments: PHP_LINE_COMMENTS,
 		strings: PHP_STRINGS,
 		string_prefixes: NO_CHARS,
-		interpolation: Some(Interpolation::Dollar { braced: true }),
+		interpolation: Some(Interpolation::DollarCurly),
 		heredoc: Some(PHP_HEREDOC),
 		decision_keywords: PHP_DECISIONS,
 		nesting_keywords: PHP_NESTING,

@@ -30,10 +30,19 @@ fail-under = { readability = 70.0, complexity = 70.0 }
 
 # Tests may be structurally noisier than the code they exercise: a table-driven test builds data
 # inline, and a fixture that reads as deeply nested is often the clearest way to express the case it
-# covers. The floor is lower for the same reason the nesting limit is higher.
+# covers. The floor is lower for the same reason the nesting limit is higher. Language fixture
+# suites assert on 1-based line numbers, which read as magic numbers out of context.
 [[section]]
 path = "crates/monostyle/tests"
 reason = "tests build data inline, so nesting and long lines read differently than in source"
+max-nesting-depth = 8
+max-parameters-inline = 8
+max-unit-lines = 200
+fail-under = { readability = 60.0, complexity = 60.0 }
+
+[[section]]
+path = "crates/monostyle_lexer/tests"
+reason = "fixture suites assert on 1-based line numbers, which read as magic numbers out of context"
 max-nesting-depth = 8
 max-parameters-inline = 8
 max-unit-lines = 200

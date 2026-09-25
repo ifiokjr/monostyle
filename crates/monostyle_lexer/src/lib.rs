@@ -16,6 +16,8 @@ pub mod line;
 
 pub use comment::CommentIntent;
 pub use lexer::LexedFile;
+pub use lexer::ProtectedKind;
+pub use lexer::ProtectedRange;
 pub use lexer::Unterminated;
 pub use lexer::UnterminatedKind;
 pub use lexer::lex;
