@@ -138,8 +138,37 @@ fn needs_blank_line(
 		return false;
 	};
 
+	// Two single-line control-flow statements in a row are a tight guard sequence:
+	// `if (a > b) return 1;` followed by `if (c < d) return 0;` reads better without
+	// a blank between them, the same way a chain of early returns does. A multi-line
+	// block (one that opens a brace) still asks for the blank, because its body is a
+	// group rather than a line.
+	if is_single_line_control_flow(previous) {
+		return false;
+	}
+
 	// The first statement inside a block has nothing above it to separate from.
 	!(previous.opens_block() || is_block_declaration(previous))
+}
+
+/// Returns true when a line is a control-flow statement whose whole body sits on the same line.
+///
+/// `if (a > b) return 1;` and `if ready { go(); }` are single-line: their braces balance and nothing
+/// opens onto the lines below. The shape matters because padding between two of them chops a tight
+/// guard sequence into pieces — the same reasoning that exempts a chain of early returns.
+fn is_single_line_control_flow(line: &LexedLine) -> bool {
+	if line.decisions.is_empty() {
+		return false;
+	}
+
+	if line.opens_block() {
+		return false;
+	}
+
+	let opens = line.masked_code.matches('{').count();
+	let closes = line.masked_code.matches('}').count();
+
+	opens == closes
 }
 
 /// Returns true when the lines above `index` already separate this statement.
@@ -328,33 +357,54 @@ pub fn blank_line_before_return(file: &LexedFile, config: &RulesConfig) -> Vec<F
 	}
 
 	let mut findings = Vec::new();
+	let mut bodies = Bodies::default();
 
 	for (index, line) in file.lines.iter().enumerate() {
+		// The region is read before the line is recorded, so an arm line is judged
+		// as the arm it is rather than as the first statement of its own body.
+		let in_alternatives = bodies.region() == Region::Alternatives;
+
 		if !line.is_code() || !line.is_return {
+			bodies.visit(file, line);
 			continue;
 		}
 
 		// An early-return guard *is* the pattern this style prefers, so it is never reported.
 		// Reporting it would penalize exactly the structure the guide recommends.
 		if is_guard_clause(line) {
+			bodies.visit(file, line);
 			continue;
 		}
 
 		if has_separation_above(&file.lines, index, 1) {
+			bodies.visit(file, line);
 			continue;
 		}
 
 		let Some(previous) = previous_code_line(&file.lines, index) else {
+			bodies.visit(file, line);
 			continue;
 		};
 
 		// A return as the first statement of its block is idiomatic and needs no preamble.
 		if previous.opens_block() {
+			bodies.visit(file, line);
 			continue;
 		}
 
 		// A return directly after another return is a sequence of guards, which reads fine.
 		if previous.is_return {
+			bodies.visit(file, line);
+			continue;
+		}
+
+		// A return inside a match or switch arm is an alternative, not a sequential exit:
+		// the arms are cases of one decision, and padding between them is the formatter's
+		// call. `Err(e) => return e,` is the case that matters — the arm is a single line,
+		// and inserting a blank between it and the arm above it chops the match into
+		// pieces the way no formatter would.
+		if in_alternatives {
+			bodies.visit(file, line);
 			continue;
 		}
 
@@ -372,11 +422,13 @@ pub fn blank_line_before_return(file: &LexedFile, config: &RulesConfig) -> Vec<F
 			.message("the return follows other work with no blank line before it")
 			.suggestion(
 				"Add a blank line before the return so the exit from this function is visible \
-				 at a glance.",
+					at a glance.",
 			)
 			.fix(fix)
 			.build(),
 		);
+
+		bodies.visit(file, line);
 	}
 
 	findings
