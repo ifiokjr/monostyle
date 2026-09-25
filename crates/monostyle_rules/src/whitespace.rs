@@ -126,6 +126,13 @@ fn needs_blank_line(
 		return false;
 	}
 
+	// A continuation of the statement above — `} else if`, `} catch`, or a bare `else` — is the
+	// same decision, not a new one. Padding between a chain's own branches would put a blank
+	// line in the middle of a single statement.
+	if continues_statement(line) {
+		return false;
+	}
+
 	// Separation is a property of the immediately preceding physical line. A blank line or a comment
 	// above the statement already gives the reader the break this rule asks for, which is why the
 	// check is on the physical neighbour rather than the previous code line: a comment between two
@@ -1666,6 +1673,37 @@ fn is_block_declaration(line: &LexedLine) -> bool {
 /// These attach metadata to the declaration below them. A keyword inside one is an option name — a
 /// serde `default`, an angular `if`, a Java `for` in an annotation — so treating it as control flow
 /// asks for a blank line that would separate the attribute from the item it describes.
+/// Whether a line continues the statement above it rather than starting a new one.
+///
+/// Brace languages write the continuation against the closing brace — `} else if`, `} catch`,
+/// `} finally` — and end-keyword languages write it bare — `else`, `elsif`, `elif`, `catch`,
+/// `finally`, and Dart's `on Exception catch`. Each of these is part of the decision the
+/// previous lines opened, so none of them is a statement that needs padding.
+fn continues_statement(line: &LexedLine) -> bool {
+	let code = line.masked_code.trim_start();
+
+	// Brace languages: a closer that reopens — the `}` is the previous branch's end, and what
+	// follows it belongs to the same statement.
+	if let Some(after) = code.strip_prefix('}') {
+		return starts_with_continuation_keyword(after.trim_start());
+	}
+
+	starts_with_continuation_keyword(code)
+}
+
+/// Whether `code` begins with a keyword that continues a decision chain.
+fn starts_with_continuation_keyword(code: &str) -> bool {
+	const CONTINUATIONS: &[&str] = &["else", "elsif", "elif", "catch", "finally", "on "];
+
+	CONTINUATIONS.iter().any(|keyword| {
+		let Some(rest) = code.strip_prefix(keyword) else {
+			return false;
+		};
+
+		rest.is_empty() || rest.starts_with(char::is_whitespace) || rest.starts_with('{')
+	})
+}
+
 fn is_attribute(line: &LexedLine) -> bool {
 	let trimmed = line.masked_code.trim_start();
 
