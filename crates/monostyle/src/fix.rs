@@ -6,18 +6,29 @@
 //! would invalidate every offset after the first edit, so they are applied in **descending** order
 //! by start offset: an edit near the end of the file shifts nothing that a later edit refers to.
 //!
-//! Two further rules keep the result correct:
+//! Four further rules keep the result correct:
 //!
 //! 1. **Overlapping fixes are dropped, not merged.** Two rules editing the same bytes cannot both
 //!    be right, and picking one arbitrarily could produce code that neither rule intended. The
 //!    first fix in file order wins and the conflict is reported.
 //! 2. **A file is only written when every fix applied cleanly.** A partially fixed file is worse
 //!    than an unfixed one, because the reader cannot tell which findings were addressed.
+//! 3. **Nothing is edited inside a literal or a comment.** The lexer reports the byte ranges of
+//!    strings, heredocs, and comments; a fix whose range enters one is rejected, because changing
+//!    those bytes changes the program's data rather than its layout.
+//! 4. **A whitespace-only rewrite is checked before it is written.** Moving blank lines cannot
+//!    change the code's shape, so the fixed text is re-lexed and compared with the original: the
+//!    same lines in the same kinds, the same literal contents, the same unterminated constructs.
+//!    A mismatch means a rule mis-saw the file, and the file is left untouched.
 
 use std::path::Path;
 use std::path::PathBuf;
 
 use monostyle_core::Fix;
+use monostyle_lexer::LexedFile;
+use monostyle_lexer::LineKind;
+use monostyle_lexer::ProtectedRange;
+use monostyle_lexer::lex;
 
 /// The outcome of applying fixes to one file.
 #[derive(Debug, Clone)]
@@ -28,8 +39,14 @@ pub struct AppliedFixes {
 	pub applied: usize,
 	/// How many were skipped because they overlapped another fix.
 	pub conflicts: usize,
+	/// How many were refused because they would edit inside a literal or comment.
+	pub rejected: usize,
 	/// Whether the file was written, or only planned.
 	pub written: bool,
+	/// Whether the rewrite failed the structural check and was thrown away.
+	pub reverted: bool,
+	/// Whether the file was skipped because its scan hit an unterminated construct.
+	pub skipped_untrusted: bool,
 }
 
 /// Applies `fixes` to `source`, returning the new text.
@@ -81,28 +98,210 @@ pub fn apply_fixes(source: &str, fixes: &[Fix]) -> (String, usize) {
 	(result, conflicts)
 }
 
+/// Whether `fix` would edit bytes strictly inside a protected region.
+///
+/// An insertion (a zero-width range) is allowed at either boundary of a region — placing a blank
+/// line immediately before a string that starts a line is a layout change, not an edit to the
+/// string — but not in its interior. Any non-zero-width range that overlaps a region's interior
+/// is refused.
+#[must_use]
+pub fn enters_protected(fix: &Fix, ranges: &[ProtectedRange]) -> bool {
+	let start = fix.span.start_byte;
+	let end = fix.span.end_byte;
+
+	ranges.iter().any(|range| {
+		if start == end {
+			range.start_byte < start && start < range.end_byte
+		} else {
+			start < range.end_byte && range.start_byte < end
+		}
+	})
+}
+
 /// Writes `fixes` to `path`, or reports what would be written.
 ///
 /// A dry run performs every step except the write, so the reported counts are the ones a real run
 /// would produce.
 pub fn fix_file(path: &Path, fixes: &[Fix], dry_run: bool) -> std::io::Result<AppliedFixes> {
 	let source = std::fs::read_to_string(path)?;
-	let (rewritten, conflicts) = apply_fixes(&source, fixes);
 
-	let applied = fixes.iter().filter(|fix| !fix.is_empty()).count() - conflicts;
+	// A scan that needed recovery means the lexer guessed where the constructs end. Its protected
+	// ranges may be wrong in exactly the way that would let a fix corrupt a literal, so the file
+	// is left for a human.
+	let scan = crate::analysis::language_for_path(path).map(|language| lex(&source, language));
+	let scan_clean = scan.as_ref().is_none_or(LexedFile::is_clean);
+
+	let outcome = |applied: usize,
+	               conflicts: usize,
+	               rejected: usize,
+	               written: bool,
+	               reverted: bool,
+	               skipped_untrusted: bool| {
+		AppliedFixes {
+			path: path.to_path_buf(),
+			applied,
+			conflicts,
+			rejected,
+			written,
+			reverted,
+			skipped_untrusted,
+		}
+	};
+
+	if !scan_clean {
+		return Ok(outcome(0, 0, 0, false, false, true));
+	}
+
+	let ranges = scan
+		.as_ref()
+		.map(|lexed| lexed.protected.clone())
+		.unwrap_or_default();
+	let rejected = fixes
+		.iter()
+		.filter(|fix| enters_protected(fix, &ranges))
+		.count();
+	let fixable: Vec<Fix> = fixes
+		.iter()
+		.filter(|fix| !fix.is_empty() && !enters_protected(fix, &ranges))
+		.cloned()
+		.collect();
+
+	let (rewritten, conflicts) = apply_fixes(&source, &fixable);
+	let applied = fixable.len().saturating_sub(conflicts);
+
+	// The structural check runs over the whole fixed text, so a mismatch is a property of the file
+	// rather than of one edit: everything is thrown away, not just the suspicious edit.
+	let reverted =
+		whitespace_only(&fixable) && !structure_preserved(&source, &rewritten, scan.as_ref());
 
 	// Writing an unchanged file would touch its modification time, which defeats a build system
-	// watching for changes.
-	let changed = rewritten != source;
+	// watching for changes. A pure-CRLF file has no bare line feeds of its own, so any the fixes
+	// introduced are re-terminated rather than mixed into the file's line endings.
+	let pure_crlf = is_pure_crlf(&source);
+	let rewritten = if pure_crlf {
+		normalize_to_crlf(&rewritten)
+	} else {
+		rewritten
+	};
+	let changed = rewritten != source && !reverted;
 
 	if !dry_run && changed {
 		std::fs::write(path, &rewritten)?;
 	}
 
-	Ok(AppliedFixes {
-		path: path.to_path_buf(),
+	Ok(outcome(
 		applied,
 		conflicts,
-		written: !dry_run && changed,
-	})
+		rejected,
+		!dry_run && changed,
+		reverted,
+		false,
+	))
+}
+
+/// Whether every fix's replacement is whitespace, which is what the layout rules produce.
+fn whitespace_only(fixes: &[Fix]) -> bool {
+	fixes
+		.iter()
+		.all(|fix| fix.replacement.chars().all(char::is_whitespace))
+}
+
+/// Whether every line feed in `source` is preceded by a carriage return.
+fn is_pure_crlf(source: &str) -> bool {
+	let bytes = source.as_bytes();
+
+	bytes
+		.iter()
+		.zip(bytes.iter().skip(1))
+		.all(|(previous, byte)| *byte != b'\n' || *previous == b'\r')
+		&& bytes.first() != Some(&b'\n')
+}
+
+/// Re-terminates bare line feeds with carriage returns.
+fn normalize_to_crlf(text: &str) -> String {
+	let mut normalized = Vec::with_capacity(text.len());
+	let mut previous = 0u8;
+
+	for byte in text.bytes() {
+		if byte == b'\n' && previous != b'\r' {
+			normalized.push(b'\r');
+		}
+
+		normalized.push(byte);
+		previous = byte;
+	}
+
+	// Inserting an ASCII byte into a UTF-8 stream cannot invalidate it, so the lossy fallback is
+	// unreachable in practice and only keeps the function total.
+	String::from_utf8(normalized)
+		.unwrap_or_else(|error| String::from_utf8_lossy(error.as_bytes()).into_owned())
+}
+
+/// Whether a whitespace-only rewrite left the code's structure intact.
+///
+/// Blank lines are invisible to all three comparisons: line kinds are counted over non-blank
+/// lines only, the masked skeleton drops whitespace by construction, and literal contents are
+/// compared as sorted multisets so a reordering could never mask a change.
+fn structure_preserved(source: &str, rewritten: &str, scan: Option<&LexedFile>) -> bool {
+	let Some(before) = scan else {
+		return true;
+	};
+
+	let after = lex(rewritten, before.language);
+
+	if line_kinds(before) != line_kinds(&after) {
+		return false;
+	}
+
+	if unterminated_counts(before) != unterminated_counts(&after) {
+		return false;
+	}
+
+	protected_contents(source, before) == protected_contents(rewritten, &after)
+}
+
+/// The sorted multiset of kinds over a file's non-blank lines.
+fn line_kinds(file: &LexedFile) -> [usize; 4] {
+	let mut counts = [0; 4];
+
+	for line in &file.lines {
+		match line.kind {
+			LineKind::Blank => {}
+			LineKind::Comment => counts[0] += 1,
+			LineKind::Code => counts[1] += 1,
+			LineKind::CodeWithComment => counts[2] += 1,
+			LineKind::Literal => counts[3] += 1,
+		}
+	}
+
+	counts
+}
+
+/// The sorted multiset of constructs that were still open at end of file.
+fn unterminated_counts(file: &LexedFile) -> [usize; 4] {
+	let mut counts = [0; 4];
+
+	for record in &file.unterminated {
+		match record.kind {
+			monostyle_lexer::UnterminatedKind::BlockComment => counts[0] += 1,
+			monostyle_lexer::UnterminatedKind::Literal => counts[1] += 1,
+			monostyle_lexer::UnterminatedKind::Heredoc => counts[2] += 1,
+			monostyle_lexer::UnterminatedKind::Regex => counts[3] += 1,
+		}
+	}
+
+	counts
+}
+
+/// The sorted raw contents of a file's protected regions, sliced from its own text.
+fn protected_contents<'a>(text: &'a str, file: &LexedFile) -> Vec<&'a str> {
+	let mut contents: Vec<&str> = file
+		.protected
+		.iter()
+		.filter_map(|range| text.get(range.start_byte..range.end_byte))
+		.collect();
+
+	contents.sort_unstable();
+
+	contents
 }
