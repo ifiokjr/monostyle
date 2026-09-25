@@ -25,7 +25,7 @@ const CORPUS: &str = "tests/fixtures/fix";
 ///
 /// A floor rather than an exact count so adding fixtures never breaks the suite, while deleting
 /// them in bulk does.
-const MIN_FIXTURES: usize = 100;
+const MIN_FIXTURES: usize = 220;
 
 /// One discovered fixture: its input path and the language implied by its extension.
 struct Fixture {

@@ -33,21 +33,25 @@ def main() -> int:
     generated = 0
 
     for index, source in enumerate(inputs):
-        text = source.read_text()
+        # Byte mode everywhere: universal-newline translation would silently
+        # rewrite CRLF fixtures to LF and corrupt the snapshots they produce.
+        text_bytes = source.read_bytes()
+        text = text_bytes.decode('utf-8', errors='replace')
         suffix = source.suffixes[-2].lstrip(".")
         language_suffix = source.name.split(".input.")[-1]
         work = SCRATCH / f"{index:03d}-{source.stem}.{language_suffix}"
-        shutil.copy(source, work)
+        work.write_bytes(text_bytes)
 
         result = subprocess.run(
             [str(BINARY), "fix", str(work), "--no-color"],
             capture_output=True,
             text=True,
         )
-        fixed = work.read_text()
+        fixed_bytes = work.read_bytes()
+        fixed = fixed_bytes.decode('utf-8', errors='replace')
 
         expected = source.with_name(source.name.replace(".input.", ".expected."))
-        expected.write_text(fixed)
+        expected.write_bytes(fixed_bytes)
 
         if fixed != text:
             generated += 1
