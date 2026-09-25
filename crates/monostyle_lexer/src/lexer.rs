@@ -290,6 +290,8 @@ struct Heredoc {
 	delimiter: String,
 	/// Whether a leading tab may precede the terminator.
 	strip_tabs: bool,
+	/// How many bytes the whole opener spans, from marker through delimiter.
+	opener_length: usize,
 	/// The line it opened on.
 	opened_at: usize,
 	/// Whether the current line is the first of the body.
@@ -701,8 +703,17 @@ impl Scanner {
 			return self.open_literal(start, &rest, &line_remainder, line, index);
 		}
 
-		if self.try_open_heredoc(&rest, line) {
-			return index + self.heredoc_marker_length(&rest);
+		let line_window = peek_line(characters, index, MAX_LINE_PEEK);
+
+		// The delimiter can be any length, so the heredoc check reads the rest of the line rather
+		// than the bounded peek window: a marker like `<<~CONFIG` was truncated to `CON`, which
+		// matched no terminator and swallowed the rest of the file.
+		if self.try_open_heredoc(&line_window, line) {
+			return index
+				+ self
+					.heredoc
+					.as_ref()
+					.map_or(0, |heredoc| heredoc.opener_length);
 		}
 
 		if character == '/'
@@ -982,7 +993,13 @@ impl Scanner {
 				raw.trim()
 			};
 
-			if candidate == heredoc.delimiter {
+			if candidate == heredoc.delimiter
+				|| (self
+					.profile
+					.heredoc
+					.is_some_and(|syntax| syntax.allows_suffix)
+					&& terminates_with_suffix(candidate, &heredoc.delimiter))
+			{
 				self.heredoc = None;
 				self.close_region(ProtectedKind::Literal, builder.end_byte);
 			}
@@ -1157,12 +1174,13 @@ impl Scanner {
 		}
 
 		let after = &rest[syntax.marker.len()..];
-		let after = if syntax.allows_dash {
+		let (dash_present, tilde_present) = (after.starts_with('-'), after.starts_with('~'));
+		let after = if syntax.allows_dash && dash_present {
 			after.strip_prefix('-').unwrap_or(after)
 		} else {
 			after
 		};
-		let after = if syntax.allows_tilde {
+		let after = if syntax.allows_tilde && tilde_present {
 			after.strip_prefix('~').unwrap_or(after)
 		} else {
 			after
@@ -1184,10 +1202,17 @@ impl Scanner {
 			return false;
 		}
 
+		let after_trimmed = after.trim_start();
+		// The opener spans the marker, any dash or tilde, any whitespace, and the delimiter.
+		let opener_length = rest.len() - after_trimmed.len() + delimiter.len();
+
 		self.open_region(ProtectedKind::Literal);
 		self.heredoc = Some(Heredoc {
 			delimiter,
-			strip_tabs: syntax.allows_dash,
+			// `<<-` closes on a tab-trimmed line; `<<~` closes wherever the indentation ends, as
+			// does the plain form, so only a dash opener asks for tab-only stripping.
+			strip_tabs: syntax.allows_dash && dash_present && !tilde_present,
+			opener_length,
 			opened_at: line.number,
 			first_line: true,
 		});
@@ -1225,45 +1250,6 @@ impl Scanner {
 			Some(Interpolation::DollarCurly) => Some(InterpolationStyle::PhpCurly),
 			None => Some(InterpolationStyle::Brace),
 		}
-	}
-
-	/// The length of the heredoc marker that was just accepted.
-	fn heredoc_marker_length(&self, rest: &str) -> usize {
-		let Some(syntax) = self.profile.heredoc else {
-			return 0;
-		};
-
-		let after = &rest[syntax.marker.len()..];
-		let stripped = if syntax.allows_dash {
-			after.strip_prefix('-').unwrap_or(after)
-		} else {
-			after
-		};
-		let stripped = if syntax.allows_tilde {
-			stripped.strip_prefix('~').unwrap_or(stripped)
-		} else {
-			stripped
-		};
-
-		let delimiter = match stripped.trim_start().chars().next() {
-			Some(quote @ ('"' | '\'')) => {
-				let body: String = stripped.trim_start()[1..]
-					.chars()
-					.take_while(|c| *c != quote)
-					.collect();
-
-				format!("{quote}{body}{quote}")
-			}
-			_ => {
-				stripped
-					.trim_start()
-					.chars()
-					.take_while(|c| c.is_alphanumeric() || *c == '_')
-					.collect()
-			}
-		};
-
-		syntax.marker.len() + (rest.len() - after.len()) + delimiter.len()
 	}
 
 	/// Whether a `/` at `index` begins a regex rather than being division.
@@ -1667,6 +1653,20 @@ fn peek(characters: &[char], index: usize) -> String {
 /// Sixteen thousand characters covers every realistic line, and anything longer is truncated rather
 /// than copied, which costs at most one mis-read literal on an already extreme input.
 const MAX_LINE_PEEK: usize = 16 * 1024;
+
+/// Whether a heredoc terminator line ends a PHP-style heredoc.
+///
+/// PHP lets the closing identifier carry code: `EOT;` on its own line is the common form. The
+/// suffix must be punctuation rather than more identifier, or `EOTICS` would close `EOT`.
+fn terminates_with_suffix(candidate: &str, delimiter: &str) -> bool {
+	let Some(rest) = candidate.strip_prefix(delimiter) else {
+		return false;
+	};
+
+	let rest = rest.trim_start();
+
+	rest.is_empty() || rest.starts_with(';') || rest.starts_with(',')
+}
 
 /// Returns characters from `index` up to the next newline, capped at `limit`.
 ///

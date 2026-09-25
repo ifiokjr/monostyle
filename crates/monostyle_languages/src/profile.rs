@@ -55,6 +55,8 @@ pub struct HeredocSyntax {
 	pub allows_dash: bool,
 	/// Whether `<<~EOF` (indentation stripping) is accepted, as in Ruby.
 	pub allows_tilde: bool,
+	/// Whether the terminator line may carry code after the identifier (`EOT;`), as in PHP.
+	pub allows_suffix: bool,
 }
 
 /// A string literal rule.

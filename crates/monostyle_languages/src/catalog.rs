@@ -210,6 +210,7 @@ const PHP_HEREDOC: HeredocSyntax = HeredocSyntax {
 	marker: "<<<",
 	allows_dash: false,
 	allows_tilde: false,
+	allows_suffix: true,
 };
 
 /// Scala string rules.
@@ -284,6 +285,7 @@ const RUBY_HEREDOC: HeredocSyntax = HeredocSyntax {
 	marker: "<<",
 	allows_dash: true,
 	allows_tilde: true,
+	allows_suffix: false,
 };
 
 /// The keyword that closes most Ruby blocks.
@@ -404,6 +406,7 @@ const SHELL_HEREDOC: HeredocSyntax = HeredocSyntax {
 	marker: "<<",
 	allows_dash: true,
 	allows_tilde: false,
+	allows_suffix: false,
 };
 
 /// The keywords that close Shell blocks.
