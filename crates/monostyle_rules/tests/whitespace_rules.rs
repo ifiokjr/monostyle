@@ -432,3 +432,96 @@ fn disabling_the_attachment_rule_silences_it() {
 
 	assert_eq!(whitespace::detached_comment(&lexed, &config), []);
 }
+
+#[test]
+fn two_single_line_control_flow_statements_need_no_blank_between_them() {
+	// `if (a > b) return 1;` followed by `if (c < d) return 0;` is a tight guard
+	// sequence. Both statements are single-line, so padding between them would chop
+	// the sequence into pieces the way no formatter would.
+	let findings = run(
+		whitespace::blank_line_before_control_flow,
+		"if (a > b) return 1;\nif (c < d) return 0;\n\nconst e = 'amazing';\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"single-line control flow statements read as a sequence: {findings:?}"
+	);
+}
+
+#[test]
+fn a_multi_line_block_still_asks_for_a_blank_before_the_next_statement() {
+	// The exemption is for single-line statements. A block that opens a brace holds
+	// a group of statements, so the statement after it still needs the blank.
+	let findings = run(
+		whitespace::blank_line_before_control_flow,
+		"fn work(ready: bool) {\n    let a = compute();\n    if ready {\n        go();\n    }\n    let done = true;\n}\n",
+	);
+
+	assert_eq!(
+		findings.len(),
+		1,
+		"a multi-line block still asks for the blank: {findings:?}"
+	);
+}
+
+#[test]
+fn a_single_line_block_still_asks_for_a_blank_before_a_control_flow_successor() {
+	// `if first { go(); }` is single-line control flow, so the `if` after it should
+	// not need a blank — the same reasoning as the guard-sequence exemption.
+	let findings = run(
+		whitespace::blank_line_before_control_flow,
+		"fn work(first: bool, second: bool) {\n    if first { go(); }\n    if second { go(); }\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"single-line blocks in a row read as a sequence: {findings:?}"
+	);
+}
+
+#[test]
+fn a_match_with_single_line_arms_takes_no_padding_before_a_return_arm() {
+	// The damage reported from the pinapod review: the fixer inserted a blank
+	// between `Ok(payload) => payload,` and `Err(tokens) => return tokens,` because
+	// the return rule fired on the arm. The arms are alternatives — cases of one
+	// decision — not a sequence needing separation.
+	let findings = run(
+		whitespace::blank_line_before_return,
+		"\tlet payload = match parse_payload(variant) {\n\t\tOk(payload) => payload,\n\t\tErr(tokens) => return tokens,\n\t};\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"match arms are alternatives, not a sequence: {findings:?}"
+	);
+}
+
+#[test]
+fn a_return_in_a_dart_switch_case_is_not_reported() {
+	let findings = run(
+		whitespace::blank_line_before_return,
+		"switch (code) {\n  case 0:\n    return 'acid';\n  case 1:\n    return 'coral';\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"switch cases are alternatives: {findings:?}"
+	);
+}
+
+#[test]
+fn a_return_outside_a_match_is_still_reported() {
+	// The exemption is for arms. A return at the top level or in a function body is
+	// a sequential exit and the rule still applies.
+	let findings = run(
+		whitespace::blank_line_before_return,
+		"fn work() -> u32 {\n    let a = compute();\n    return a;\n}\n",
+	);
+
+	assert_eq!(
+		findings.len(),
+		1,
+		"a return after work still needs the blank: {findings:?}"
+	);
+}
