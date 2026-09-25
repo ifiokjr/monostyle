@@ -244,7 +244,7 @@ fn extension_of(language: Language) -> String {
 		Language::Rust => "rs",
 		Language::Dart => "dart",
 		Language::TypeScript => "ts",
-		Language::JavaScript => "js",
+		Language::JavaScript | Language::Mozjs => "js",
 		Language::Python => "py",
 		Language::Go => "go",
 		Language::C => "c",
@@ -262,7 +262,6 @@ fn extension_of(language: Language) -> String {
 		Language::Haskell => "hs",
 		Language::Java => "java",
 		Language::Tsx => "tsx",
-		Language::Mozjs => "js",
 		Language::Markdown => "md",
 	}
 	.to_string()
