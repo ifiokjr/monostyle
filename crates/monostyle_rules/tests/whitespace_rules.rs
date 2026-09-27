@@ -580,3 +580,27 @@ fn a_bare_else_in_an_end_keyword_language_needs_no_blank() {
 		"an else branch is not a new decision: {findings:?}"
 	);
 }
+
+#[test]
+fn a_detached_comment_fix_never_deletes_the_comment_below_the_gap() {
+	// The gap between a doc block and the code may hold another comment. The blank is what
+	// separates; the comment below the gap belongs to the code and must survive the fix.
+	let source =
+		"/// A doc block.\n\n    // prepare the check\n    if ready {\n        go();\n    }\n";
+	let lexed = lex(source, Language::Rust);
+	let findings = whitespace::detached_comment(&lexed, &RulesConfig::default());
+
+	assert_eq!(
+		findings.len(),
+		1,
+		"the blank detaches the doc block: {findings:?}"
+	);
+
+	let fix = findings[0].fix.as_ref().expect("the finding carries a fix");
+	let removed = &source[fix.span.start_byte..fix.span.end_byte];
+
+	assert!(
+		removed.chars().all(char::is_whitespace),
+		"the fix may only delete blank lines, but deletes {removed:?}"
+	);
+}

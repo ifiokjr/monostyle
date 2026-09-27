@@ -1254,6 +1254,12 @@ struct CommentBlock {
 	start: usize,
 	/// Index of the first blank line past the block, when the block is separated from what follows.
 	gap: Option<usize>,
+	/// Index of the first non-blank line past the gap.
+	///
+	/// Usually the documented line itself. A comment sitting between the gap and the code
+	/// belongs to the code below it, so it ends this block rather than being absorbed into it —
+	/// the fix deletes blanks only, and the comment starts its own block.
+	gap_end: usize,
 	/// Index of the documented line.
 	attached: usize,
 }
@@ -1274,6 +1280,17 @@ impl CommentBlock {
 			let line = file.lines.get(cursor)?;
 
 			if line.is_comment() {
+				// A comment after the gap is not part of this block: it describes the code
+				// below itself, and absorbing it here would put it inside the fix's span.
+				if gap.is_some() {
+					return Some(Self {
+						start,
+						gap,
+						gap_end: cursor,
+						attached: cursor,
+					});
+				}
+
 				cursor += 1;
 			} else if line.is_blank() {
 				gap.get_or_insert(cursor);
@@ -1282,6 +1299,7 @@ impl CommentBlock {
 				return Some(Self {
 					start,
 					gap,
+					gap_end: cursor,
 					attached: cursor,
 				});
 			}
@@ -1311,6 +1329,10 @@ impl CommentBlock {
 			return None;
 		}
 
+		// The fix deletes the blank run only. Spanning through to the documented line would
+		// erase any comment the gap happens to sit above — a deletion of the author's words.
+		let gap_end_line = file.lines.get(self.gap_end)?;
+
 		Some(
 			FindingBuilder::new(
 				"readability/detached-comment",
@@ -1330,9 +1352,9 @@ impl CommentBlock {
 			.fix(Fix::delete(
 				Span::new(
 					blank_line.start_byte,
-					attached.start_byte,
+					gap_end_line.start_byte,
 					blank_line.number,
-					attached.number,
+					gap_end_line.number,
 				),
 				"attach the comment to the line it documents",
 			))
@@ -1340,7 +1362,10 @@ impl CommentBlock {
 		)
 	}
 
-	/// The index the scan resumes at: the documented line, which cannot start another block.
+	/// The index the scan resumes at.
+	///
+	/// The documented line cannot start another block — except when it *is* a comment: the
+	/// comment the gap sat above describes the code below itself and gets its own scan.
 	fn resumes_after(&self) -> usize {
 		self.attached
 	}
