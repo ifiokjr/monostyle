@@ -156,11 +156,73 @@ impl Lcg {
 	}
 }
 
+/// Splices `3-6` fragments of a language's fixtures into one source, with stacked blanks
+/// injected between fragments.
+fn recombine(pool: &[String], random: &mut Lcg) -> String {
+	let mut combined = String::new();
+
+	for _ in 0..(3 + random.below(4)) {
+		let source = pool
+			.get(random.below(pool.len()))
+			.expect("the index is below the pool's length");
+		let lines: Vec<&str> = source.lines().collect();
+
+		if lines.is_empty() {
+			continue;
+		}
+
+		let start = random.below(lines.len());
+		let width = (2 + random.below(7)).min(lines.len() - start);
+
+		let fragment = lines
+			.get(start..start + width)
+			.expect("the range stays within the fixture's lines");
+		combined.push_str(&fragment.join("\n"));
+		combined.push('\n');
+
+		if random.below(3) == 0 {
+			combined.push_str("\n\n\n\n");
+		}
+	}
+
+	combined
+}
+
+/// Fixes `source` until nothing changes, bounded at `passes`.
+///
+/// Fixing cascades — collapsing a blank run can expose a detachment the next pass removes — so
+/// the fixed point, not the first pass, is what a caller can rely on.
+fn fix_to_a_fixed_point(source: &str, language: Language, passes: usize) -> String {
+	let probe = Path::new("recombined.ext");
+	let mut current = source.to_string();
+
+	for _ in 0..passes {
+		let report = analyze_with_language(probe, &current, language, &AnalysisOptions::default());
+		let fixes: Vec<Fix> = report
+			.findings
+			.iter()
+			.filter_map(|finding| finding.fix.clone())
+			.collect();
+		let (next, _) = monostyle::fix::apply_fixes(&current, &fixes);
+
+		if next == current {
+			return current;
+		}
+
+		current = next;
+	}
+
+	current
+}
+
 #[test]
 fn recombined_fragments_fix_to_a_fixed_point() {
 	// Splice lines from a language's fixtures into new files, with stacked blanks injected at
-	// random boundaries. Whatever the combination, the pipeline must terminate, produce a file
-	// whose second fix is a no-op, and never turn a clean scan into an unclean one.
+	// random boundaries. Whatever the combination, the pipeline must reach a fixed point and
+	// never turn a clean scan into an unclean one.
+	const PASSES: usize = 5;
+	const ITERATIONS: usize = 24;
+
 	for language in [
 		Language::Rust,
 		Language::Dart,
@@ -175,74 +237,25 @@ fn recombined_fragments_fix_to_a_fixed_point() {
 		Language::Nix,
 		Language::Lua,
 	] {
-		let sources: Vec<String> = fixtures()
+		let pool: Vec<String> = fixtures()
 			.into_iter()
 			.filter(|(_, candidate)| *candidate == language)
 			.filter_map(|(path, _)| std::fs::read_to_string(path).ok())
 			.collect();
 
 		assert!(
-			sources.len() >= 3,
+			pool.len() >= 3,
 			"the recombination pool for {language:?} should not be tiny"
 		);
 
 		let mut random = Lcg(0x5EED_600D);
 
-		for iteration in 0..24 {
-			let mut combined = String::new();
+		for iteration in 0..ITERATIONS {
+			let combined = recombine(&pool, &mut random);
+			let settled = fix_to_a_fixed_point(&combined, language, PASSES);
 
-			// 3-6 fragments, each a run of 2-8 lines from a random fixture.
-			for _ in 0..(3 + random.below(4)) {
-				let source = &sources[random.below(sources.len())];
-				let lines: Vec<&str> = source.lines().collect();
-
-				if lines.is_empty() {
-					continue;
-				}
-
-				let start = random.below(lines.len());
-				let width = (2 + random.below(7)).min(lines.len() - start);
-
-				combined.push_str(&lines[start..start + width].join("\n"));
-				combined.push('\n');
-
-				if random.below(3) == 0 {
-					combined.push_str("\n\n\n\n");
-				}
-			}
-
-			let probe = Path::new("recombined.ext");
-
-			// Fixing cascades: collapsing a blank run can expose a detachment the next pass
-			// removes. The property is convergence to a fixed point within a few passes, not
-			// closure in one.
-			let mut current = combined.clone();
-
-			for pass in 1..=5 {
-				let report =
-					analyze_with_language(probe, &current, language, &AnalysisOptions::default());
-				let fixes: Vec<Fix> = report
-					.findings
-					.iter()
-					.filter_map(|finding| finding.fix.clone())
-					.collect();
-				let (next, _) = monostyle::fix::apply_fixes(&current, &fixes);
-
-				if next == current {
-					break;
-				}
-
-				assert!(
-					pass < 5,
-					"{language:?} recombination {iteration}: no fixed point after 5 passes"
-				);
-
-				current = next;
-			}
-
-			// And fixing cannot make a clean scan unclean.
 			let before = monostyle_lexer::lex(&combined, language);
-			let after = monostyle_lexer::lex(&current, language);
+			let after = monostyle_lexer::lex(&settled, language);
 
 			if before.is_clean() {
 				assert!(

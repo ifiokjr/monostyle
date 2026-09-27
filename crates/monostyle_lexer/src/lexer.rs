@@ -1069,40 +1069,9 @@ impl Scanner {
 			}
 		}
 
-		// A C++ raw string: `R"(`, or `R"delim(` with a custom delimiter. The closer joins the
-		// delimiter, so it is built here rather than taken from a static rule.
-		if let Some(paren_rule) = self.profile.raw_paren_rule
-			&& self.profile.string_prefixes.contains(character)
-			&& characters.get(index + 1) == Some(&'"')
-		{
-			let mut delimiter = String::new();
-			let mut cursor = index + 2;
-
-			while cursor < characters.len()
-				&& characters[cursor] != '('
-				&& delimiter.len() < 16
-				&& characters[cursor].is_alphanumeric()
-			{
-				delimiter.push(characters[cursor]);
-				cursor += 1;
-			}
-
-			if characters.get(cursor) == Some(&'(') {
-				let end = if delimiter.is_empty() {
-					String::from(")\"")
-				} else {
-					format!("){delimiter}\"")
-				};
-
-				return Some(LiteralStart {
-					rule: paren_rule,
-					opener_length: 2 + delimiter.chars().count() + 1,
-					hashes: 0,
-					multiline: true,
-					raw: true,
-					end_override: Some(end),
-				});
-			}
+		// A C++ raw string: `R"(`, or `R"delim(` with a custom delimiter.
+		if let Some(start) = self.raw_paren_start(characters, index, *character) {
+			return Some(start);
 		}
 
 		// A prefixed literal: Dart's `r"…"`, Python's `f"…"`, Rust's `b"…"`.
@@ -1290,6 +1259,54 @@ impl Scanner {
 			Some(Interpolation::DollarCurly) => Some(InterpolationStyle::PhpCurly),
 			None => Some(InterpolationStyle::Brace),
 		}
+	}
+
+	/// Recognizes a C++ raw string whose opener begins at `index`, when the profile has the rule.
+	///
+	/// The closer joins the custom delimiter — `R"x(…)x"` closes at `)x"` — so the end is built
+	/// here rather than taken from a static rule. Returns `None` for every other shape, including
+	/// a delimiter run that never reaches its opening paren.
+	fn raw_paren_start(
+		&self,
+		characters: &[char],
+		index: usize,
+		character: char,
+	) -> Option<LiteralStart> {
+		let paren_rule = self.profile.raw_paren_rule?;
+
+		if !self.profile.string_prefixes.contains(&character) {
+			return None;
+		}
+
+		characters.get(index + 1).filter(|next| **next == '"')?;
+		let mut delimiter = String::new();
+		let mut cursor = index + 2;
+
+		while cursor < characters.len()
+			&& characters[cursor] != '('
+			&& delimiter.len() < RAW_PAREN_DELIMITER_LIMIT
+			&& characters[cursor].is_alphanumeric()
+		{
+			delimiter.push(characters[cursor]);
+			cursor += 1;
+		}
+
+		characters.get(cursor).filter(|open| **open == '(')?;
+
+		let end = if delimiter.is_empty() {
+			String::from(")\"")
+		} else {
+			format!("){delimiter}\"")
+		};
+
+		Some(LiteralStart {
+			rule: paren_rule,
+			opener_length: 2 + delimiter.chars().count() + 1,
+			hashes: 0,
+			multiline: true,
+			raw: true,
+			end_override: Some(end),
+		})
 	}
 
 	/// Whether a `/` at `index` begins a regex rather than being division.
@@ -1694,6 +1711,12 @@ fn peek(characters: &[char], index: usize) -> String {
 /// file into a `String`, so a file with thousands of string literals spent its whole runtime copying.
 /// Sixteen thousand characters covers every realistic line, and anything longer is truncated rather
 /// than copied, which costs at most one mis-read literal on an already extreme input.
+/// How many characters a custom raw-string delimiter may span.
+///
+/// C++ has no enforced limit; sixteen covers every delimiter seen in practice and keeps a
+/// typo from swallowing the rest of the file as one giant opener.
+const RAW_PAREN_DELIMITER_LIMIT: usize = 16;
+
 const MAX_LINE_PEEK: usize = 16 * 1024;
 
 /// Whether a heredoc terminator line ends a PHP-style heredoc.
