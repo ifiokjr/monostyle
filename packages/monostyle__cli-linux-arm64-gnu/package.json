@@ -1,6 +1,6 @@
 {
 	"name": "@monostyle-rs/cli-linux-arm64-gnu",
-	"version": "0.3.3",
+	"version": "0.3.4",
 	"description": "Prebuilt monostyle binary for Linux arm64 (glibc)",
 	"homepage": "https://github.com/ifiokjr/monostyle",
 	"bugs": {
