@@ -126,6 +126,13 @@ fn needs_blank_line(
 		return false;
 	}
 
+	// A continuation of the statement above — `} else if`, `} catch`, or a bare `else` — is the
+	// same decision, not a new one. Padding between a chain's own branches would put a blank
+	// line in the middle of a single statement.
+	if continues_statement(line) {
+		return false;
+	}
+
 	// Separation is a property of the immediately preceding physical line. A blank line or a comment
 	// above the statement already gives the reader the break this rule asks for, which is why the
 	// check is on the physical neighbour rather than the previous code line: a comment between two
@@ -1247,6 +1254,12 @@ struct CommentBlock {
 	start: usize,
 	/// Index of the first blank line past the block, when the block is separated from what follows.
 	gap: Option<usize>,
+	/// Index of the first non-blank line past the gap.
+	///
+	/// Usually the documented line itself. A comment sitting between the gap and the code
+	/// belongs to the code below it, so it ends this block rather than being absorbed into it —
+	/// the fix deletes blanks only, and the comment starts its own block.
+	gap_end: usize,
 	/// Index of the documented line.
 	attached: usize,
 }
@@ -1267,6 +1280,17 @@ impl CommentBlock {
 			let line = file.lines.get(cursor)?;
 
 			if line.is_comment() {
+				// A comment after the gap is not part of this block: it describes the code
+				// below itself, and absorbing it here would put it inside the fix's span.
+				if gap.is_some() {
+					return Some(Self {
+						start,
+						gap,
+						gap_end: cursor,
+						attached: cursor,
+					});
+				}
+
 				cursor += 1;
 			} else if line.is_blank() {
 				gap.get_or_insert(cursor);
@@ -1275,6 +1299,7 @@ impl CommentBlock {
 				return Some(Self {
 					start,
 					gap,
+					gap_end: cursor,
 					attached: cursor,
 				});
 			}
@@ -1304,6 +1329,10 @@ impl CommentBlock {
 			return None;
 		}
 
+		// The fix deletes the blank run only. Spanning through to the documented line would
+		// erase any comment the gap happens to sit above — a deletion of the author's words.
+		let gap_end_line = file.lines.get(self.gap_end)?;
+
 		Some(
 			FindingBuilder::new(
 				"readability/detached-comment",
@@ -1323,9 +1352,9 @@ impl CommentBlock {
 			.fix(Fix::delete(
 				Span::new(
 					blank_line.start_byte,
-					attached.start_byte,
+					gap_end_line.start_byte,
 					blank_line.number,
-					attached.number,
+					gap_end_line.number,
 				),
 				"attach the comment to the line it documents",
 			))
@@ -1333,7 +1362,10 @@ impl CommentBlock {
 		)
 	}
 
-	/// The index the scan resumes at: the documented line, which cannot start another block.
+	/// The index the scan resumes at.
+	///
+	/// The documented line cannot start another block — except when it *is* a comment: the
+	/// comment the gap sat above describes the code below itself and gets its own scan.
 	fn resumes_after(&self) -> usize {
 		self.attached
 	}
@@ -1666,6 +1698,37 @@ fn is_block_declaration(line: &LexedLine) -> bool {
 /// These attach metadata to the declaration below them. A keyword inside one is an option name — a
 /// serde `default`, an angular `if`, a Java `for` in an annotation — so treating it as control flow
 /// asks for a blank line that would separate the attribute from the item it describes.
+/// Whether a line continues the statement above it rather than starting a new one.
+///
+/// Brace languages write the continuation against the closing brace — `} else if`, `} catch`,
+/// `} finally` — and end-keyword languages write it bare — `else`, `elsif`, `elif`, `catch`,
+/// `finally`, and Dart's `on Exception catch`. Each of these is part of the decision the
+/// previous lines opened, so none of them is a statement that needs padding.
+fn continues_statement(line: &LexedLine) -> bool {
+	let code = line.masked_code.trim_start();
+
+	// Brace languages: a closer that reopens — the `}` is the previous branch's end, and what
+	// follows it belongs to the same statement.
+	if let Some(after) = code.strip_prefix('}') {
+		return starts_with_continuation_keyword(after.trim_start());
+	}
+
+	starts_with_continuation_keyword(code)
+}
+
+/// Whether `code` begins with a keyword that continues a decision chain.
+fn starts_with_continuation_keyword(code: &str) -> bool {
+	const CONTINUATIONS: &[&str] = &["else", "elsif", "elif", "catch", "finally", "on "];
+
+	CONTINUATIONS.iter().any(|keyword| {
+		let Some(rest) = code.strip_prefix(keyword) else {
+			return false;
+		};
+
+		rest.is_empty() || rest.starts_with(char::is_whitespace) || rest.starts_with('{')
+	})
+}
+
 fn is_attribute(line: &LexedLine) -> bool {
 	let trimmed = line.masked_code.trim_start();
 

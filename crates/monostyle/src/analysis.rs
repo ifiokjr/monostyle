@@ -515,6 +515,8 @@ fn analyze_lines(
 		// The unterminated list is a scan-time diagnostic, and a cached scan has no such list to
 		// report. A file with an unterminated construct misses its first run and is re-scanned.
 		unterminated: Vec::new(),
+		// Protected ranges are a fix-time concern, and the fix path always lexes freshly.
+		protected: Vec::new(),
 	};
 
 	let findings = findings_for(&lexed, path, options);

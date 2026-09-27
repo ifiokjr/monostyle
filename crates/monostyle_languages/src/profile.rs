@@ -22,9 +22,13 @@ pub enum BlockStyle {
 /// Interpolation matters to the scanner because the delimiters inside an interpolated
 /// expression are structural, not literal — a quote inside `"${foo("x")}"` does not end
 /// the outer string.
+///
+/// The style must match the language exactly. Treating a bare `{` as an opener in a language
+/// that only interpolates through `${` read JSON braces inside a Dart string as code, which
+/// is how the fixer was led into editing the bytes of string literals.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Interpolation {
-	/// A `$` sigil: `$name` or, when `braced`, `${expression}`. Dart, Shell, PHP, Nix.
+	/// A `$` sigil: `$name` or, when `braced`, `${expression}`. Dart, Kotlin, Scala, Nix, Shell.
 	Dollar {
 		/// Whether the `${expression}` form is supported.
 		braced: bool,
@@ -33,8 +37,13 @@ pub enum Interpolation {
 	Hash,
 	/// A `${expression}` sequence only. JavaScript template literals.
 	DollarBrace,
-	/// A `{expression}` sequence with `{{`/`}}` escapes. Python f-strings.
+	/// A `{expression}` sequence with `{{`/`}}` escapes. Python f-strings and C# interpolated
+	/// strings.
 	Brace,
+	/// A `\(expression)` sequence. Swift.
+	BackslashParen,
+	/// A `{$expression}` sequence. PHP double-quoted strings.
+	DollarCurly,
 }
 
 /// How a language introduces a heredoc string.
@@ -46,6 +55,8 @@ pub struct HeredocSyntax {
 	pub allows_dash: bool,
 	/// Whether `<<~EOF` (indentation stripping) is accepted, as in Ruby.
 	pub allows_tilde: bool,
+	/// Whether the terminator line may carry code after the identifier (`EOT;`), as in PHP.
+	pub allows_suffix: bool,
 }
 
 /// A string literal rule.
@@ -187,6 +198,11 @@ pub struct LanguageProfile {
 	/// a Rust-style literal, such as `r`.
 	pub raw_string_prefix: Option<char>,
 	/// How string interpolation is written, when supported.
+	/// A dedicated rule for `R"(…)"` raw strings, when the language has them.
+	///
+	/// C++ binds the `R` prefix to a parenthesized raw literal whose closer is `)"` (plus any
+	/// custom delimiter), which the ordinary prefix-to-delimiter binding cannot express.
+	pub raw_paren_rule: Option<&'static StringRule>,
 	pub interpolation: Option<Interpolation>,
 	/// How heredocs are introduced, when supported.
 	pub heredoc: Option<HeredocSyntax>,

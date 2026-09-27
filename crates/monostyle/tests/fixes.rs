@@ -330,3 +330,35 @@ fn both_new_fixes_survive_a_second_pass() {
 		"fn work() {\n    loop {\n        // Position at end of line.\n        if done {\n            break;\n        }\n    }\n\n    let done = true;\n}\n"
 	);
 }
+
+#[test]
+fn a_detached_doc_block_reattaches_without_erasing_the_comment_below() {
+	// The corruption the structural check once had to catch: the detached-comment fix spanned
+	// the blank AND the comment below the gap, deleting the comment. Only the blank run goes.
+	let source = "fn work(ready: bool) {\n    prep();\n}\n\n/// A doc block.\n\n    // prepare the check\n    if ready {\n        go();\n    }\n";
+
+	let fix_all = |source: &str| {
+		let lexed = lex(source, Language::Rust);
+		let config = RulesConfig::default();
+		let fixes: Vec<Fix> = whitespace::detached_comment(&lexed, &config)
+			.into_iter()
+			.filter_map(|finding| finding.fix)
+			.collect();
+		let (result, _) = apply_fixes(source, &fixes);
+
+		result
+	};
+
+	let once = fix_all(source);
+	let twice = fix_all(&once);
+
+	assert_eq!(once, twice, "the second pass must be a no-op");
+	assert!(
+		once.contains("// prepare the check"),
+		"the comment below the gap must survive: {once}"
+	);
+	assert!(
+		!once.contains("\n\n\n///"),
+		"the blank between the block and its code is gone: {once}"
+	);
+}

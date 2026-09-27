@@ -72,6 +72,11 @@ pub struct LexedFile {
 	/// derived from this file is less trustworthy. The test suite asserts on this to catch
 	/// regressions in the literal and comment rules.
 	pub unterminated: Vec<Unterminated>,
+	/// Byte ranges the fixer must not edit inside: literals, heredoc bodies, and comments.
+	///
+	/// A file whose scan was clean has exact ranges; a file that needed recovery may not, and
+	/// the fixer refuses to act on it anyway.
+	pub protected: Vec<ProtectedRange>,
 }
 
 /// A construct that was still open when the file ended.
@@ -83,6 +88,30 @@ pub struct Unterminated {
 	pub line: usize,
 	/// The delimiter that would have closed it.
 	pub delimiter: String,
+}
+
+/// A byte range whose contents are data rather than code.
+///
+/// String literals, heredoc bodies, and comments are protected: no fix may land inside them,
+/// because editing a string's bytes changes the program's data and editing a comment's bytes
+/// rewrites the author's words.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ProtectedRange {
+	/// The first byte of the region, including any opening delimiter.
+	pub start_byte: usize,
+	/// One past the region's last byte, including any closing delimiter.
+	pub end_byte: usize,
+	/// What the region holds.
+	pub kind: ProtectedKind,
+}
+
+/// The kind of content a [`ProtectedRange`] holds.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProtectedKind {
+	/// A string literal or heredoc body.
+	Literal,
+	/// A comment.
+	Comment,
 }
 
 /// The kind of unclosed construct.
@@ -141,6 +170,7 @@ pub fn lex(source: &str, language: Language) -> LexedFile {
 pub fn lex_with_profile(source: &str, profile: LanguageProfile) -> LexedFile {
 	let mut scanner = Scanner::new(profile);
 	let mut lines = scanner.run(source);
+	let protected = std::mem::take(&mut scanner.protected);
 	let unterminated = scanner.finish();
 
 	// Comment intent is decided per *block* here rather than per line during scanning. Reasoning
@@ -171,6 +201,7 @@ pub fn lex_with_profile(source: &str, profile: LanguageProfile) -> LexedFile {
 		uses_tabs,
 		mixed_indentation,
 		unterminated,
+		protected,
 	}
 }
 
@@ -211,12 +242,34 @@ struct OpenInterpolation {
 }
 
 /// The style of the currently open interpolation.
+///
+/// Each style names both its opener and its depth-tracking characters. The split exists because
+/// a bare `{` is an interpolation opener in Python f-strings and C# but is plain content in
+/// Dart, Kotlin, Scala, Nix, Shell, and JavaScript template literals — all of which interpolate
+/// only through `${`. Collapsing the two into one style read every JSON brace inside those
+/// languages' strings as code and let the fixer edit string bytes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum InterpolationStyle {
-	/// Closes with `}`.
+	/// Opens on `${`, nests on `{`/`}`. Dart, Kotlin, Scala, Nix, Shell, JS template literals.
 	Brace,
-	/// Closes with `#}`.
+	/// Opens on a bare `{`, nests on `{`/`}`, `{{` opens nothing. Python f-strings, C#.
+	BareBrace,
+	/// Opens on `#{`, closes at the first `}`. Ruby.
 	HashBrace,
+	/// Opens on `\(`, nests on `(`/`)`. Swift.
+	Paren,
+	/// Opens on `{$`, nests on `{`/`}`. PHP double-quoted strings.
+	PhpCurly,
+}
+
+impl InterpolationStyle {
+	/// The characters whose nesting this style tracks: the hole's own delimiters.
+	fn depth_characters(self) -> (char, char) {
+		match self {
+			Self::Paren => ('(', ')'),
+			Self::Brace | Self::BareBrace | Self::HashBrace | Self::PhpCurly => ('{', '}'),
+		}
+	}
 }
 
 /// An open block comment.
@@ -237,6 +290,8 @@ struct Heredoc {
 	delimiter: String,
 	/// Whether a leading tab may precede the terminator.
 	strip_tabs: bool,
+	/// How many bytes the whole opener spans, from marker through delimiter.
+	opener_length: usize,
 	/// The line it opened on.
 	opened_at: usize,
 	/// Whether the current line is the first of the body.
@@ -395,6 +450,10 @@ struct Scanner {
 	line_comment: bool,
 	/// Lines still awaiting their closing construct.
 	unterminated: Vec<Unterminated>,
+	/// Constructs whose byte ranges are being tracked, innermost last.
+	open_regions: Vec<(ProtectedKind, usize)>,
+	/// Completed protected regions, in close order.
+	protected: Vec<ProtectedRange>,
 	/// The previous significant character, used for the regex-versus-division decision.
 	previous_code: Option<char>,
 	/// Byte offset of the character currently being scanned in the original source.
@@ -420,6 +479,8 @@ impl Scanner {
 			heredoc: None,
 			line_comment: false,
 			unterminated: Vec::new(),
+			open_regions: Vec::new(),
+			protected: Vec::new(),
 			previous_code: None,
 			current_byte: 0,
 			line_start_byte: 0,
@@ -430,6 +491,33 @@ impl Scanner {
 	/// Reports constructs that never closed.
 	fn finish(self) -> Vec<Unterminated> {
 		self.unterminated
+	}
+
+	/// Starts a protected region at the current byte.
+	fn open_region(&mut self, kind: ProtectedKind) {
+		self.open_regions.push((kind, self.current_byte));
+	}
+
+	/// Ends the innermost open region of `kind` at `end_byte`.
+	///
+	/// Regions close in the order their constructs close, which is last-in-first-out for
+	/// literals; searching from the end keeps the pairing correct even when a comment and a
+	/// literal interleave.
+	fn close_region(&mut self, kind: ProtectedKind, end_byte: usize) {
+		let Some(position) = self
+			.open_regions
+			.iter()
+			.rposition(|(open_kind, _)| *open_kind == kind)
+		else {
+			return;
+		};
+
+		let (_, start) = self.open_regions.remove(position);
+		self.protected.push(ProtectedRange {
+			start_byte: start,
+			end_byte,
+			kind,
+		});
 	}
 
 	/// Runs the scan over `source`.
@@ -592,6 +680,7 @@ impl Scanner {
 		let character = characters[index];
 
 		if let Some((open, end)) = self.profile.block_comment_at(&rest) {
+			self.open_region(ProtectedKind::Comment);
 			self.block_comment = Some(BlockComment {
 				end,
 				depth: 1,
@@ -614,8 +703,17 @@ impl Scanner {
 			return self.open_literal(start, &rest, &line_remainder, line, index);
 		}
 
-		if self.try_open_heredoc(&rest, line) {
-			return index + self.heredoc_marker_length(&rest);
+		let line_window = peek_line(characters, index, MAX_LINE_PEEK);
+
+		// The delimiter can be any length, so the heredoc check reads the rest of the line rather
+		// than the bounded peek window: a marker like `<<~CONFIG` was truncated to `CON`, which
+		// matched no terminator and swallowed the rest of the file.
+		if self.try_open_heredoc(&line_window, line) {
+			return index
+				+ self
+					.heredoc
+					.as_ref()
+					.map_or(0, |heredoc| heredoc.opener_length);
 		}
 
 		if character == '/'
@@ -645,6 +743,7 @@ impl Scanner {
 		token: &str,
 		line: &mut LineBuilder,
 	) -> usize {
+		self.open_region(ProtectedKind::Comment);
 		self.line_comment = true;
 		line.is_doc_comment = self.profile.is_documentation_comment(rest);
 
@@ -683,6 +782,7 @@ impl Scanner {
 			let length = literal.end.chars().count();
 			consume_masked(characters, index, length, line);
 			self.literals.pop();
+			self.close_region(ProtectedKind::Literal, self.current_byte + length);
 
 			return index + length;
 		}
@@ -745,48 +845,43 @@ impl Scanner {
 			return self.open_literal(rule, &rest, &line_remainder, line, index);
 		}
 
-		match (character, interpolation.style) {
-			('{', InterpolationStyle::Brace) => {
-				line.push_masked(character);
+		let (open, close) = interpolation.style.depth_characters();
+
+		if character == open && interpolation.style != InterpolationStyle::HashBrace {
+			line.push_masked(character);
+			self.interpolation = Some(OpenInterpolation {
+				depth: interpolation.depth + 1,
+				style: interpolation.style,
+				literal_depth: interpolation.literal_depth,
+			});
+
+			return index + 1;
+		}
+
+		if character == close {
+			line.push_masked(character);
+
+			// A hash interpolation has no nesting: the first closer ends the hole.
+			if interpolation.style == InterpolationStyle::HashBrace || interpolation.depth <= 1 {
+				self.interpolation = None;
+			} else {
 				self.interpolation = Some(OpenInterpolation {
-					depth: interpolation.depth + 1,
+					depth: interpolation.depth - 1,
 					style: interpolation.style,
 					literal_depth: interpolation.literal_depth,
 				});
-
-				index + 1
 			}
-			('}', InterpolationStyle::Brace) => {
-				line.push_masked(character);
 
-				if interpolation.depth <= 1 {
-					self.interpolation = None;
-				} else {
-					self.interpolation = Some(OpenInterpolation {
-						depth: interpolation.depth - 1,
-						style: interpolation.style,
-						literal_depth: interpolation.literal_depth,
-					});
-				}
-
-				index + 1
-			}
-			('}', InterpolationStyle::HashBrace) => {
-				line.push_masked(character);
-				self.interpolation = None;
-
-				index + 1
-			}
-			_ => {
-				// Interpolated expressions are code: they are masked so they cannot inflate
-				// complexity counts, but they still mark the line as containing code.
-				line.push_masked(character);
-				line.literal_only = false;
-				line.saw_code = line.saw_code || !character.is_whitespace();
-
-				index + 1
-			}
+			return index + 1;
 		}
+
+		// Interpolated expressions are masked so they cannot inflate complexity counts, but the
+		// line stays literal content: it lives inside a string, so no later pass may treat it as
+		// a statement. Marking it as code let the blank-line rules fire on, and the fixer edit,
+		// the bytes of string literals.
+		line.push_masked(character);
+
+		index + 1
 	}
 
 	/// Handles a character inside a block comment.
@@ -809,14 +904,15 @@ impl Scanner {
 			let length = comment.end.chars().count();
 			consume_comment(characters, index, length, line);
 
-			self.block_comment = if comment.depth <= 1 {
-				None
+			if comment.depth <= 1 {
+				self.block_comment = None;
+				self.close_region(ProtectedKind::Comment, self.current_byte + length);
 			} else {
-				Some(BlockComment {
+				self.block_comment = Some(BlockComment {
 					depth: comment.depth - 1,
 					..comment
-				})
-			};
+				});
+			}
 
 			return index + length;
 		}
@@ -881,41 +977,61 @@ impl Scanner {
 
 	/// Closes a finished line, applying heredoc termination and literal recovery.
 	fn close_line(&mut self, builder: LineBuilder) {
-		let raw = builder.raw.clone();
-
 		// A line comment always ends at the line break.
 		if self.line_comment {
 			self.line_comment = false;
 		}
 
-		if let Some(heredoc) = self.heredoc.clone()
-			&& !heredoc.first_line
+		if self
+			.heredoc
+			.as_ref()
+			.is_some_and(|heredoc| !heredoc.first_line)
 		{
-			let candidate = if heredoc.strip_tabs {
-				raw.trim_start_matches('\t').trim_end()
-			} else {
-				raw.trim()
-			};
-
-			if candidate == heredoc.delimiter {
-				self.heredoc = None;
-			}
+			self.close_heredoc_if_terminated(&builder.raw.clone(), builder.end_byte);
 		}
 
-		// A single-line literal that reached the line break cannot legally continue, and
-		// carrying it would corrupt every following line.
+		self.abandon_single_line_literal();
+		self.previous_code = None;
+
+		let line = builder.build(&self.profile);
+		self.lines.push(line);
+	}
+
+	/// Ends the open heredoc when this line is its terminator.
+	fn close_heredoc_if_terminated(&mut self, raw: &str, end_byte: usize) {
+		let Some(heredoc) = self.heredoc.clone() else {
+			return;
+		};
+
+		let candidate = if heredoc.strip_tabs {
+			raw.trim_start_matches('\t').trim_end()
+		} else {
+			raw.trim()
+		};
+
+		let suffix_allowed = self
+			.profile
+			.heredoc
+			.is_some_and(|syntax| syntax.allows_suffix);
+
+		if candidate == heredoc.delimiter
+			|| (suffix_allowed && terminates_with_suffix(candidate, &heredoc.delimiter))
+		{
+			self.heredoc = None;
+			self.close_region(ProtectedKind::Literal, end_byte);
+		}
+	}
+
+	/// Pops a single-line literal that reached the line break.
+	///
+	/// A one-line literal cannot legally continue, and carrying it would read every following
+	/// line as string content.
+	fn abandon_single_line_literal(&mut self) {
 		if let Some(literal) = self.literals.last().cloned()
 			&& !literal.multiline
 		{
 			self.literals.pop();
 		}
-
-		// A regex literal only lives on one line, so it is closed by the line break rather
-		// than reported as an error when the pattern simply had no closing slash.
-		self.previous_code = None;
-
-		let line = builder.build(&self.profile);
-		self.lines.push(line);
 	}
 
 	/// Returns the string rule whose opener begins `rest`, allowing for prefixes.
@@ -931,6 +1047,7 @@ impl Scanner {
 				hashes: 0,
 				raw: false,
 				multiline: rule.multiline,
+				end_override: None,
 			});
 		}
 
@@ -960,8 +1077,14 @@ impl Scanner {
 					// A raw string spans lines whether or not it carries hashes.
 					multiline: true,
 					raw: true,
+					end_override: None,
 				});
 			}
+		}
+
+		// A C++ raw string: `R"(`, or `R"delim(` with a custom delimiter.
+		if let Some(start) = self.raw_paren_start(characters, index, *character) {
+			return Some(start);
 		}
 
 		// A prefixed literal: Dart's `r"…"`, Python's `f"…"`, Rust's `b"…"`.
@@ -982,6 +1105,7 @@ impl Scanner {
 			// so the escapes the plain rule allows do not apply inside it.
 			raw: *character == 'r',
 			multiline: true,
+			end_override: None,
 		})
 	}
 
@@ -1000,34 +1124,32 @@ impl Scanner {
 			hashes,
 			multiline,
 			raw,
+			end_override,
 		} = start;
-		let end = closing_delimiter(rule, hashes);
+		let end = end_override.unwrap_or_else(|| closing_delimiter(rule, hashes));
 
 		// Whether a short literal closes on this line can only be answered from the whole line, so the
 		// caller passes the remainder of the line rather than the bounded peek window used for
 		// delimiter matching.
 		let body = line_remainder.get(rule.open.len()..).unwrap_or_default();
-
-		// In a raw form a backslash is an ordinary character, so `r'\''` closes at the second quote and
-		// `r'\'` does not escape at all.
-		let effective_escapes = rule.escapes && !raw;
-		let has_close = hashes > 0
-			|| find_literal_close(body, &end, effective_escapes, rule.extra_escapes).is_some();
-
-		// A backslash at end of line continues a string in most languages, so the literal really
-		// does span lines even though it was declared single-line. Rust and Shell both rely on
-		// this, and rejecting it would read the following lines as code. A raw form has no
-		// line continuations either: the backslash is data.
-		let continues = !raw && body.trim_end().ends_with('\\');
+		let continues = literal_continues(body, raw);
 
 		// A single-line literal with no closer and no continuation is a mis-read rather than an
 		// unterminated literal — an apostrophe in a comment, most often — so it is emitted as code
 		// and never opened.
-		if !rule.multiline && hashes == 0 && !has_close && !continues {
+		if !rule.multiline
+			&& hashes == 0
+			&& !literal_has_close(body, rule, hashes, raw, &end)
+			&& !continues
+		{
 			line.push_code(rest.chars().next().unwrap_or('"'));
 
 			return index + 1;
 		}
+
+		// The literal's bytes are data: the fixer must never edit inside one, so the region is
+		// tracked from the opener's first byte.
+		self.open_region(ProtectedKind::Literal);
 
 		// A literal opened inside an interpolation records that nesting so the dispatcher can
 		// tell which of the two owns the current character.
@@ -1036,21 +1158,11 @@ impl Scanner {
 			// A raw prefix disables the escapes the plain rule would honor.
 			escapes: rule.escapes && !raw,
 			multiline: multiline || continues,
-			interpolation: rule.interpolates.then(|| {
-				// Every interpolating language in the profile table has a style; defaulting to
-				// a braced form keeps an unconfigured language from silently losing
-				// interpolation handling.
-				match self
-					.profile
-					.interpolation
-					.unwrap_or(Interpolation::Dollar { braced: true })
-				{
-					Interpolation::Hash => InterpolationStyle::HashBrace,
-					Interpolation::Dollar { .. }
-					| Interpolation::DollarBrace
-					| Interpolation::Brace => InterpolationStyle::Brace,
-				}
-			}),
+			interpolation: if rule.interpolates {
+				self.interpolation_style()
+			} else {
+				None
+			},
 			extra_escapes: rule.extra_escapes,
 			opened_at: line.number,
 		});
@@ -1077,12 +1189,13 @@ impl Scanner {
 		}
 
 		let after = &rest[syntax.marker.len()..];
-		let after = if syntax.allows_dash {
+		let (dash_present, tilde_present) = (after.starts_with('-'), after.starts_with('~'));
+		let after = if syntax.allows_dash && dash_present {
 			after.strip_prefix('-').unwrap_or(after)
 		} else {
 			after
 		};
-		let after = if syntax.allows_tilde {
+		let after = if syntax.allows_tilde && tilde_present {
 			after.strip_prefix('~').unwrap_or(after)
 		} else {
 			after
@@ -1104,9 +1217,17 @@ impl Scanner {
 			return false;
 		}
 
+		let after_trimmed = after.trim_start();
+		// The opener spans the marker, any dash or tilde, any whitespace, and the delimiter.
+		let opener_length = rest.len() - after_trimmed.len() + delimiter.len();
+
+		self.open_region(ProtectedKind::Literal);
 		self.heredoc = Some(Heredoc {
 			delimiter,
-			strip_tabs: syntax.allows_dash,
+			// `<<-` closes on a tab-trimmed line; `<<~` closes wherever the indentation ends, as
+			// does the plain form, so only a dash opener asks for tab-only stripping.
+			strip_tabs: syntax.allows_dash && dash_present && !tilde_present,
+			opener_length,
 			opened_at: line.number,
 			first_line: true,
 		});
@@ -1128,43 +1249,70 @@ impl Scanner {
 				.is_some_and(|heredoc| !heredoc.first_line)
 	}
 
-	/// The length of the heredoc marker that was just accepted.
-	fn heredoc_marker_length(&self, rest: &str) -> usize {
-		let Some(syntax) = self.profile.heredoc else {
-			return 0;
-		};
-
-		let after = &rest[syntax.marker.len()..];
-		let stripped = if syntax.allows_dash {
-			after.strip_prefix('-').unwrap_or(after)
-		} else {
-			after
-		};
-		let stripped = if syntax.allows_tilde {
-			stripped.strip_prefix('~').unwrap_or(stripped)
-		} else {
-			stripped
-		};
-
-		let delimiter = match stripped.trim_start().chars().next() {
-			Some(quote @ ('"' | '\'')) => {
-				let body: String = stripped.trim_start()[1..]
-					.chars()
-					.take_while(|c| *c != quote)
-					.collect();
-
-				format!("{quote}{body}{quote}")
+	/// The interpolation style the profile gives to literals that embed expressions.
+	///
+	/// Languages whose interpolation is a bare sigil (`$name`) with no braced form never open a
+	/// hole, so their style is `None`: there is nothing to track.
+	fn interpolation_style(&self) -> Option<InterpolationStyle> {
+		match self.profile.interpolation {
+			Some(Interpolation::Dollar { braced: true } | Interpolation::DollarBrace) => {
+				Some(InterpolationStyle::Brace)
 			}
-			_ => {
-				stripped
-					.trim_start()
-					.chars()
-					.take_while(|c| c.is_alphanumeric() || *c == '_')
-					.collect()
-			}
+			Some(Interpolation::Dollar { braced: false }) => None,
+			Some(Interpolation::Brace) => Some(InterpolationStyle::BareBrace),
+			Some(Interpolation::Hash) => Some(InterpolationStyle::HashBrace),
+			Some(Interpolation::BackslashParen) => Some(InterpolationStyle::Paren),
+			Some(Interpolation::DollarCurly) => Some(InterpolationStyle::PhpCurly),
+			None => Some(InterpolationStyle::Brace),
+		}
+	}
+
+	/// Recognizes a C++ raw string whose opener begins at `index`, when the profile has the rule.
+	///
+	/// The closer joins the custom delimiter — `R"x(…)x"` closes at `)x"` — so the end is built
+	/// here rather than taken from a static rule. Returns `None` for every other shape, including
+	/// a delimiter run that never reaches its opening paren.
+	fn raw_paren_start(
+		&self,
+		characters: &[char],
+		index: usize,
+		character: char,
+	) -> Option<LiteralStart> {
+		let paren_rule = self.profile.raw_paren_rule?;
+
+		if !self.profile.string_prefixes.contains(&character) {
+			return None;
+		}
+
+		characters.get(index + 1).filter(|next| **next == '"')?;
+		let mut delimiter = String::new();
+		let mut cursor = index + 2;
+
+		while cursor < characters.len()
+			&& characters[cursor] != '('
+			&& delimiter.len() < RAW_PAREN_DELIMITER_LIMIT
+			&& characters[cursor].is_alphanumeric()
+		{
+			delimiter.push(characters[cursor]);
+			cursor += 1;
+		}
+
+		characters.get(cursor).filter(|open| **open == '(')?;
+
+		let end = if delimiter.is_empty() {
+			String::from(")\"")
+		} else {
+			format!("){delimiter}\"")
 		};
 
-		syntax.marker.len() + (rest.len() - after.len()) + delimiter.len()
+		Some(LiteralStart {
+			rule: paren_rule,
+			opener_length: 2 + delimiter.chars().count() + 1,
+			hashes: 0,
+			multiline: true,
+			raw: true,
+			end_override: Some(end),
+		})
 	}
 
 	/// Whether a `/` at `index` begins a regex rather than being division.
@@ -1322,30 +1470,81 @@ fn records_for_open_constructs(
 
 /// Returns the character length of an interpolation opener at the start of `rest`.
 ///
-/// The style alone determines this: a braced interpolation opens on `${`, a hash
-/// interpolation on `#{`, and a bare-brace interpolation on `{`. A bare `$name` never opens
-/// one, because it cannot contain an expression and therefore cannot nest.
+/// The style alone determines this. A braced interpolation opens on `${`, a bare-brace
+/// interpolation on `{` (with `{{` as an escaped literal brace), a hash interpolation on `#{`,
+/// a Swift hole on `\(`, and a PHP hole on `{$`. A bare `$name` never opens one, because it
+/// cannot contain an expression and therefore cannot nest.
 fn interpolation_opener(rest: &str, style: InterpolationStyle) -> Option<usize> {
 	match style {
-		InterpolationStyle::HashBrace => rest.starts_with("#{").then_some(2),
-		InterpolationStyle::Brace => {
-			if rest.starts_with("${") {
-				Some(2)
-			} else if rest.starts_with("{{") {
+		InterpolationStyle::Brace => rest.starts_with("${").then_some(2),
+		InterpolationStyle::BareBrace => {
+			if rest.starts_with("{{") {
 				// An escaped literal brace in a Python f-string or C# interpolation.
 				None
 			} else {
 				rest.starts_with('{').then_some(1)
 			}
 		}
+		InterpolationStyle::HashBrace => rest.starts_with("#{").then_some(2),
+		InterpolationStyle::Paren => rest.starts_with("\\(").then_some(2),
+		InterpolationStyle::PhpCurly => rest.starts_with("{$").then_some(2),
 	}
 }
 
 /// Returns true when the interpolation opened at `start` closes within the file.
 ///
 /// Requiring a closer is what prevents an ordinary brace in prose or a lone `$` from being
-/// read as interpolation and swallowing the rest of the file.
+/// read as interpolation and swallowing the rest of the file. Quoted spans inside the hole are
+/// skipped while searching, so `${replace("}", x)}` is not judged closed by the brace inside
+/// the string argument: in the real scan that brace is literal content, and trusting it here
+/// would open a hole that never truly closes.
+/// One move of the interpolation-closer search.
+enum ScanStep {
+	/// Skip this many characters (escapes and quoted spans are consumed whole).
+	Advance(usize),
+	/// A hole opened; the search goes one level deeper.
+	Open,
+	/// A hole closed; the search goes one level shallower.
+	Close,
+	/// The hole's own closer appeared; the search succeeds.
+	Finish,
+	/// Ordinary content; the search advances by one.
+	Walk,
+}
+
+/// Classifies one character of the interpolation-closer search.
+///
+/// Quoted spans are handled by the caller, which consumes them whole.
+fn scan_step(
+	character: char,
+	style: InterpolationStyle,
+	open: char,
+	close: char,
+	depth: usize,
+) -> ScanStep {
+	if character == '\\' {
+		return ScanStep::Advance(2);
+	}
+
+	if character == open && style != InterpolationStyle::HashBrace {
+		return ScanStep::Open;
+	}
+
+	if character == close {
+		// The search begins inside the hole, so the hole's own closer arrives at depth 0 —
+		// and a hash interpolation has no nesting at all: the first closer ends it either way.
+		if style == InterpolationStyle::HashBrace || depth <= 1 {
+			return ScanStep::Finish;
+		}
+
+		return ScanStep::Close;
+	}
+
+	ScanStep::Walk
+}
+
 fn interpolation_has_close(characters: &[char], start: usize, style: InterpolationStyle) -> bool {
+	let (open, close) = style.depth_characters();
 	let mut depth = 0;
 	let mut index = start;
 
@@ -1354,27 +1553,72 @@ fn interpolation_has_close(characters: &[char], start: usize, style: Interpolati
 	let limit = (start + 4096).min(characters.len());
 
 	while index < limit {
-		match (characters[index], style) {
-			('\\', _) => {
-				index += 2;
+		// A quoted span is consumed whole: its delimiters, escapes, and braces are content, so
+		// the closer search neither starts a hole at `"` nor closes at a `}` inside the quotes.
+		if matches!(characters[index], '"' | '\'' | '`') {
+			index = skip_quoted_span(characters, index, limit);
+			continue;
+		}
+
+		let step = scan_step(characters[index], style, open, close, depth);
+
+		match step {
+			ScanStep::Advance(width) => {
+				index += width;
 				continue;
 			}
-			('{', InterpolationStyle::Brace) => depth += 1,
-			('}', InterpolationStyle::Brace) => {
-				depth -= 1;
-
-				if depth <= 0 {
-					return true;
-				}
-			}
-			('}', InterpolationStyle::HashBrace) => return true,
-			_ => {}
+			ScanStep::Open => depth += 1,
+			ScanStep::Close => depth -= 1,
+			ScanStep::Finish => return true,
+			ScanStep::Walk => {}
 		}
 
 		index += 1;
 	}
 
 	false
+}
+
+/// Returns the index just past the quoted span that starts at `index`.
+///
+/// The span honors backslash escapes and ends at the matching quote or the search limit. A
+/// span that never closes consumes the rest of the search, which is the correct answer for a
+/// gate: characters inside an unterminated quote cannot be structural.
+fn skip_quoted_span(characters: &[char], index: usize, limit: usize) -> usize {
+	let Some(quote) = characters.get(index).copied() else {
+		return index + 1;
+	};
+
+	let mut cursor = index + 1;
+
+	while cursor < limit {
+		match characters[cursor] {
+			'\\' => cursor += 2,
+			_ if characters[cursor] == quote => return cursor + 1,
+			_ => cursor += 1,
+		}
+	}
+
+	limit
+}
+
+/// Whether a literal declared single-line in fact continues past this line.
+///
+/// A backslash at end of line continues a string in most languages — Rust and Shell rely on
+/// it — so the literal spans lines despite its declaration. A raw form has no continuations:
+/// its backslash is data.
+fn literal_continues(body: &str, raw: bool) -> bool {
+	!raw && body.trim_end().ends_with('\\')
+}
+
+/// Whether the literal's closer appears within the line's remainder.
+///
+/// In a raw form a backslash is an ordinary character, so `r'\''` closes at the second quote
+/// and `r'\'` does not escape at all.
+fn literal_has_close(body: &str, rule: &StringRule, hashes: usize, raw: bool, end: &str) -> bool {
+	let escapes = rule.escapes && !raw;
+
+	hashes > 0 || find_literal_close(body, end, escapes, rule.extra_escapes).is_some()
 }
 
 /// Finds a literal's closer, returning the offset of the closer's end.
@@ -1447,7 +1691,7 @@ fn find_regex_close(text: &str) -> Option<usize> {
 }
 
 /// The outcome of recognizing a literal's opening.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct LiteralStart {
 	/// The rule describing the literal's delimiters and escapes.
 	rule: &'static StringRule,
@@ -1468,6 +1712,8 @@ struct LiteralStart {
 	/// after it was classified as blank string content — which the blank-line fixer then deleted as
 	/// formatting.
 	raw: bool,
+	/// The closer for forms that build it dynamically, such as C++'s `R"delim(...)delim"`.
+	end_override: Option<String>,
 }
 
 /// Builds the delimiter that closes a literal opened with `hashes` hashes.
@@ -1527,7 +1773,27 @@ fn peek(characters: &[char], index: usize) -> String {
 /// file into a `String`, so a file with thousands of string literals spent its whole runtime copying.
 /// Sixteen thousand characters covers every realistic line, and anything longer is truncated rather
 /// than copied, which costs at most one mis-read literal on an already extreme input.
+/// How many characters a custom raw-string delimiter may span.
+///
+/// C++ has no enforced limit; sixteen covers every delimiter seen in practice and keeps a
+/// typo from swallowing the rest of the file as one giant opener.
+const RAW_PAREN_DELIMITER_LIMIT: usize = 16;
+
 const MAX_LINE_PEEK: usize = 16 * 1024;
+
+/// Whether a heredoc terminator line ends a PHP-style heredoc.
+///
+/// PHP lets the closing identifier carry code: `EOT;` on its own line is the common form. The
+/// suffix must be punctuation rather than more identifier, or `EOTICS` would close `EOT`.
+fn terminates_with_suffix(candidate: &str, delimiter: &str) -> bool {
+	let Some(rest) = candidate.strip_prefix(delimiter) else {
+		return false;
+	};
+
+	let rest = rest.trim_start();
+
+	rest.is_empty() || rest.starts_with(';') || rest.starts_with(',')
+}
 
 /// Returns characters from `index` up to the next newline, capped at `limit`.
 ///

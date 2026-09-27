@@ -28,7 +28,15 @@ fn run(
 	rule: fn(&monostyle_lexer::LexedFile, &RulesConfig) -> Vec<monostyle_core::Finding>,
 	source: &str,
 ) -> Vec<monostyle_core::Finding> {
-	let lexed = lex(source, Language::Rust);
+	run_in(rule, source, Language::Rust)
+}
+
+fn run_in(
+	rule: fn(&monostyle_lexer::LexedFile, &RulesConfig) -> Vec<monostyle_core::Finding>,
+	source: &str,
+	language: Language,
+) -> Vec<monostyle_core::Finding> {
+	let lexed = lex(source, language);
 
 	rule(&lexed, &RulesConfig::default())
 }
@@ -523,5 +531,76 @@ fn a_return_outside_a_match_is_still_reported() {
 		findings.len(),
 		1,
 		"a return after work still needs the blank: {findings:?}"
+	);
+}
+
+#[test]
+fn an_else_if_continuing_a_braced_chain_needs_no_blank() {
+	// The chain is one decision: a line that closes one branch and opens the next —
+	// `} else if ... {` — is a continuation, and padding between its own branches would ask
+	// for a blank line in the middle of a single statement.
+	let findings = run(
+		whitespace::blank_line_before_control_flow,
+		"fn work(ready: bool, done: bool) {\n    if ready {\n        go();\n    } else if done {\n        stop();\n    } else {\n        wait();\n    }\n}\n",
+	);
+
+	assert_eq!(
+		findings.len(),
+		0,
+		"no branch of a chain may be padded from its siblings: {findings:?}"
+	);
+}
+
+#[test]
+fn a_catch_or_finally_continuation_needs_no_blank() {
+	let findings = run_in(
+		whitespace::blank_line_before_control_flow,
+		"function work() {\n    try {\n        useIt();\n    } catch (error) {\n        log(error);\n    } finally {\n        cleanup();\n    }\n}\n",
+		Language::TypeScript,
+	);
+
+	assert_eq!(
+		findings.len(),
+		0,
+		"catch and finally continue the try: {findings:?}"
+	);
+}
+
+#[test]
+fn a_bare_else_in_an_end_keyword_language_needs_no_blank() {
+	let findings = run_in(
+		whitespace::blank_line_before_control_flow,
+		"if ready\n  go\nelse\n  wait\nend\n",
+		Language::Ruby,
+	);
+
+	assert_eq!(
+		findings.len(),
+		0,
+		"an else branch is not a new decision: {findings:?}"
+	);
+}
+
+#[test]
+fn a_detached_comment_fix_never_deletes_the_comment_below_the_gap() {
+	// The gap between a doc block and the code may hold another comment. The blank is what
+	// separates; the comment below the gap belongs to the code and must survive the fix.
+	let source =
+		"/// A doc block.\n\n    // prepare the check\n    if ready {\n        go();\n    }\n";
+	let lexed = lex(source, Language::Rust);
+	let findings = whitespace::detached_comment(&lexed, &RulesConfig::default());
+
+	assert_eq!(
+		findings.len(),
+		1,
+		"the blank detaches the doc block: {findings:?}"
+	);
+
+	let fix = findings[0].fix.as_ref().expect("the finding carries a fix");
+	let removed = &source[fix.span.start_byte..fix.span.end_byte];
+
+	assert!(
+		removed.chars().all(char::is_whitespace),
+		"the fix may only delete blank lines, but deletes {removed:?}"
 	);
 }

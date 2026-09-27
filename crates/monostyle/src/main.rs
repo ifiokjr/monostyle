@@ -421,6 +421,18 @@ fn fix_one_file(path: &Path, args: &FixArgs, options: &AnalysisOptions) -> Optio
 	let source = std::fs::read_to_string(path).ok()?;
 	let report = analysis::analyze_with_language(path, &source, language, options);
 
+	// A scan that hit an unterminated construct means the lexer guessed where it ends, so the
+	// fixes derived from that scan may address the wrong bytes. Leaving the file alone and saying
+	// so beats silently editing a file the tool does not understand.
+	if !report.unterminated.is_empty() {
+		eprintln!(
+			"monostyle: skipped {} because its scan hit an unterminated construct; fixes would not be safe",
+			path.display()
+		);
+
+		return None;
+	}
+
 	// Only fixes from the requested rules are applied, so a caller can address one class of problem at a
 	// time.
 	let applied: Vec<monostyle_core::Finding> = report
@@ -441,6 +453,24 @@ fn fix_one_file(path: &Path, args: &FixArgs, options: &AnalysisOptions) -> Optio
 		.collect();
 
 	let outcome = fix::fix_file(path, &fixes, args.dry_run).ok()?;
+
+	if outcome.reverted {
+		eprintln!(
+			"monostyle: left {} unchanged because the rewrite failed the structural check",
+			path.display()
+		);
+
+		return None;
+	}
+
+	if outcome.skipped_untrusted {
+		eprintln!(
+			"monostyle: skipped {} because its scan hit an unterminated construct; fixes would not be safe",
+			path.display()
+		);
+
+		return None;
+	}
 
 	if outcome.applied == 0 {
 		return None;
@@ -559,6 +589,18 @@ fn report_fix_totals(outcomes: &[FixOutcome], args: &FixArgs) {
 		eprintln!(
 			"monostyle: {conflicts} fix{} skipped because they overlapped another edit",
 			if conflicts == 1 { "" } else { "es" }
+		);
+	}
+
+	let rejected: usize = outcomes
+		.iter()
+		.map(|outcome| outcome.outcome.rejected)
+		.sum();
+
+	if rejected > 0 {
+		eprintln!(
+			"monostyle: {rejected} fix{} refused because they would edit inside a string literal or comment",
+			if rejected == 1 { "" } else { "es" }
 		);
 	}
 }
