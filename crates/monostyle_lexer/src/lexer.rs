@@ -977,48 +977,61 @@ impl Scanner {
 
 	/// Closes a finished line, applying heredoc termination and literal recovery.
 	fn close_line(&mut self, builder: LineBuilder) {
-		let raw = builder.raw.clone();
-
 		// A line comment always ends at the line break.
 		if self.line_comment {
 			self.line_comment = false;
 		}
 
-		if let Some(heredoc) = self.heredoc.clone()
-			&& !heredoc.first_line
+		if self
+			.heredoc
+			.as_ref()
+			.is_some_and(|heredoc| !heredoc.first_line)
 		{
-			let candidate = if heredoc.strip_tabs {
-				raw.trim_start_matches('\t').trim_end()
-			} else {
-				raw.trim()
-			};
-
-			if candidate == heredoc.delimiter
-				|| (self
-					.profile
-					.heredoc
-					.is_some_and(|syntax| syntax.allows_suffix)
-					&& terminates_with_suffix(candidate, &heredoc.delimiter))
-			{
-				self.heredoc = None;
-				self.close_region(ProtectedKind::Literal, builder.end_byte);
-			}
+			self.close_heredoc_if_terminated(&builder.raw.clone(), builder.end_byte);
 		}
 
-		// A single-line literal that reached the line break cannot legally continue, and
-		// carrying it would corrupt every following line.
+		self.abandon_single_line_literal();
+		self.previous_code = None;
+
+		let line = builder.build(&self.profile);
+		self.lines.push(line);
+	}
+
+	/// Ends the open heredoc when this line is its terminator.
+	fn close_heredoc_if_terminated(&mut self, raw: &str, end_byte: usize) {
+		let Some(heredoc) = self.heredoc.clone() else {
+			return;
+		};
+
+		let candidate = if heredoc.strip_tabs {
+			raw.trim_start_matches('\t').trim_end()
+		} else {
+			raw.trim()
+		};
+
+		let suffix_allowed = self
+			.profile
+			.heredoc
+			.is_some_and(|syntax| syntax.allows_suffix);
+
+		if candidate == heredoc.delimiter
+			|| (suffix_allowed && terminates_with_suffix(candidate, &heredoc.delimiter))
+		{
+			self.heredoc = None;
+			self.close_region(ProtectedKind::Literal, end_byte);
+		}
+	}
+
+	/// Pops a single-line literal that reached the line break.
+	///
+	/// A one-line literal cannot legally continue, and carrying it would read every following
+	/// line as string content.
+	fn abandon_single_line_literal(&mut self) {
 		if let Some(literal) = self.literals.last().cloned()
 			&& !literal.multiline
 		{
 			self.literals.pop();
 		}
-
-		// A regex literal only lives on one line, so it is closed by the line break rather
-		// than reported as an error when the pattern simply had no closing slash.
-		self.previous_code = None;
-
-		let line = builder.build(&self.profile);
-		self.lines.push(line);
 	}
 
 	/// Returns the string rule whose opener begins `rest`, allowing for prefixes.
@@ -1119,23 +1132,16 @@ impl Scanner {
 		// caller passes the remainder of the line rather than the bounded peek window used for
 		// delimiter matching.
 		let body = line_remainder.get(rule.open.len()..).unwrap_or_default();
-
-		// In a raw form a backslash is an ordinary character, so `r'\''` closes at the second quote and
-		// `r'\'` does not escape at all.
-		let effective_escapes = rule.escapes && !raw;
-		let has_close = hashes > 0
-			|| find_literal_close(body, &end, effective_escapes, rule.extra_escapes).is_some();
-
-		// A backslash at end of line continues a string in most languages, so the literal really
-		// does span lines even though it was declared single-line. Rust and Shell both rely on
-		// this, and rejecting it would read the following lines as code. A raw form has no
-		// line continuations either: the backslash is data.
-		let continues = !raw && body.trim_end().ends_with('\\');
+		let continues = literal_continues(body, raw);
 
 		// A single-line literal with no closer and no continuation is a mis-read rather than an
 		// unterminated literal — an apostrophe in a comment, most often — so it is emitted as code
 		// and never opened.
-		if !rule.multiline && hashes == 0 && !has_close && !continues {
+		if !rule.multiline
+			&& hashes == 0
+			&& !literal_has_close(body, rule, hashes, raw, &end)
+			&& !continues
+		{
 			line.push_code(rest.chars().next().unwrap_or('"'));
 
 			return index + 1;
@@ -1492,6 +1498,51 @@ fn interpolation_opener(rest: &str, style: InterpolationStyle) -> Option<usize> 
 /// skipped while searching, so `${replace("}", x)}` is not judged closed by the brace inside
 /// the string argument: in the real scan that brace is literal content, and trusting it here
 /// would open a hole that never truly closes.
+/// One move of the interpolation-closer search.
+enum ScanStep {
+	/// Skip this many characters (escapes and quoted spans are consumed whole).
+	Advance(usize),
+	/// A hole opened; the search goes one level deeper.
+	Open,
+	/// A hole closed; the search goes one level shallower.
+	Close,
+	/// The hole's own closer appeared; the search succeeds.
+	Finish,
+	/// Ordinary content; the search advances by one.
+	Walk,
+}
+
+/// Classifies one character of the interpolation-closer search.
+///
+/// Quoted spans are handled by the caller, which consumes them whole.
+fn scan_step(
+	character: char,
+	style: InterpolationStyle,
+	open: char,
+	close: char,
+	depth: usize,
+) -> ScanStep {
+	if character == '\\' {
+		return ScanStep::Advance(2);
+	}
+
+	if character == open && style != InterpolationStyle::HashBrace {
+		return ScanStep::Open;
+	}
+
+	if character == close {
+		// The search begins inside the hole, so the hole's own closer arrives at depth 0 —
+		// and a hash interpolation has no nesting at all: the first closer ends it either way.
+		if style == InterpolationStyle::HashBrace || depth <= 1 {
+			return ScanStep::Finish;
+		}
+
+		return ScanStep::Close;
+	}
+
+	ScanStep::Walk
+}
+
 fn interpolation_has_close(characters: &[char], start: usize, style: InterpolationStyle) -> bool {
 	let (open, close) = style.depth_characters();
 	let mut depth = 0;
@@ -1502,32 +1553,24 @@ fn interpolation_has_close(characters: &[char], start: usize, style: Interpolati
 	let limit = (start + 4096).min(characters.len());
 
 	while index < limit {
-		let character = characters[index];
+		// A quoted span is consumed whole: its delimiters, escapes, and braces are content, so
+		// the closer search neither starts a hole at `"` nor closes at a `}` inside the quotes.
+		if matches!(characters[index], '"' | '\'' | '`') {
+			index = skip_quoted_span(characters, index, limit);
+			continue;
+		}
 
-		match character {
-			'\\' => {
-				index += 2;
+		let step = scan_step(characters[index], style, open, close, depth);
+
+		match step {
+			ScanStep::Advance(width) => {
+				index += width;
 				continue;
 			}
-			'"' | '\'' | '`' => {
-				// Skip the quoted span: its delimiters and braces are content.
-				index = skip_quoted_span(characters, index, limit);
-				continue;
-			}
-			_ if character == open && style != InterpolationStyle::HashBrace => depth += 1,
-			_ if character == close => {
-				// A hash interpolation has no nesting: the first closer ends it.
-				if style == InterpolationStyle::HashBrace {
-					return true;
-				}
-
-				depth -= 1;
-
-				if depth <= 0 {
-					return true;
-				}
-			}
-			_ => {}
+			ScanStep::Open => depth += 1,
+			ScanStep::Close => depth -= 1,
+			ScanStep::Finish => return true,
+			ScanStep::Walk => {}
 		}
 
 		index += 1;
@@ -1557,6 +1600,25 @@ fn skip_quoted_span(characters: &[char], index: usize, limit: usize) -> usize {
 	}
 
 	limit
+}
+
+/// Whether a literal declared single-line in fact continues past this line.
+///
+/// A backslash at end of line continues a string in most languages — Rust and Shell rely on
+/// it — so the literal spans lines despite its declaration. A raw form has no continuations:
+/// its backslash is data.
+fn literal_continues(body: &str, raw: bool) -> bool {
+	!raw && body.trim_end().ends_with('\\')
+}
+
+/// Whether the literal's closer appears within the line's remainder.
+///
+/// In a raw form a backslash is an ordinary character, so `r'\''` closes at the second quote
+/// and `r'\'` does not escape at all.
+fn literal_has_close(body: &str, rule: &StringRule, hashes: usize, raw: bool, end: &str) -> bool {
+	let escapes = rule.escapes && !raw;
+
+	hashes > 0 || find_literal_close(body, end, escapes, rule.extra_escapes).is_some()
 }
 
 /// Finds a literal's closer, returning the offset of the closer's end.
