@@ -1034,6 +1034,7 @@ impl Scanner {
 				hashes: 0,
 				raw: false,
 				multiline: rule.multiline,
+				end_override: None,
 			});
 		}
 
@@ -1063,6 +1064,43 @@ impl Scanner {
 					// A raw string spans lines whether or not it carries hashes.
 					multiline: true,
 					raw: true,
+					end_override: None,
+				});
+			}
+		}
+
+		// A C++ raw string: `R"(`, or `R"delim(` with a custom delimiter. The closer joins the
+		// delimiter, so it is built here rather than taken from a static rule.
+		if let Some(paren_rule) = self.profile.raw_paren_rule
+			&& self.profile.string_prefixes.contains(character)
+			&& characters.get(index + 1) == Some(&'"')
+		{
+			let mut delimiter = String::new();
+			let mut cursor = index + 2;
+
+			while cursor < characters.len()
+				&& characters[cursor] != '('
+				&& delimiter.len() < 16
+				&& characters[cursor].is_alphanumeric()
+			{
+				delimiter.push(characters[cursor]);
+				cursor += 1;
+			}
+
+			if characters.get(cursor) == Some(&'(') {
+				let end = if delimiter.is_empty() {
+					String::from(")\"")
+				} else {
+					format!("){delimiter}\"")
+				};
+
+				return Some(LiteralStart {
+					rule: paren_rule,
+					opener_length: 2 + delimiter.chars().count() + 1,
+					hashes: 0,
+					multiline: true,
+					raw: true,
+					end_override: Some(end),
 				});
 			}
 		}
@@ -1085,6 +1123,7 @@ impl Scanner {
 			// so the escapes the plain rule allows do not apply inside it.
 			raw: *character == 'r',
 			multiline: true,
+			end_override: None,
 		})
 	}
 
@@ -1103,8 +1142,9 @@ impl Scanner {
 			hashes,
 			multiline,
 			raw,
+			end_override,
 		} = start;
-		let end = closing_delimiter(rule, hashes);
+		let end = end_override.unwrap_or_else(|| closing_delimiter(rule, hashes));
 
 		// Whether a short literal closes on this line can only be answered from the whole line, so the
 		// caller passes the remainder of the line rather than the bounded peek window used for
@@ -1572,7 +1612,7 @@ fn find_regex_close(text: &str) -> Option<usize> {
 }
 
 /// The outcome of recognizing a literal's opening.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 struct LiteralStart {
 	/// The rule describing the literal's delimiters and escapes.
 	rule: &'static StringRule,
@@ -1593,6 +1633,8 @@ struct LiteralStart {
 	/// after it was classified as blank string content — which the blank-line fixer then deleted as
 	/// formatting.
 	raw: bool,
+	/// The closer for forms that build it dynamically, such as C++'s `R"delim(...)delim"`.
+	end_override: Option<String>,
 }
 
 /// Builds the delimiter that closes a literal opened with `hashes` hashes.

@@ -198,6 +198,11 @@ pub struct LanguageProfile {
 	/// a Rust-style literal, such as `r`.
 	pub raw_string_prefix: Option<char>,
 	/// How string interpolation is written, when supported.
+	/// A dedicated rule for `R"(…)"` raw strings, when the language has them.
+	///
+	/// C++ binds the `R` prefix to a parenthesized raw literal whose closer is `)"` (plus any
+	/// custom delimiter), which the ordinary prefix-to-delimiter binding cannot express.
+	pub raw_paren_rule: Option<&'static StringRule>,
 	pub interpolation: Option<Interpolation>,
 	/// How heredocs are introduced, when supported.
 	pub heredoc: Option<HeredocSyntax>,

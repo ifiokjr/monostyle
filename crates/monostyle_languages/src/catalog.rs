@@ -31,6 +31,19 @@ const C_STRINGS: &[StringRule] = &[
 	StringRule::escaped("'", "'"),
 ];
 
+/// The `R"(…)"` raw-string rule for C++.
+///
+/// The scanner builds the closer dynamically (a custom delimiter joins the `)`), so only the
+/// open side lives here.
+pub static CPP_RAW_PAREN: StringRule = StringRule {
+	open: "(",
+	close: ")",
+	escapes: false,
+	multiline: true,
+	interpolates: false,
+	extra_escapes: &[],
+};
+
 /// Prefixes that may precede a C-family string delimiter.
 const C_STRING_PREFIXES: &[char] = &['L', 'u', 'U', 'R', 'B'];
 
@@ -418,6 +431,7 @@ const SHELL_END: &[&str] = &["fi", "done", "esac"];
 fn c_family(language: Language) -> LanguageProfile {
 	LanguageProfile {
 		language,
+		raw_paren_rule: None,
 		line_comments: C_LINE_COMMENTS,
 		block_comments: C_BLOCK_COMMENTS,
 		nestable_comments: false,
@@ -438,6 +452,21 @@ fn c_family(language: Language) -> LanguageProfile {
 		end_keywords: NONE,
 		parameter_list_start: Some('('),
 		variables_use_sigil: false,
+	}
+}
+
+/// Java string rules: text blocks must be tried before the plain quote.
+const JAVA_STRINGS: &[StringRule] = &[
+	StringRule::multiline("\"\"\"", "\"\"\""),
+	StringRule::escaped("\"", "\""),
+	StringRule::escaped("'", "'"),
+];
+
+/// Java adds text blocks (`"""`) and shares the C-family operators.
+fn java(language: Language) -> LanguageProfile {
+	LanguageProfile {
+		strings: JAVA_STRINGS,
+		..c_family(language)
 	}
 }
 
@@ -466,7 +495,14 @@ pub fn profile_for(language: Language) -> LanguageProfile {
 		Language::CSharp => csharp(language),
 		Language::Kotlin => kotlin(language),
 		Language::Markdown => markdown(language),
-		Language::C | Language::Cpp | Language::Java => c_family(language),
+		Language::C => c_family(language),
+		Language::Cpp => {
+			LanguageProfile {
+				raw_paren_rule: Some(&CPP_RAW_PAREN),
+				..c_family(language)
+			}
+		}
+		Language::Java => java(language),
 	}
 }
 

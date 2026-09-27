@@ -379,3 +379,91 @@ val after = \"code\"
 	assert_literal(&lexed, &[2, 3, 4, 5]);
 	assert_code(&lexed, &[1, 6]);
 }
+
+// ---------------------------------------------------------------------------
+// C++ raw strings and Java text blocks
+// ---------------------------------------------------------------------------
+
+#[test]
+fn cpp_raw_string_keeps_quotes_and_braces_as_content() {
+	// `R"(...)"` — the quotes and braces inside are data. Reading the `"` after `R` as a
+	// plain string opener leaked the content into the masked view as code.
+	let source = r#"int main() {
+    const char* a = R"(has "quote" and {brace})";
+    const char* b = "after";
+
+    return 0;
+}
+"#;
+	let lexed = lex(source, Language::Cpp);
+
+	assert!(lexed.is_clean(), "the scan should need no recovery");
+
+	let content = &lexed.lines[1];
+
+	assert!(
+		!content.masked_code.contains("quote"),
+		"raw string content must be masked: {:?}",
+		content.masked_code
+	);
+	assert!(
+		content.masked_code.ends_with(';'),
+		"the statement's own punctuation stays code: {:?}",
+		content.masked_code
+	);
+}
+
+#[test]
+fn cpp_raw_string_with_a_custom_delimiter_closes_on_the_delimiter() {
+	// `R"delim(...)delim"` closes at `)delim"`, not at the first `)`.
+	let source = r#"const char* a = R"x(ends with )" inside)x";
+const char* b = "after";
+"#;
+	let lexed = lex(source, Language::Cpp);
+
+	assert!(lexed.is_clean(), "the scan should need no recovery");
+	assert!(
+		lexed.lines[1].is_code() && !lexed.lines[1].masked_code.contains("inside"),
+		"content masks and the next line stays code: {:?}",
+		lexed.lines[1].masked_code
+	);
+}
+
+#[test]
+fn java_text_block_content_is_literal_until_the_triple_quote() {
+	// A Java text block spans lines; its braces and single quotes are data.
+	let source = "\
+public class Query {
+    private static final String SQL = \"\"\"
+        {
+          \"table\": \"users\"
+        }
+        \"\"\";
+    public String build() { return SQL; }
+}
+";
+	let lexed = lex(source, Language::Java);
+
+	assert!(lexed.is_clean(), "the scan should need no recovery");
+
+	for number in [3, 4, 5] {
+		let line = lexed
+			.lines
+			.get(number - 1)
+			.expect("the text block's lines exist");
+
+		assert!(
+			line.is_literal(),
+			"line {number} should be text-block content but was {:?}: {:?}",
+			line.kind,
+			line.text
+		);
+	}
+
+	// The closing delimiter shares a line with code, which stays code.
+	assert!(
+		lexed.lines[5].is_code(),
+		"the closer's line carries the statement: {:?}",
+		lexed.lines[5].masked_code
+	);
+}
