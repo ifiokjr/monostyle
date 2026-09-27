@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.5](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.5) (2026-09-27)
+
+### Changed
+
+- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-musl` was updated to 0.3.5 as part of group `release`.**
+
 ## [0.3.4](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.4) (2026-09-25)
 
 ### Changed
