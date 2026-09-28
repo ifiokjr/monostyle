@@ -844,3 +844,26 @@ fn a_destructuring_condition_opens_its_body_on_a_later_line() {
 		"the finding targets the tail statement"
 	);
 }
+
+#[test]
+fn a_condition_closer_whose_body_opens_below_is_not_finished() {
+	// `if unsafe { … } == 0` ends its condition on one line — `} == 0` — and opens
+	// the body on the next. The closer starts with a brace but the statement has
+	// not finished, and rustfmt removed the blank monostyle put before the `{`.
+	let findings = run(
+		whitespace::blank_line_after_control_flow,
+		"fn probe(target: &mut Target) -> bool {\n    if unsafe {\n        std::ptr::copy_nonoverlapping(limits.as_ptr(), target, 4);\n        true\n    } == compare(target)\n    {\n        let error = std::io::Error::last_os_error();\n        return false;\n    }\n    true\n}\n",
+	);
+
+	// The only separation the rule may ask for is after the *body* closes — before
+	// the trailing `true` — never between the condition's closer and its `{`.
+	assert_eq!(
+		findings.len(),
+		1,
+		"one finding, after the body: {findings:?}"
+	);
+	assert_eq!(
+		findings[0].span.start_line, 10,
+		"the finding targets the tail statement"
+	);
+}
