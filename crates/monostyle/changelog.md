@@ -4,6 +4,20 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.7](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.7) (2026-09-28)
+
+### Fixes
+
+#### Value-form decisions stay unpadded
+
+A decision written as a value is not a statement. Three shapes proved it downstream, each by making the fixer's output fail a repository's formatter.
+
+`final fill = color ?? switch (icon) { … };` assigns a decision's result, so both blank-line rules now walk up through continuation lines to the binding that is still unfinished and stand down. `} else if (name.startsWith('h') ||` reopens a chain that continues onto the next line, so the after-rule requires the chain to actually be finished. `final m = { for (…) …, if (…) … };` puts a `for` or `if` on element lines of one map value, and the enclosing opener is inspected directly because the depth table deliberately ignores braces.
+
+Two rules anchoring a blank at the same byte — a `return [for (…) …];` is both a return and a control-flow statement — both applied and wrote two blanks where one was asked for. The fix engine now collapses identical insert anchors into the single edit they agree on.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #42](https://github.com/ifiokjr/monostyle/pull/42) · _Related issues:_ [#41](https://github.com/ifiokjr/monostyle/issues/41)
+
 ## [0.3.6](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.6) (2026-09-28)
 
 ### Features
