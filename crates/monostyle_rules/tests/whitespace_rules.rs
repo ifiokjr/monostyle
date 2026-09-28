@@ -922,3 +922,19 @@ fn the_restored_fix_anchors_above_an_attribute_block() {
 	let fix = findings[0].fix.as_ref().expect("the fix is restored");
 	assert_eq!(fix.span.start_line, 3, "the anchor is the attribute line");
 }
+
+#[test]
+fn a_match_arm_guard_is_part_of_its_arm() {
+	// A pattern with a multi-line guard: `[root, module, name]` then
+	// `if root.ident == "core" && … =>`. The guard's `if` belongs to the arm
+	// above it — a blank between the pattern and its guard is removed by rustfmt.
+	let findings = run(
+		whitespace::blank_line_before_control_flow,
+		"fn kind(path: &Path) -> Option<Kind> {\n    match path.segments {\n        [root, module, name] if root == \"pinapod\" && module == \"pod\" => name,\n        [root, module, name]\n            if (root == \"core\" || root == \"std\") && module == \"option\" =>\n        {\n            return Some(Kind::Option(name));\n        }\n        _ => None,\n    }\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"an arm guard continues its arm, not a new statement: {findings:?}"
+	);
+}

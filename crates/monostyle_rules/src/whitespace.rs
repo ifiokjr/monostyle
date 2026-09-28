@@ -150,6 +150,13 @@ fn needs_blank_line(
 		return None;
 	}
 
+	// A line that ends with `=>` is a match or switch arm — including an arm whose
+	// pattern and guard were split across lines, where the `if` belongs to the arm
+	// above it. An arm is a clause of one decision, never a statement of its own.
+	if line.masked_code.trim_end().ends_with("=>") {
+		return None;
+	}
+
 	// Every way a line can belong to the statement above it rather than be a statement of its
 	// own: it opens with a continuation token, it continues an open directive, the depth table
 	// places it inside an expression, or it reopens a chain (`} else if`). In all four the
