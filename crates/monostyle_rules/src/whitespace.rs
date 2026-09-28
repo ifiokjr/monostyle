@@ -122,7 +122,7 @@ fn needs_blank_line(
 	// rather than a new decision. An inline conditional in an argument list — `path / "x" if flag
 	// else "y"` — was reported as a missing blank line before a branch, which asked for a blank line
 	// inside a single expression.
-	if inside_expression(line, depths, index) {
+	if inside_expression(lines, line, depths, index) {
 		return false;
 	}
 
@@ -237,58 +237,90 @@ pub fn blank_line_after_control_flow(file: &LexedFile, config: &RulesConfig) -> 
 		return Vec::new();
 	}
 
-	let mut findings = Vec::new();
+	let mut open_decisions = OpenDecisions::default();
 
-	// The depth each decision-opened body lives at, with the line that opened it, innermost last. Only
-	// bodies opened by a decision are tracked: a function or type body ending asks for nothing, because
-	// the space between two items is a different question from the space around a branch.
-	let mut opened: Vec<(usize, usize)> = Vec::new();
-	let mut depth: usize = 0;
+	file.lines
+		.iter()
+		.enumerate()
+		.filter(|(_, line)| line.is_code())
+		.filter_map(|(index, line)| open_decisions.visit(file, line, index))
+		.collect()
+}
 
-	for (index, line) in file.lines.iter().enumerate() {
-		if !line.is_code() {
-			continue;
-		}
+/// Tracks which decision-opened bodies are still open while the rule walks the file.
+///
+/// Only bodies opened by a decision are tracked: a function or type body ending asks for
+/// nothing, because the space between two items is a different question from the space around
+/// a branch.
+#[derive(Default)]
+struct OpenDecisions {
+	/// Each entry is the depth the body lives at and the line that opened it.
+	opened: Vec<(usize, usize)>,
+	/// The brace depth after the lines seen so far.
+	depth: usize,
+}
 
+impl OpenDecisions {
+	/// Advances the walk by one line, returning a finding when a decision's chain just ended.
+	fn visit(&mut self, file: &LexedFile, line: &LexedLine, index: usize) -> Option<Finding> {
 		let code = line.masked_code.trim_start();
+		let depth_before = self.depth;
 		let opens = line.masked_code.matches('{').count();
 		let closes = line.masked_code.matches('}').count();
-		let depth_before = depth;
 
-		depth = depth_before.saturating_add(opens).saturating_sub(closes);
+		self.depth = depth_before.saturating_add(opens).saturating_sub(closes);
 
-		// A body whose braces balance on the opener's own line — `if ready { work(); }` — never opened
-		// a region, so it can never close one either.
-		let spanned = depth > depth_before;
-
-		if spanned && !line.decisions.is_empty() {
-			opened.push((depth_before, index));
+		// A body whose braces balance on the opener's own line — `if ready { work(); }` — never
+		// opened a region, so it can never close one either.
+		if self.depth > depth_before && !line.decisions.is_empty() {
+			self.opened.push((depth_before, index));
 		}
 
-		// A line that both closes and reopens — `} else {` — continues the same decision, so the chain
-		// is reported once, at the brace that ends its last branch.
-		if code.starts_with('}') && !code.ends_with('{') {
-			let mut ended_decision = false;
-
-			// A body lives one depth below its opener, so it has closed once the depth drops back to
-			// the level the decision was written at.
-			opened.retain(|(body_depth, opened_at)| {
-				let keep = *body_depth < depth;
-
-				if !keep && index > *opened_at {
-					ended_decision = true;
-				}
-
-				keep
-			});
-
-			if ended_decision && let Some(finding) = missing_line_after(file, index) {
-				findings.push(finding);
-			}
+		if !Self::closes_a_chain(file, line, code, index) {
+			return None;
 		}
+
+		if self.retire_closed_bodies(index) {
+			return missing_line_after(file, index);
+		}
+
+		None
 	}
 
-	findings
+	/// Whether this line ends the chain a decision opened.
+	///
+	/// The chain's closer both starts with a brace and finishes the statement: `} else if (cond) ||`
+	/// reopens the same decision and continues onto the next line, so a blank there would land
+	/// inside the condition — which every formatter removes.
+	fn closes_a_chain(file: &LexedFile, line: &LexedLine, code: &str, index: usize) -> bool {
+		if !code.starts_with('}') || code.ends_with('{') || continues_statement(line) {
+			return false;
+		}
+
+		// A decision written as a *value* — `final x = cond ?? switch (i) { … };` — is an
+		// expression assigned to a binding: its brace ends the value rather than a statement,
+		// so the declaration above it is still unfinished and no blank belongs below.
+		!closer_ends_a_value(file, index)
+	}
+
+	/// Drops the bodies that closed, reporting whether any decision actually ended.
+	fn retire_closed_bodies(&mut self, index: usize) -> bool {
+		let mut ended = false;
+
+		// A body lives one depth below its opener, so it has closed once the depth drops back to
+		// the level the decision was written at.
+		self.opened.retain(|(body_depth, opened_at)| {
+			let keep = *body_depth < self.depth;
+
+			if !keep && index > *opened_at {
+				ended = true;
+			}
+
+			keep
+		});
+
+		ended
+	}
 }
 
 /// Builds the finding for a statement crowded against the control-flow block above it.
@@ -1580,7 +1612,60 @@ pub fn mixed_indentation(file: &LexedFile) -> Vec<Finding> {
 ///
 /// Two shapes count: a line that opens a delimiter which has not closed yet, and a line whose own text
 /// begins inside one. In both cases the keyword it carries belongs to an expression.
-fn inside_expression(line: &LexedLine, depths: &PrefixDepth, index: usize) -> bool {
+/// Whether the decision on line `index` is the value half of a binding opened above it.
+///
+/// Walks up through continuation lines — `final x =`, `cond ??`, then `switch (i) {` — until it
+/// meets either the assignment that makes this a value or a line that is not a continuation.
+fn decision_belongs_to_a_binding(lines: &[LexedLine], index: usize) -> bool {
+	const EXPRESSION_KEYWORDS: &[&str] = &["switch", "if", "match", "when"];
+
+	let Some(line) = lines.get(index) else {
+		return false;
+	};
+
+	if !EXPRESSION_KEYWORDS
+		.iter()
+		.any(|keyword| line.masked_code.trim_start().starts_with(keyword))
+	{
+		return false;
+	}
+
+	lines
+		.iter()
+		.take(index)
+		.rev()
+		.map(|above| above.masked_code.trim_end())
+		.find(|above| !above.is_empty())
+		.is_some_and(opens_a_binding)
+}
+
+/// Whether a line leaves a binding unfinished, so what follows is its value.
+///
+/// `final x =`, `cond ??`, and `return ` all open a value; a statement that already ended in
+/// `;`, `}`, or `{` does not.
+fn opens_a_binding(above: &str) -> bool {
+	if above.ends_with(';') || above.ends_with('}') || above.ends_with('{') {
+		return false;
+	}
+
+	above.ends_with('=')
+		|| above.ends_with("=>")
+		|| above.ends_with("return")
+		|| above.ends_with("return (")
+		|| above.ends_with("??")
+		|| above.ends_with("&&")
+		|| above.ends_with("||")
+		|| above.ends_with('+')
+		|| above.ends_with(',')
+		|| above.ends_with('(')
+}
+
+fn inside_expression(
+	lines: &[LexedLine],
+	line: &LexedLine,
+	depths: &PrefixDepth,
+	index: usize,
+) -> bool {
 	// A control-flow keyword used as a value is part of an expression rather than a statement. `let after =
 	// if flag { a } else { b }` has an `if` on the line, and reporting it asked for a blank line in the middle
 	// of a binding.
@@ -1588,7 +1673,21 @@ fn inside_expression(line: &LexedLine, depths: &PrefixDepth, index: usize) -> bo
 		return true;
 	}
 
+	// A decision that is the *value* of a binding continues the assignment opened above it:
+	// `final x = cond ??\n    switch (i) {`. The declaration has not finished, so the switch is
+	// not a statement and no blank belongs between it and its binding.
+	if decision_belongs_to_a_binding(lines, index) {
+		return true;
+	}
+
 	if starts_inside_expression(depths, index) {
+		return true;
+	}
+
+	// A collection literal's elements are one expression: `final m = { for (…) …, if (…) … };`.
+	// The elements sit inside braces, which the depth table deliberately ignores because a
+	// block's first line is a statement — so the enclosing opener is inspected directly.
+	if inside_collection_literal(lines, index) {
 		return true;
 	}
 
@@ -1597,6 +1696,67 @@ fn inside_expression(line: &LexedLine, depths: &PrefixDepth, index: usize) -> bo
 	let closes = line.masked_code.matches(')').count() + line.masked_code.matches(']').count();
 
 	opens > closes
+}
+
+/// Whether line `index` sits inside a collection literal rather than a block.
+///
+/// Walks up to the line that opened the innermost brace group and asks whether that line put
+/// the brace in value position — `= {`, `return {`, `=> {`, or a bare `{` on a continuation of
+/// such a line. A block opener (`fn f() {`, `if x {`) answers no, so its statements are
+/// unaffected.
+fn inside_collection_literal(lines: &[LexedLine], index: usize) -> bool {
+	enclosing_brace_opener(lines, index).is_some_and(|opener| {
+		let code = lines
+			.get(opener)
+			.map(|line| line.masked_code.trim_end())
+			.unwrap_or_default();
+
+		code.ends_with("= {")
+			|| code.ends_with("return {")
+			|| code.ends_with("=> {")
+			|| code.ends_with("= <")
+			|| code.ends_with(", {")
+	})
+}
+
+/// The index of the line that opened the brace group containing `index`.
+///
+/// Returns `None` when no line above opened one, which is the case at the top of a file.
+fn enclosing_brace_opener(lines: &[LexedLine], index: usize) -> Option<usize> {
+	let mut depth = 0usize;
+
+	for (cursor, above) in lines.iter().enumerate().take(index).rev() {
+		if !above.is_code() {
+			continue;
+		}
+
+		let mask = &above.masked_code;
+		let opens = mask.matches('{').count();
+		let closes = mask.matches('}').count();
+
+		if closes >= opens {
+			depth += closes - opens;
+			continue;
+		}
+
+		if depth > 0 {
+			depth -= opens - closes;
+			continue;
+		}
+
+		return Some(cursor);
+	}
+
+	None
+}
+
+/// Whether the brace a closer ends was opened in value position.
+///
+/// \`final x = cond ?? switch (i) { … };\` assigns a decision's result, so the declaration above
+/// it is still unfinished when the brace closes.
+fn closer_ends_a_value(file: &LexedFile, index: usize) -> bool {
+	enclosing_brace_opener(&file.lines, index)
+		.is_some_and(|opener| decision_belongs_to_a_binding(&file.lines, opener))
 }
 
 /// Returns true when a line begins inside parentheses or brackets opened above it.
@@ -1718,14 +1878,20 @@ fn continues_statement(line: &LexedLine) -> bool {
 
 /// Whether `code` begins with a keyword that continues a decision chain.
 fn starts_with_continuation_keyword(code: &str) -> bool {
-	const CONTINUATIONS: &[&str] = &["else", "elsif", "elif", "catch", "finally", "on "];
+	const CONTINUATIONS: &[&str] = &["else", "elsif", "elif", "catch", "finally", "on"];
 
 	CONTINUATIONS.iter().any(|keyword| {
 		let Some(rest) = code.strip_prefix(keyword) else {
 			return false;
 		};
 
-		rest.is_empty() || rest.starts_with(char::is_whitespace) || rest.starts_with('{')
+		// The keyword must end at a word boundary: `oncall()` is an identifier, and `elsewhere`
+		// is not an `else`. The `on` clause carries its exception type after a space
+		// (`on XmlParserException {`), which the boundary check accepts.
+		rest.is_empty()
+			|| rest.starts_with(char::is_whitespace)
+			|| rest.starts_with('{')
+			|| rest.starts_with('(')
 	})
 }
 

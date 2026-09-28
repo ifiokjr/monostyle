@@ -77,9 +77,22 @@ pub fn apply_fixes(source: &str, fixes: &[Fix]) -> (String, usize) {
 			continue;
 		}
 
-		// Edits are sorted, so anything reaching past the previous edit's end overlaps it.
+		// An edit that reaches past the previous edit's end is a genuine overlap and cannot be
+		// merged, so it loses and the winner stands.
 		if start < last_end {
 			conflicts += 1;
+			continue;
+		}
+
+		// Two rules may anchor the same blank-line insertion at one byte — a `return` that
+		// contains a control-flow keyword is both a return and a branch, and both rules ask
+		// for the space above it. The edits agree, so one application satisfies both; applying
+		// both wrote two blank lines, which formatters then collapsed.
+		if start == end
+			&& let Some(previous) = accepted.last()
+			&& previous.span.start_byte == previous.span.end_byte
+			&& previous.span.start_byte == start
+		{
 			continue;
 		}
 

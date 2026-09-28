@@ -362,3 +362,33 @@ fn a_detached_doc_block_reattaches_without_erasing_the_comment_below() {
 		"the blank between the block and its code is gone: {once}"
 	);
 }
+
+#[test]
+fn two_rules_anchoring_the_same_byte_insert_one_blank_between_them() {
+	// `return [for (var i ...)]` is both a return and a control-flow statement (the `for`
+	// inside the collection literal). Two rules anchored an insertion at the same byte and
+	// both applied, leaving two blank lines — which dart format then collapsed, so the fixer's
+	// own output failed the repository's formatter check.
+	let source = "List<int> advances(TrueTypeFont font) {\n  final count = 8;\n  final data = 2;\n  return [for (var i = 0; i < count; i++) data * i];\n}\n";
+
+	let lexed = lex(source, Language::Rust);
+	let config = RulesConfig::default();
+	let fixes: Vec<Fix> = whitespace::blank_line_before_return(&lexed, &config)
+		.into_iter()
+		.filter_map(|finding| finding.fix)
+		.chain(
+			whitespace::blank_line_before_control_flow(&lexed, &config)
+				.into_iter()
+				.filter_map(|finding| finding.fix),
+		)
+		.collect();
+
+	assert!(fixes.len() >= 2, "the fixture must produce both anchors");
+
+	let (rewritten, _) = apply_fixes(source, &fixes);
+
+	assert!(
+		!rewritten.contains("\n\n\n"),
+		"two anchors at one byte must collapse to one blank line: {rewritten:?}"
+	);
+}
