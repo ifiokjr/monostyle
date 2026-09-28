@@ -1,0 +1,61 @@
+name: monostyle
+description: >-
+  Runs monostyle and reports its findings as inline pull-request annotations.
+  Downloads the release binary matching the tag the action was referenced at,
+  so `uses: ifiokjr/monostyle@v0.3.17` pins both the action and the binary.
+
+inputs:
+  path:
+    description: The path to analyze.
+    required: false
+    default: .
+  version:
+    description: >-
+      The release version to download, for example `0.3.17`. Defaults to the
+      tag this action was referenced at, or the latest release when the action
+      was referenced by a branch or commit SHA.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: check
+      shell: bash
+      env:
+        MONOSTYLE_PATH: ${{ inputs.path }}
+        MONOSTYLE_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+
+        # A tag reference pins the binary to the same version, which is the
+        # normal case; a branch or commit-SHA reference falls back to the
+        # latest release, resolved from the redirect rather than the API so
+        # no token is needed.
+        version=${MONOSTYLE_VERSION:-${GITHUB_ACTION_REF:-}}
+        case "$version" in
+          [0-9]*.[0-9]*.[0-9]*) ;;
+          v[0-9]*.[0-9]*.[0-9]*) version=${version#v} ;;
+          *)
+            latest=$(curl -fsSL --retry 3 -o /dev/null -w '%{url_effective}' \
+              https://github.com/ifiokjr/monostyle/releases/latest)
+            version=${latest##*/}
+            ;;
+        esac
+
+        case "$(uname -s)-$(uname -m)" in
+          Linux-x86_64) asset="monostyle-x86_64-unknown-linux-musl" ;;
+          Linux-aarch64 | Linux-arm64) asset="monostyle-aarch64-unknown-linux-musl" ;;
+          Darwin-arm64) asset="monostyle-aarch64-apple-darwin" ;;
+          Darwin-x86_64) asset="monostyle-x86_64-apple-darwin" ;;
+          MINGW* | MSYS*) asset="monostyle-x86_64-pc-windows-msvc.exe" ;;
+          *)
+            echo "unsupported platform: $(uname -s)-$(uname -m)" >&2
+            exit 1
+            ;;
+        esac
+
+        curl -fsSL --retry 3 -o "$RUNNER_TEMP/monostyle" \
+          "https://github.com/ifiokjr/monostyle/releases/download/v${version}/${asset}"
+        chmod +x "$RUNNER_TEMP/monostyle"
+        "$RUNNER_TEMP/monostyle" check "$MONOSTYLE_PATH" --format github

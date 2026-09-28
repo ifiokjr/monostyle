@@ -54,6 +54,17 @@ monostyle config                   # print the effective configuration
 
 <!-- {/usageExamples} -->
 
+## CI annotations
+
+The repository ships a composite action, so a workflow needs two lines to render every finding inline on the pull-request diff — warnings for minor findings, errors for major:
+
+```yaml
+- uses: ifiokjr/monostyle@v0.4.0
+  if: always()
+```
+
+The tag pins both the action and the binary it downloads (a branch or commit-SHA reference falls back to the latest release, or pass an explicit `version:`). `if: always()` is what keeps the annotations appearing on a red build.
+
 ## Rules
 
 ### Readability
