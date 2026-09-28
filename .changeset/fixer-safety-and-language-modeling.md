@@ -5,7 +5,7 @@ monostyle_lexer: minor
 monostyle_core: patch
 ---
 
-# The fixer refuses to corrupt, and the lexer models raw strings and text blocks
+# Fixer safety net and raw-string lexing
 
 Three rules could edit bytes they did not understand. Each now stands on a guarantee.
 
