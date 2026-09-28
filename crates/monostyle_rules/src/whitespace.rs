@@ -220,7 +220,8 @@ fn crowded_against_the_previous_statement(
 /// statement-shaped line — a dereference assignment beginning `*` — is exempted too, which
 /// suppresses one finding rather than corrupting anything.
 const CONTINUATION_OPENERS: &[&str] = &[
-	".", "?.", "::", "..", "||", "&&", "??", "=>", "?", "+", "*", "&", "|", "^", "%", ",", ")", "]",
+	".", "?.", "::", "..", "||", "&&", "??", "=>", "?", "+", "*", "&", "|", "^", "%", ",", ":",
+	")", "]",
 ];
 
 /// Words that continue a statement when they open a line: Dart's `as` and `is`, Kotlin's
@@ -424,6 +425,13 @@ impl OpenDecisions {
 			return false;
 		}
 
+		// A closer followed by a continuation line — the `: font.familyFor(level!)`
+		// arm of a ternary whose other arm was a switch expression — ended an
+		// expression inside a still-forming statement, not the statement itself.
+		if next_code_line_continues(file, index) {
+			return false;
+		}
+
 		// A decision written as a *value* — `final x = cond ?? switch (i) { … };` — is an
 		// expression assigned to a binding: its brace ends the value rather than a statement,
 		// so the declaration above it is still unfinished and no blank belongs below.
@@ -473,6 +481,18 @@ impl OpenDecisions {
 
 		ended
 	}
+}
+
+/// Whether the next code line continues the statement the closer sits inside.
+///
+/// A finished statement is never followed by a continuation token — a `:` ternary
+/// arm, a `.` method chain, a binary operator — so a closer sitting above one
+/// ended an expression rather than the statement.
+fn next_code_line_continues(file: &LexedFile, index: usize) -> bool {
+	file.lines
+		.get(index + 1..)
+		.and_then(|rest| rest.iter().find(|candidate| candidate.is_code()))
+		.is_some_and(is_continuation_line)
 }
 
 /// Whether the next code line opens a block, which means the line above it is an

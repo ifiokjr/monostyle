@@ -867,3 +867,20 @@ fn a_condition_closer_whose_body_opens_below_is_not_finished() {
 		"the finding targets the tail statement"
 	);
 }
+
+#[test]
+fn a_closer_followed_by_a_continuation_line_has_not_finished() {
+	// A switch expression as a ternary arm: the `}` closes the value, and the
+	// `:` line continues the binding above. dart format removed the blank
+	// monostyle placed before the `:` in skribble's font comparison.
+	let findings = run_in(
+		whitespace::blank_line_after_control_flow,
+		"String build(int? level, WiredFont font) {\n  final family = level == null\n      ? switch (font) {\n          WiredFont.casual => 'RecursiveCasualOriginal',\n          WiredFont.mono => 'RecursiveMonoOriginal',\n        }\n      : font.familyFor(level!);\n  return family;\n}\n",
+		Language::Dart,
+	);
+
+	assert!(
+		findings.is_empty(),
+		"a closer followed by a continuation has not finished: {findings:?}"
+	);
+}
