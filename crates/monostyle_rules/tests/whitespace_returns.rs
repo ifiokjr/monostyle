@@ -100,3 +100,18 @@ fn a_return_unrelated_to_the_binding_keeps_its_gap() {
 		"an unrelated return keeps the gap: {findings:?}"
 	);
 }
+
+#[test]
+fn a_return_behind_a_closing_paren_is_part_of_its_statement() {
+	// `if (\n  a ||\n  b\n) return null;` — the `)` line closes the condition and
+	// carries the return as a clause of the `if` statement. dprint removed the
+	// blank the rule placed above it in lootbox's playground.
+	let findings = returns_in(
+		"async function settle(pending) {\n  for (const snapshot of pending) {\n    const account = await read(snapshot);\n    if (\n      !account.value ||\n      account.value.owner !== PROGRAM\n    ) return null;\n    use(account);\n  }\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"the `)` line continues the `if`, so its return is not an exit: {findings:?}"
+	);
+}

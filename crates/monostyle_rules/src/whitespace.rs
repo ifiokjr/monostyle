@@ -631,6 +631,7 @@ pub fn blank_line_before_return(file: &LexedFile, config: &RulesConfig) -> Vec<F
 
 	let mut findings = Vec::new();
 	let mut bodies = Bodies::default();
+	let depths = PrefixDepth::new(&file.lines);
 
 	for (index, line) in file.lines.iter().enumerate() {
 		// The region is read before the line is recorded, so an arm line is judged
@@ -638,6 +639,15 @@ pub fn blank_line_before_return(file: &LexedFile, config: &RulesConfig) -> Vec<F
 		let in_alternatives = bodies.region() == Region::Alternatives;
 
 		if !line.is_code() || !line.is_return {
+			bodies.visit(file, line);
+			continue;
+		}
+
+		// A line that continues the statement above it — `) return null;` closing
+		// a multi-line `if (` condition, most often — carries the return as a
+		// clause of that statement rather than as an exit of its own, and every
+		// formatter removes a blank placed above it.
+		if continues_the_statement_above(&file.lines, line, &depths, index) {
 			bodies.visit(file, line);
 			continue;
 		}
