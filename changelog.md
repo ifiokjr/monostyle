@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.17](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.17) (2026-09-28)
+
+Grouped release for `release`.
+
+### Features
+
+- 🟠 **monostyle**: **A composite action for CI annotations.** The repository now ships a GitHub Actions composite action at its root, so a workflow needs two lines to render findings as inline pull-request annotations. The action downloads the release binary matching the tag the action was referenced at, which pins the action and the binary together; branch and SHA references fall back to the latest release. The platform detection and download that each consumer previously carried in its workflow live here now. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #62](https://github.com/ifiokjr/monostyle/pull/62)
+
 ## [0.3.16](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.16) (2026-09-28)
 
 Grouped release for `release`.
