@@ -820,3 +820,27 @@ fn the_missing_blank_line_before_control_flow_is_reported_not_fixed() {
 		"the before-control-flow rule reports without editing: {findings:?}"
 	);
 }
+
+#[test]
+fn a_destructuring_condition_opens_its_body_on_a_later_line() {
+	// `if let Some(Segment { .. }) = classify_vec(inner)` closes its *pattern* on
+	// one line and opens its *body* on the next; the `})` line starts with a brace
+	// but ends a binding, not a statement. A blank between the two was removed by
+	// rustfmt in pinapod-derive.
+	let findings = run(
+		whitespace::blank_line_after_control_flow,
+		"fn kind(inner: &Type) -> Option<Kind> {\n    if let Some(Segment {\n        payload: Vec { elem, max, pfx },\n        ..\n    }) = classify_vec(inner)\n    {\n        return Some(Kind::Segment(elem));\n    }\n    None\n}\n",
+	);
+
+	// The only separation the rule may ask for is after the *body* closes, before the
+	// `None` — never between the pattern's closer and the `{` that opens the body.
+	assert_eq!(
+		findings.len(),
+		1,
+		"one finding, after the body: {findings:?}"
+	);
+	assert_eq!(
+		findings[0].span.start_line, 9,
+		"the finding targets the tail statement"
+	);
+}

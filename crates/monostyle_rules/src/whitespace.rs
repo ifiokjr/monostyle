@@ -409,10 +409,42 @@ impl OpenDecisions {
 			return false;
 		}
 
+		// A destructuring condition closes its *pattern* on one line and opens its
+		// *body* on the next: `}) = classify_vec(inner)` ends a binding, not a
+		// statement, and a blank between it and the `{` below is removed by rustfmt.
+		if Self::binds_after_the_brace(code) {
+			return false;
+		}
+
 		// A decision written as a *value* — `final x = cond ?? switch (i) { … };` — is an
 		// expression assigned to a binding: its brace ends the value rather than a statement,
 		// so the declaration above it is still unfinished and no blank belongs below.
 		!closer_ends_a_value(file, index)
+	}
+
+	/// Whether the text after a line's leading braces continues into a binding.
+	///
+	/// `}) = classify_vec(inner)` assigns what the braces matched, so the statement is still
+	/// forming and its body opens on a later line. `=` counts only as an assignment or a
+	/// binding, not as the `==`, `=>`, `!=`, `<=`, and `>=` operators that can follow a
+	/// closer as part of the expression itself.
+	fn binds_after_the_brace(code: &str) -> bool {
+		let after_braces = code.trim_start_matches('}');
+
+		let is_assignment = |at: usize| {
+			let before_is_operator = at > 0
+				&& after_braces[..at]
+					.chars()
+					.next_back()
+					.is_some_and(|character| "=!<>".contains(character));
+			let after_is_equal = after_braces[at + 1..].starts_with('=');
+
+			!before_is_operator && !after_is_equal
+		};
+
+		after_braces
+			.match_indices('=')
+			.any(|(at, _)| is_assignment(at))
 	}
 
 	/// Drops the bodies that closed, reporting whether any decision actually ended.
