@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.15](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.15) (2026-09-28)
+
+Grouped release for `release`.
+
+### Fixes
+
+- 🟢 **monostyle_rules**: **A match-arm guard continues its arm.** A pattern split from its guard — `[root, module, name]` then `if root == "core" && … =>` — puts an `if` at the start of a line that belongs to the arm above it. The restored before-control-flow fix padded a blank between the pattern and its guard, which rustfmt removed. A line whose decision ends with `=>` is an arm clause, never a statement of its own. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #58](https://github.com/ifiokjr/monostyle/pull/58)
+
 ## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)
 
 Grouped release for `release`.

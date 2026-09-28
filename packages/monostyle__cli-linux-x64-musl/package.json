@@ -1,6 +1,6 @@
 {
 	"name": "@monostyle-rs/cli-linux-x64-musl",
-	"version": "0.3.14",
+	"version": "0.3.15",
 	"description": "Prebuilt monostyle binary for Linux x64 (musl)",
 	"homepage": "https://github.com/ifiokjr/monostyle",
 	"bugs": {
