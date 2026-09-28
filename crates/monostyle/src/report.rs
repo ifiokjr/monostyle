@@ -582,42 +582,75 @@ fn display_path(path: &Path) -> String {
 	path.display().to_string()
 }
 
-/// Renders every finding as a GitHub Actions workflow command.
+/// Renders findings as GitHub Actions workflow commands, capped at what the interface shows.
 ///
 /// GitHub reads `::warning file=…,line=…,endLine=…::message` lines from a workflow step's output and
 /// renders them as inline annotations on the pull request diff — the same surface an
 /// `ESLint` or `Clippy` annotation appears on. Severity maps to the annotation level: `Minor` findings are warnings and
 /// `Major` and `Critical` findings are errors, which is how a reviewer sees the rules the repository
 /// chose to enforce without opening the full report.
+///
+/// The interface renders at most ten annotations of each level per step and fifty per run; every
+/// command past that is parsed and discarded. A repository with a thousand findings would flood
+/// the log with output no reviewer ever sees, so each level is capped at what can render and one
+/// notice reports how much was held back — the annotations are a sample of the report, and the
+/// notice is what tells the reader so.
 pub fn render_project_github(report: &ProjectReport) -> String {
+	/// The number of annotations of one level GitHub renders from a single step.
+	const ANNOTATIONS_PER_LEVEL: usize = 10;
+
 	let mut commands = String::new();
+	let mut held_back = 0;
 
-	for file in &report.files {
-		let path = display_path(&file.path);
+	for level in ["error", "warning", "notice"] {
+		let mut emitted = 0;
 
-		for finding in &file.findings {
-			let level = match finding.severity {
-				Severity::Minor => "warning",
-				Severity::Info => "notice",
-				Severity::Major | Severity::Critical => "error",
-			};
+		for file in &report.files {
+			let path = display_path(&file.path);
 
-			let message = format!("[{}] {}", finding.rule, finding.message);
-			let escaped = escape_workflow_command(&message);
-			let mut command = String::new();
-			write!(
-				command,
-				"::{} file={path},line={},endLine={},title={}::{}",
-				level, finding.span.start_line, finding.span.end_line, finding.rule, escaped,
-			)
-			.expect("a String write cannot fail");
+			for finding in &file.findings {
+				if annotation_level(finding.severity) != level {
+					continue;
+				}
 
-			commands.push_str(&command);
-			commands.push('\n');
+				if emitted >= ANNOTATIONS_PER_LEVEL {
+					held_back += 1;
+
+					continue;
+				}
+
+				emitted += 1;
+				let message = format!("[{}] {}", finding.rule, finding.message);
+				let escaped = escape_workflow_command(&message);
+				writeln!(
+					commands,
+					"::{level} file={path},line={},endLine={},title={}::{}",
+					finding.span.start_line, finding.span.end_line, finding.rule, escaped,
+				)
+				.expect("a String write cannot fail");
+			}
 		}
 	}
 
+	if held_back > 0 {
+		writeln!(
+			commands,
+			"::notice title=monostyle::{held_back} more findings not shown — run `monostyle \
+			 check` for the full report",
+		)
+		.expect("a String write cannot fail");
+	}
+
 	commands
+}
+
+/// Maps a severity to the GitHub annotation level a reviewer sees it at.
+fn annotation_level(severity: Severity) -> &'static str {
+	match severity {
+		Severity::Minor => "warning",
+		Severity::Info => "notice",
+		Severity::Major | Severity::Critical => "error",
+	}
 }
 
 /// Escapes text for a GitHub Actions workflow command's message field.
