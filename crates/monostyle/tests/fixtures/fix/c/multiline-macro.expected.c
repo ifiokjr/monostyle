@@ -4,7 +4,6 @@
 	int temp = (a);      \
 	(a) = (b);           \
 	(b) = temp;          \
-
 } while (0)
 
 int main(void) {

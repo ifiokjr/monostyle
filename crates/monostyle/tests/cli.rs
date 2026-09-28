@@ -400,11 +400,12 @@ fn rules_can_be_filtered_to_fixable_ones() {
 
 	let listed = decoded.as_array().expect("an array");
 
-	// Only the edits a formatter leaves alone are fixable, so this stays a short list.
+	// Only the edits a formatter leaves alone are fixable, so this stays a short list. Padding
+	// before control flow is reported but never edited, which is why it is not here.
 	assert_eq!(
 		listed.len(),
-		5,
-		"five rules are fixable, got {}",
+		4,
+		"four rules are fixable, got {}",
 		listed.len()
 	);
 }
@@ -501,12 +502,15 @@ fn fix_dry_run_writes_nothing() {
 
 #[test]
 fn fix_applies_the_blank_line() {
+	// The blank the fixer still inserts after a control-flow block: the before-control-flow
+	// rule reports without editing, so the fixable shape is a statement crowded against a
+	// closing brace.
 	let temp = tempfile::tempdir().expect("a temporary directory");
 	let target = temp.path().join("sample.rs");
 
 	std::fs::write(
 		&target,
-		"fn a() {\n    work();\n    if x {\n        work();\n    }\n}\n",
+		"fn a() {\n    if x {\n        work();\n    }\n    let done = true;\n}\n",
 	)
 	.expect("write");
 
@@ -515,8 +519,8 @@ fn fix_applies_the_blank_line() {
 	let fixed = std::fs::read_to_string(&target).expect("read");
 
 	assert!(
-		fixed.contains("work();\n\n    if x"),
-		"a blank line should be inserted:\n{fixed}"
+		fixed.contains("}\n\n    let done"),
+		"a blank line should be inserted after the block:\n{fixed}"
 	);
 }
 
@@ -801,14 +805,14 @@ fn the_printed_config_can_be_read_back() {
 // ---------------------------------------------------------------------------
 #[test]
 fn fix_reports_conflicts_when_edits_overlap() {
-	// Two adjacent statements each needing a blank line produce edits that do not overlap, so this
+	// Two adjacent blocks each followed by a statement produce edits that do not overlap, so this
 	// exercises the ordinary path; the conflict path is covered by the fix-engine unit tests.
 	let temp = tempfile::tempdir().expect("a temporary directory");
 	let target = temp.path().join("sample.rs");
 
 	std::fs::write(
 		&target,
-		"fn a() {\n    work();\n    if x {\n        work();\n    }\n    if y {\n        work();\n    }\n}\n",
+		"fn a() {\n    if x {\n        work();\n    }\n    let one = true;\n    if y {\n        work();\n    }\n    let two = true;\n}\n",
 	)
 	.expect("write");
 
@@ -819,11 +823,11 @@ fn fix_reports_conflicts_when_edits_overlap() {
 	let fixed = std::fs::read_to_string(&target).expect("read");
 
 	assert!(
-		fixed.contains("work();\n\n    if x"),
+		fixed.contains("}\n\n    let one"),
 		"the first blank line should be inserted"
 	);
 	assert!(
-		fixed.contains("}\n\n    if y"),
+		fixed.contains("}\n\n    let two"),
 		"the second blank line should be inserted"
 	);
 }
@@ -834,12 +838,12 @@ fn fix_accepts_a_directory() {
 
 	std::fs::write(
 		temp.path().join("one.rs"),
-		"fn a() {\n    work();\n    if x {\n        work();\n    }\n}\n",
+		"fn a() {\n    if x {\n        work();\n    }\n    let done = true;\n}\n",
 	)
 	.expect("write");
 	std::fs::write(
 		temp.path().join("two.rs"),
-		"fn b() {\n    work();\n    if y {\n        work();\n    }\n}\n",
+		"fn b() {\n    if y {\n        work();\n    }\n    let done = true;\n}\n",
 	)
 	.expect("write");
 

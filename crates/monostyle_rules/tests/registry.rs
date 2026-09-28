@@ -312,7 +312,6 @@ fn only_the_formatter_safe_rules_produce_a_fix() {
 		unique,
 		vec![
 			"readability/blank-line-after-control-flow",
-			"readability/blank-line-before-control-flow",
 			"readability/blank-line-before-return",
 			"readability/detached-comment",
 			"readability/excessive-blank-lines"
@@ -325,6 +324,35 @@ fn only_the_formatter_safe_rules_produce_a_fix() {
 fn every_finding_of_a_fixable_rule_carries_a_fix() {
 	// A finding from a fixable rule with no fix attached would mean the rule attached one
 	// conditionally, which makes `monostyle fix` unreliable.
+	const FIXABLE: &[&str] = &[
+		"readability/blank-line-after-control-flow",
+		"readability/blank-line-before-return",
+		"readability/detached-comment",
+		"readability/excessive-blank-lines",
+	];
+
+	let lexed = lex(KITCHEN_SINK, Language::Rust);
+
+	let findings = run_rules(&lexed, &RulesConfig::default());
+
+	for finding in findings
+		.iter()
+		.filter(|finding| FIXABLE.contains(&finding.rule.as_str()))
+	{
+		assert!(
+			finding.fix.is_some(),
+			"a finding from a fixable rule must carry a fix: {}",
+			finding.rule
+		);
+	}
+}
+
+#[test]
+fn the_blank_line_before_control_flow_finding_never_edits() {
+	// The rule reports without fixing on purpose: where a break before a branch belongs is a
+	// judgement call formatters argued with, so the finding names the spot and leaves the edit
+	// to the author. A fix reappearing here would resurrect the thousand-blank-line diffs that
+	// dominated real repositories.
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
 
 	let findings = run_rules(&lexed, &RulesConfig::default());
@@ -333,15 +361,9 @@ fn every_finding_of_a_fixable_rule_carries_a_fix() {
 		.iter()
 		.filter(|finding| finding.rule == "readability/blank-line-before-control-flow")
 	{
-		let fix = finding
-			.fix
-			.as_ref()
-			.expect("a fixable finding must carry a fix");
-
-		assert_eq!(fix.replacement, "\n", "the fix should insert a line break");
-		assert_eq!(
-			fix.span.start_byte, finding.span.start_byte,
-			"the fix should target the finding"
+		assert!(
+			finding.fix.is_none(),
+			"the before-control-flow rule reports without editing"
 		);
 	}
 }

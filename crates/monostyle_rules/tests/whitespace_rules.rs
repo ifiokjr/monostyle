@@ -667,3 +667,156 @@ fn a_multi_line_condition_is_not_a_statement_that_ended() {
 
 	assert_eq!(after.len(), 0, "the condition is still open: {after:?}");
 }
+
+// ---------------------------------------------------------------------------
+// Keyword positions and delimiter-free continuations
+//
+// The cases below came out of rolling monostyle across real repositories: every one is a shape a
+// formatter rejects a blank line in, which means the fixer and the formatter disagree about the
+// same file until the rule learns the shape.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn an_attribute_stays_attached_to_its_declaration() {
+	// A blank line between `#[cfg]` and the item it configures is a clippy error
+	// (`empty_line_after_outer_attribute`) with `-D warnings`, so this defect broke downstream
+	// builds rather than merely disagreeing with a formatter.
+	let findings = run(
+		whitespace::blank_line_before_control_flow,
+		"#[cfg(feature = \"solana-program-error\")]\nimpl From<PinaPodError> for solana_program_error::ProgramError {\n    fn from(e: PinaPodError) -> Self {\n        todo!()\n    }\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"an attribute and its item are one unit: {findings:?}"
+	);
+}
+
+#[test]
+fn a_decision_under_an_attribute_reports_separation_above_the_block() {
+	// The finding names the decision, and the separation it asks for is the one above the whole
+	// attribute block — an attribute belongs to the statement below it, so a blank that already
+	// sits above the attribute satisfies the rule. Reporting the separated form would
+	// double-count a separation the file already has.
+	let findings = run_in(
+		whitespace::blank_line_before_control_flow,
+		"fn work() {\n    ready();\n    #[cfg(feature = \"slow\")]\n    if slow_path() {\n        wait();\n    }\n}\n",
+		Language::Rust,
+	);
+
+	assert_eq!(
+		findings.len(),
+		1,
+		"exactly the missing separation is reported: {findings:?}"
+	);
+	assert_eq!(
+		findings[0].span.start_line, 4,
+		"the finding points at the decision"
+	);
+
+	let separated = run_in(
+		whitespace::blank_line_before_control_flow,
+		"fn work() {\n    ready();\n\n    #[cfg(feature = \"slow\")]\n    if slow_path() {\n        wait();\n    }\n}\n",
+		Language::Rust,
+	);
+
+	assert!(
+		separated.is_empty(),
+		"a blank above the attribute block satisfies the rule: {separated:?}"
+	);
+}
+
+#[test]
+fn a_method_chain_continuation_is_not_a_statement() {
+	// `args.bounty\n    .set(if on { 1 } else { 0 });` — the `.set` line carries an `if`, but it
+	// continues the receiver above it. A blank here is removed by every formatter.
+	let findings = run(
+		whitespace::blank_line_before_control_flow,
+		"fn build(args: &mut Args, on: bool) {\n    args.bounty\n        .set(if on { 1 } else { 0 });\n    args.flag = on;\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"a method-chain line is a continuation, not a decision statement: {findings:?}"
+	);
+}
+
+#[test]
+fn a_builder_call_chain_is_not_padded_between_its_calls() {
+	// Chained builder calls joined only by `.` — no enclosing brackets — were padded before the
+	// line carrying an `if` argument, which dprint rejected in nine files.
+	let findings = run(
+		whitespace::blank_line_before_control_flow,
+		"fn assert_pool(on: bool) {\n    builder()\n        .manifest_hash(manifest_hash)\n        .service_vault_bump(bump)\n        .remaining_result_receipts(if on { total } else { 0 })\n        .send();\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"a builder chain is one statement: {findings:?}"
+	);
+}
+
+#[test]
+fn a_boolean_operator_continuation_is_not_a_statement() {
+	// `|| mint_at(bundle, index)? != Address::default()` was padded because `default` counted as
+	// a branch. The line is a continuation of the condition above it either way.
+	let findings = run(
+		whitespace::blank_line_before_control_flow,
+		"fn verify(bundle: &Bundle, index: usize) -> bool {\n    index >= usize::from(bundle.count)\n        || bundle.kinds[index] != 0\n        || mint_at(bundle, index)? != Address::default()\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"an operator continuation line is not a statement: {findings:?}"
+	);
+}
+
+#[test]
+fn a_conditional_import_continuation_is_not_a_statement() {
+	// Dart conditional imports: `import 'stub.dart'\n    if (dart.library.io) 'io.dart'` is one
+	// directive. Padding inside it failed `dart format` in six downstream files.
+	let findings = run_in(
+		whitespace::blank_line_before_control_flow,
+		"import 'platform_stub.dart'\n    if (dart.library.io) 'platform_io.dart'\n    if (dart.library.js_interop) 'platform_web.dart';\n\nvoid main() {}\n",
+		Language::Dart,
+	);
+
+	assert!(
+		findings.is_empty(),
+		"an import directive spans its `if` clauses: {findings:?}"
+	);
+}
+
+#[test]
+fn an_unterminated_directive_line_marks_the_next_line_a_continuation() {
+	// The general form of the import case: a directive line without its `;` is unfinished, so
+	// whatever follows continues it rather than starting a statement.
+	let findings = run_in(
+		whitespace::blank_line_before_control_flow,
+		"export {\n    runtimeNative,\n    if (dart.library.js_interop) runtimeWeb\n} from './runtime.dart';\n\nvoid main() {}\n",
+		Language::Dart,
+	);
+
+	assert!(
+		findings.is_empty(),
+		"export clauses are one directive: {findings:?}"
+	);
+}
+
+#[test]
+fn the_missing_blank_line_before_control_flow_is_reported_not_fixed() {
+	// The finding names a real readability cost, but the fix is gone on purpose: padding before
+	// branches dominated real repositories' diffs by a thousand blank lines at a time and fought
+	// every formatter's opinion of where a break may go. Where the blank belongs is a judgement
+	// the annotation leaves to the author; the rules that still fix — after a block, before a
+	// return, detached comments, stacked blanks — are the ones every formatter agrees with.
+	let findings = run(
+		whitespace::blank_line_before_control_flow,
+		"fn work() {\n    let bits = load();\n    if bits.is_empty() {\n        return;\n    }\n    store(bits);\n}\n",
+	);
+
+	assert!(
+		findings.iter().all(|finding| finding.fix.is_none()),
+		"the before-control-flow rule reports without editing: {findings:?}"
+	);
+}

@@ -368,22 +368,20 @@ fn two_rules_anchoring_the_same_byte_insert_one_blank_between_them() {
 	// `return [for (var i ...)]` is both a return and a control-flow statement (the `for`
 	// inside the collection literal). Two rules anchored an insertion at the same byte and
 	// both applied, leaving two blank lines — which dart format then collapsed, so the fixer's
-	// own output failed the repository's formatter check.
+	// own output failed the repository's formatter check. The before-control-flow rule no
+	// longer fixes, so the collapse is exercised with two synthetic inserts at one byte, which
+	// is the shape the engine has to survive whichever rules produce it.
 	let source = "List<int> advances(TrueTypeFont font) {\n  final count = 8;\n  final data = 2;\n  return [for (var i = 0; i < count; i++) data * i];\n}\n";
+	let byte = source.find("return").expect("the return keyword");
 
-	let lexed = lex(source, Language::Rust);
-	let config = RulesConfig::default();
-	let fixes: Vec<Fix> = whitespace::blank_line_before_return(&lexed, &config)
-		.into_iter()
-		.filter_map(|finding| finding.fix)
-		.chain(
-			whitespace::blank_line_before_control_flow(&lexed, &config)
-				.into_iter()
-				.filter_map(|finding| finding.fix),
-		)
-		.collect();
-
-	assert!(fixes.len() >= 2, "the fixture must produce both anchors");
+	let fixes = vec![
+		Fix::insert(Span::new(byte, byte, 4, 4), "\n", "blank before a return"),
+		Fix::insert(
+			Span::new(byte, byte, 4, 4),
+			"\n",
+			"blank before control flow",
+		),
+	];
 
 	let (rewritten, _) = apply_fixes(source, &fixes);
 
