@@ -400,12 +400,11 @@ fn rules_can_be_filtered_to_fixable_ones() {
 
 	let listed = decoded.as_array().expect("an array");
 
-	// Only the edits a formatter leaves alone are fixable, so this stays a short list. Padding
-	// before control flow is reported but never edited, which is why it is not here.
+	// Only the edits a formatter leaves alone are fixable, so this stays a short list.
 	assert_eq!(
 		listed.len(),
-		4,
-		"four rules are fixable, got {}",
+		5,
+		"five rules are fixable, got {}",
 		listed.len()
 	);
 }
