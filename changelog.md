@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.12](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.12) (2026-09-28)
+
+Grouped release for `release`.
+
+### Fixes
+
+- _Packages:_ 🟢 _monostyle_, 🟢 _monostyle_core_ **Anchored ignore patterns match under absolute roots.** Patterns are root-relative by gitignore semantics, but the directory walker handed the whole absolute path to the matcher, whose leading segments are the machine's directory names — so `content/**` silently ignored nothing when monostyle was invoked with an absolute path, while `**/`-prefixed patterns masked the bug by matching anywhere. The walker now strips the root before pattern matching; the generated-header and bundle checks keep the full path because they read the file. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #52](https://github.com/ifiokjr/monostyle/pull/52)
+
 ## [0.3.11](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.11) (2026-09-28)
 
 Grouped release for `release`.
