@@ -604,3 +604,18 @@ fn a_detached_comment_fix_never_deletes_the_comment_below_the_gap() {
 		"the fix may only delete blank lines, but deletes {removed:?}"
 	);
 }
+
+#[test]
+fn a_collection_for_inside_a_literal_is_not_a_statement() {
+	// Dart's collection forms — `{ for (...) ..., if (...) ... }` — are expressions, one per
+	// element. The before-rule once padded the second `for`, and dart format removes it.
+	let source = "void f() {\n  final defaults = {\n    for (final field\n        in members.whereType<FieldDeclaration>())\n      for (final variable in field.fields.variables)\n        if (variable.initializer != null)\n          variable.name.lexeme: variable.initializer,\n  };\n}\n";
+	let lexed = lex(source, Language::Dart);
+	let before = whitespace::blank_line_before_control_flow(&lexed, &RulesConfig::default());
+
+	assert_eq!(
+		before.len(),
+		0,
+		"collection elements are one expression: {before:?}"
+	);
+}
