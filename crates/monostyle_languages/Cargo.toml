@@ -1,6 +1,6 @@
 [package]
 name = "monostyle_languages"
-version = "0.3.9"
+version = "0.3.10"
 authors.workspace = true
 categories.workspace = true
 edition.workspace = true

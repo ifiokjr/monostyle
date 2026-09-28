@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.10](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.10) (2026-09-28)
+
+### Fixes
+
+- **Attribute and condition closers keep their statements whole.** Two more placements the local formatter gates caught before anything was pushed: a blank line landed between `#[cfg(test)]` and the `return` it configures (a clippy error under `-D warnings`), so the before-return rule now anchors above the attribute block the way the before-control-flow rule does. And a condition ending in a braced expression — `} == compare(target)` — opens its body on the next line, so the after-rule treats a closer sitting above a body brace as unfinished rather than as a finished chain. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #48](https://github.com/ifiokjr/monostyle/pull/48)
+
 ## [0.3.9](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.9) (2026-09-28)
 
 ### Fixes

@@ -1,6 +1,6 @@
 {
 	"name": "@monostyle-rs/skill",
-	"version": "0.3.9",
+	"version": "0.3.10",
 	"description": "Agent skill for measuring and improving the complexity and readability of code",
 	"keywords": [
 		"agent",
