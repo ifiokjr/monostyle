@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)
+
+Grouped release for `release`.
+
+### Features
+
+#### Breathing room around control flow returns as a fix
+
+_Packages:_ 🟠 _monostyle_, 🟠 _monostyle_rules_
+
+Reviewer guidance made the rule precise: there should always be a blank line around a control-flow statement, with two exceptions. A decision written on one line — `if (a > b) return 1;` or a ternary — is a clause of its surroundings and reads fine crowded. And a single-line binding followed by the single-line return that uses it is one thought, so the blank between them is gone: `const entries = readdirSync(dir);` then `return entries.some(…)` stands as a pair, while a multi-line return or one unrelated to the binding keeps its gap.
+
+The before-control-flow fix returns with the guards it was missing when it was demoted — continuations, directives, attribute blocks, and the single-line shapes above — and anchors above any attribute the statement carries.
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #56](https://github.com/ifiokjr/monostyle/pull/56)
+
 ## [0.3.13](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.13) (2026-09-28)
 
 Grouped release for `release`.

@@ -1,0 +1,933 @@
+{
+	"schema_version": "0.7",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-09-28T17:27:50Z",
+	"command": "release",
+	"version": "0.3.14",
+	"versions": {
+		"release": "0.3.14"
+	},
+	"release_targets": [
+		{
+			"id": "release",
+			"kind": "group",
+			"version": "0.3.14",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.3.14",
+			"members": [
+				"monostyle",
+				"monostyle_core",
+				"monostyle_languages",
+				"monostyle_lexer",
+				"monostyle_markdown",
+				"monostyle_metrics",
+				"monostyle_rules",
+				"@monostyle-rs/cli",
+				"@monostyle-rs/cli-darwin-arm64",
+				"@monostyle-rs/cli-darwin-x64",
+				"@monostyle-rs/cli-linux-arm64-gnu",
+				"@monostyle-rs/cli-linux-arm64-musl",
+				"@monostyle-rs/cli-linux-x64-gnu",
+				"@monostyle-rs/cli-linux-x64-musl",
+				"@monostyle-rs/cli-win32-arm64-msvc",
+				"@monostyle-rs/cli-win32-x64-msvc",
+				"@monostyle-rs/skill"
+			]
+		}
+	],
+	"released_packages": [
+		"@monostyle-rs/cli",
+		"@monostyle-rs/cli-darwin-arm64",
+		"@monostyle-rs/cli-darwin-x64",
+		"@monostyle-rs/cli-linux-arm64-gnu",
+		"@monostyle-rs/cli-linux-arm64-musl",
+		"@monostyle-rs/cli-linux-x64-gnu",
+		"@monostyle-rs/cli-linux-x64-musl",
+		"@monostyle-rs/cli-win32-arm64-msvc",
+		"@monostyle-rs/cli-win32-x64-msvc",
+		"@monostyle-rs/skill",
+		"monostyle",
+		"monostyle_core",
+		"monostyle_languages",
+		"monostyle_lexer",
+		"monostyle_markdown",
+		"monostyle_metrics",
+		"monostyle_rules"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monostyle/Cargo.toml",
+		"crates/monostyle/changelog.md",
+		"crates/monostyle_core/Cargo.toml",
+		"crates/monostyle_core/changelog.md",
+		"crates/monostyle_languages/Cargo.toml",
+		"crates/monostyle_languages/changelog.md",
+		"crates/monostyle_lexer/Cargo.toml",
+		"crates/monostyle_lexer/changelog.md",
+		"crates/monostyle_markdown/Cargo.toml",
+		"crates/monostyle_markdown/changelog.md",
+		"crates/monostyle_metrics/Cargo.toml",
+		"crates/monostyle_metrics/changelog.md",
+		"crates/monostyle_rules/Cargo.toml",
+		"crates/monostyle_rules/changelog.md",
+		"packages/monostyle__cli/changelog.md",
+		"packages/monostyle__cli/package.json",
+		"packages/monostyle__cli-darwin-arm64/changelog.md",
+		"packages/monostyle__cli-darwin-arm64/package.json",
+		"packages/monostyle__cli-darwin-x64/changelog.md",
+		"packages/monostyle__cli-darwin-x64/package.json",
+		"packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-arm64-gnu/package.json",
+		"packages/monostyle__cli-linux-arm64-musl/changelog.md",
+		"packages/monostyle__cli-linux-arm64-musl/package.json",
+		"packages/monostyle__cli-linux-x64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-x64-gnu/package.json",
+		"packages/monostyle__cli-linux-x64-musl/changelog.md",
+		"packages/monostyle__cli-linux-x64-musl/package.json",
+		"packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-arm64-msvc/package.json",
+		"packages/monostyle__cli-win32-x64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-x64-msvc/package.json",
+		"packages/monostyle__skill/changelog.md",
+		"packages/monostyle__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monostyle-rs/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_languages",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_lexer",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_markdown",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_metrics",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_rules",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.14",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monostyle/changelog.md",
+		"crates/monostyle_core/changelog.md",
+		"crates/monostyle_languages/changelog.md",
+		"crates/monostyle_lexer/changelog.md",
+		"crates/monostyle_markdown/changelog.md",
+		"crates/monostyle_metrics/changelog.md",
+		"crates/monostyle_rules/changelog.md",
+		"packages/monostyle__cli/changelog.md",
+		"packages/monostyle__cli-darwin-arm64/changelog.md",
+		"packages/monostyle__cli-darwin-x64/changelog.md",
+		"packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-arm64-musl/changelog.md",
+		"packages/monostyle__cli-linux-x64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-x64-musl/changelog.md",
+		"packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-x64-msvc/changelog.md",
+		"packages/monostyle__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/breathing-room-and-pairs.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/breathing-room-and-pairs.md",
+			"summary": "Breathing room around control flow returns as a fix",
+			"details": "Reviewer guidance made the rule precise: there should always be a blank line around a control-flow statement, with two exceptions. A decision written on one line — `if (a > b) return 1;` or a ternary — is a clause of its surroundings and reads fine crowded. And a single-line binding followed by the single-line return that uses it is one thought, so the blank between them is gone: `const entries = readdirSync(dir);` then `return entries.some(…)` stands as a pair, while a multi-line return or one unrelated to the binding keeps its gap.\n\nThe before-control-flow fix returns with the guards it was missing when it was demoted — continuations, directives, attribute blocks, and the single-line shapes above — and anchors above any attribute the statement carries.",
+			"targets": [
+				{
+					"id": "monostyle",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monostyle_rules",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "9fe09204b0d783350f3a8a74eab93b2071c3c3e8",
+						"short_sha": "9fe0920",
+						"url": "https://github.com/ifiokjr/monostyle/commit/9fe09204b0d783350f3a8a74eab93b2071c3c3e8",
+						"authored_at": "2026-09-28T18:27:23+01:00",
+						"committed_at": "2026-09-28T18:27:23+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#56",
+						"title": "fix: breathing room around control flow, with two exceptions",
+						"url": "https://github.com/ifiokjr/monostyle/pull/56",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "9fe09204b0d783350f3a8a74eab93b2071c3c3e8",
+						"short_sha": "9fe0920",
+						"url": "https://github.com/ifiokjr/monostyle/commit/9fe09204b0d783350f3a8a74eab93b2071c3c3e8",
+						"authored_at": "2026-09-28T18:27:23+01:00",
+						"committed_at": "2026-09-28T18:27:23+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#56",
+						"title": "fix: breathing room around control flow, with two exceptions",
+						"url": "https://github.com/ifiokjr/monostyle/pull/56",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "release",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [
+					"Grouped release for `release`."
+				],
+				"sections": [
+					{
+						"title": "Features",
+						"collapsed": false,
+						"entries": [
+							"#### Breathing room around control flow returns as a fix\n\n_Packages:_ 🟠 _monostyle_, 🟠 _monostyle_rules_\n\nReviewer guidance made the rule precise: there should always be a blank line around a control-flow statement, with two exceptions. A decision written on one line — `if (a > b) return 1;` or a ternary — is a clause of its surroundings and reads fine crowded. And a single-line binding followed by the single-line return that uses it is one thought, so the blank between them is gone: `const entries = readdirSync(dir);` then `return entries.some(…)` stands as a pair, while a multi-line return or one unrelated to the binding keeps its gap.\n\nThe before-control-flow fix returns with the guards it was missing when it was demoted — continuations, directives, attribute blocks, and the single-line shapes above — and anchors above any attribute the statement carries.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #56](https://github.com/ifiokjr/monostyle/pull/56)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\nGrouped release for `release`.\n\n### Features\n\n#### Breathing room around control flow returns as a fix\n\n_Packages:_ 🟠 _monostyle_, 🟠 _monostyle_rules_\n\nReviewer guidance made the rule precise: there should always be a blank line around a control-flow statement, with two exceptions. A decision written on one line — `if (a > b) return 1;` or a ternary — is a clause of its surroundings and reads fine crowded. And a single-line binding followed by the single-line return that uses it is one thought, so the blank between them is gone: `const entries = readdirSync(dir);` then `return entries.some(…)` stands as a pair, while a multi-line return or one unrelated to the binding keeps its gap.\n\nThe before-control-flow fix returns with the guards it was missing when it was demoted — continuations, directives, attribute blocks, and the single-line shapes above — and anchors above any attribute the statement carries.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #56](https://github.com/ifiokjr/monostyle/pull/56)"
+		},
+		{
+			"owner_id": "monostyle",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Features",
+						"collapsed": false,
+						"entries": [
+							"#### Breathing room around control flow returns as a fix\n\nReviewer guidance made the rule precise: there should always be a blank line around a control-flow statement, with two exceptions. A decision written on one line — `if (a > b) return 1;` or a ternary — is a clause of its surroundings and reads fine crowded. And a single-line binding followed by the single-line return that uses it is one thought, so the blank between them is gone: `const entries = readdirSync(dir);` then `return entries.some(…)` stands as a pair, while a multi-line return or one unrelated to the binding keeps its gap.\n\nThe before-control-flow fix returns with the guards it was missing when it was demoted — continuations, directives, attribute blocks, and the single-line shapes above — and anchors above any attribute the statement carries.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #56](https://github.com/ifiokjr/monostyle/pull/56)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Features\n\n#### Breathing room around control flow returns as a fix\n\nReviewer guidance made the rule precise: there should always be a blank line around a control-flow statement, with two exceptions. A decision written on one line — `if (a > b) return 1;` or a ternary — is a clause of its surroundings and reads fine crowded. And a single-line binding followed by the single-line return that uses it is one thought, so the blank between them is gone: `const entries = readdirSync(dir);` then `return entries.some(…)` stands as a pair, while a multi-line return or one unrelated to the binding keeps its gap.\n\nThe before-control-flow fix returns with the guards it was missing when it was demoted — continuations, directives, attribute blocks, and the single-line shapes above — and anchors above any attribute the statement carries.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #56](https://github.com/ifiokjr/monostyle/pull/56)"
+		},
+		{
+			"owner_id": "monostyle_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_core` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_core` was updated to 0.3.14 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_languages",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_languages/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_languages` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_languages` was updated to 0.3.14 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_lexer",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_lexer/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_lexer` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_lexer` was updated to 0.3.14 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_markdown",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_markdown/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_markdown` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_markdown` was updated to 0.3.14 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_metrics",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_metrics/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_metrics` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_metrics` was updated to 0.3.14 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_rules",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_rules/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Features",
+						"collapsed": false,
+						"entries": [
+							"#### Breathing room around control flow returns as a fix\n\nReviewer guidance made the rule precise: there should always be a blank line around a control-flow statement, with two exceptions. A decision written on one line — `if (a > b) return 1;` or a ternary — is a clause of its surroundings and reads fine crowded. And a single-line binding followed by the single-line return that uses it is one thought, so the blank between them is gone: `const entries = readdirSync(dir);` then `return entries.some(…)` stands as a pair, while a multi-line return or one unrelated to the binding keeps its gap.\n\nThe before-control-flow fix returns with the guards it was missing when it was demoted — continuations, directives, attribute blocks, and the single-line shapes above — and anchors above any attribute the statement carries.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #56](https://github.com/ifiokjr/monostyle/pull/56)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Features\n\n#### Breathing room around control flow returns as a fix\n\nReviewer guidance made the rule precise: there should always be a blank line around a control-flow statement, with two exceptions. A decision written on one line — `if (a > b) return 1;` or a ternary — is a clause of its surroundings and reads fine crowded. And a single-line binding followed by the single-line return that uses it is one thought, so the blank between them is gone: `const entries = readdirSync(dir);` then `return entries.some(…)` stands as a pair, while a multi-line return or one unrelated to the binding keeps its gap.\n\nThe before-control-flow fix returns with the guards it was missing when it was demoted — continuations, directives, attribute blocks, and the single-line shapes above — and anchors above any attribute the statement carries.\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #56](https://github.com/ifiokjr/monostyle/pull/56)"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli` was updated to 0.3.14 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-arm64` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-arm64` was updated to 0.3.14 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-x64` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-x64` was updated to 0.3.14 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-gnu` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-gnu` was updated to 0.3.14 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-musl` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-musl` was updated to 0.3.14 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-gnu` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-gnu` was updated to 0.3.14 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-musl` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-musl` was updated to 0.3.14 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-arm64-msvc` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-arm64-msvc` was updated to 0.3.14 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-x64-msvc` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-x64-msvc` was updated to 0.3.14 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/skill` was updated to 0.3.14 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.14](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.14) (2026-09-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/skill` was updated to 0.3.14 as part of group `release`.**"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "ifiokjr",
+		"repo": "monostyle",
+		"host": null
+	}
+}
