@@ -90,7 +90,18 @@ fn string_matching_prefers_the_longer_delimiter() {
 
 #[test]
 fn a_single_line_literal_is_not_multiline() {
-	assert!(!profile_for(Language::Rust).strings[0].multiline);
+	// A Rust char literal or lifetime never spans lines, and an unterminated `'`
+	// is a mis-read (a digit separator, most often) rather than a continuing
+	// literal — which is what stops it from swallowing the rest of the file.
+	assert!(!profile_for(Language::Rust).strings[1].multiline);
+}
+
+#[test]
+fn a_rust_plain_quote_is_multiline() {
+	// A Rust `"…"` may legally contain a bare newline, so an unterminated opening
+	// quote continues onto the next line; treating it as a mis-read leaked the
+	// string's first line into the masked view as code.
+	assert!(profile_for(Language::Rust).strings[0].multiline);
 }
 
 #[test]
