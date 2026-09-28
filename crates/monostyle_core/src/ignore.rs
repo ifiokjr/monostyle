@@ -202,7 +202,24 @@ impl IgnoreConfig {
 	/// pattern would have skipped the file.
 	#[must_use]
 	pub fn allows(&self, path: &Path) -> bool {
-		if Self::matches_any(&self.include, path) {
+		self.allows_under(path, Path::new(""))
+	}
+
+	/// Whether `path` should be analyzed, with patterns read relative to `root`.
+	///
+	/// Patterns are root-relative by gitignore semantics, so a walker rooted at an absolute
+	/// directory must strip that root before matching: the leading segments of an absolute path
+	/// are the machine's directory names, and an anchored pattern like `content/**` would never
+	/// match them. The name and header checks keep the full path, because they read the file.
+	#[must_use]
+	pub fn allows_under(&self, path: &Path, root: &Path) -> bool {
+		let relative_to = |patterns: &[String]| {
+			let candidate = path.strip_prefix(root).unwrap_or(path);
+
+			Self::matches_any(patterns, candidate)
+		};
+
+		if relative_to(&self.include) {
 			return true;
 		}
 
@@ -218,7 +235,7 @@ impl IgnoreConfig {
 			return false;
 		}
 
-		!Self::matches_any(&self.patterns, path)
+		!relative_to(&self.patterns)
 	}
 
 	/// Whether any pattern in `patterns` matches `path`.

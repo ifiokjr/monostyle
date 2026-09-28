@@ -919,7 +919,7 @@ pub fn collect_paths(
 		.filter(|entry| !has_ignored_component(entry.path()))
 		.filter(|entry| language_for_path(entry.path()).is_some())
 		.map(ignore::DirEntry::into_path)
-		.filter(|path| ignore_config.allows(path))
+		.filter(|path| ignore_config.allows_under(path, root))
 		.collect()
 }
 
