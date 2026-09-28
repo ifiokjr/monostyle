@@ -619,3 +619,51 @@ fn a_collection_for_inside_a_literal_is_not_a_statement() {
 		"collection elements are one expression: {before:?}"
 	);
 }
+
+#[test]
+fn a_switch_expression_assigned_to_a_binding_is_not_a_statement() {
+	// `final x = cond ?? switch (i) { ... };` is one declaration whose value happens to branch.
+	// A blank above the `switch` or below its `};` splits the value from its binding, and
+	// dart format removes both.
+	let source = "Widget build(BuildContext context) {\n  final resolvedFill =\n      fillColor ??\n      switch (icon) {\n        Pin.coffee => const Color(0xFFF5CB83),\n        Pin.market => const Color(0xFFAED9BC),\n      };\n  final iconData = lookup(icon);\n\n  return paint(resolvedFill, iconData);\n}\n";
+	let lexed = lex(source, Language::Dart);
+	let before = whitespace::blank_line_before_control_flow(&lexed, &RulesConfig::default());
+	let after = whitespace::blank_line_after_control_flow(&lexed, &RulesConfig::default());
+
+	assert_eq!(
+		before.len(),
+		0,
+		"the switch is an assigned value: {before:?}"
+	);
+	assert_eq!(
+		after.len(),
+		0,
+		"the declaration has not ended at the closer: {after:?}"
+	);
+}
+
+#[test]
+fn an_unclosed_condition_line_never_ends_a_control_flow_block() {
+	// `} else if (name.startsWith('hand') ||` continues onto the next line. The chain has not
+	// ended, so the after-rule must not insert a blank inside the condition.
+	let source = "void probe(String name) {\n  String category;\n  if (name.startsWith('face')) {\n    category = 'faces';\n  } else if (name.startsWith('hand') ||\n      name.contains('_hand') ||\n      name.contains('thumb')) {\n    category = 'hands';\n  }\n}\n";
+	let lexed = lex(source, Language::Dart);
+	let after = whitespace::blank_line_after_control_flow(&lexed, &RulesConfig::default());
+
+	assert_eq!(
+		after.len(),
+		0,
+		"the condition is still open, so nothing follows a finished block: {after:?}"
+	);
+}
+
+#[test]
+fn a_multi_line_condition_is_not_a_statement_that_ended() {
+	// `if (\n  a ||\n  b\n) return x;` — the last condition line ends with `||`, and the `)`
+	// that follows closes the test. Padding there would land inside the condition.
+	let source = "function pick(asset: Asset): number {\n  if (\n    asset.kind === \"token\" || asset.kind === \"quoteToken\" ||\n    asset.kind === \"mintBadge\" || asset.kind === \"nft\"\n  ) return asset.mint;\n\n  return 0;\n}\n";
+	let lexed = lex(source, Language::TypeScript);
+	let after = whitespace::blank_line_after_control_flow(&lexed, &RulesConfig::default());
+
+	assert_eq!(after.len(), 0, "the condition is still open: {after:?}");
+}

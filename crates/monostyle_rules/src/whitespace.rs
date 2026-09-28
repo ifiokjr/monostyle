@@ -265,9 +265,20 @@ pub fn blank_line_after_control_flow(file: &LexedFile, config: &RulesConfig) -> 
 			opened.push((depth_before, index));
 		}
 
-		// A line that both closes and reopens — `} else {` — continues the same decision, so the chain
-		// is reported once, at the brace that ends its last branch.
-		if code.starts_with('}') && !code.ends_with('{') {
+		// The chain's closer is the only line that ends it. A `} else if (cond) ||` line starts
+		// with a brace but reopens the same decision and continues onto the next line, so the
+		// blank the rule wants would land inside the condition — which every formatter removes.
+		let closes_chain =
+			code.starts_with('}') && !code.ends_with('{') && !continues_statement(line);
+
+		// A decision written as a *value* — `final x = cond ?? switch (i) { … };` — is an
+		// expression assigned to a binding: its closing brace ends the value rather than a
+		// statement, so the declaration above it is still unfinished and no blank belongs below.
+		if closes_chain && closer_ends_a_value(file, index) {
+			continue;
+		}
+
+		if closes_chain {
 			let mut ended_decision = false;
 
 			// A body lives one depth below its opener, so it has closed once the depth drops back to
@@ -289,6 +300,41 @@ pub fn blank_line_after_control_flow(file: &LexedFile, config: &RulesConfig) -> 
 	}
 
 	findings
+}
+
+/// Whether the closing brace on this line ends a value rather than a statement.
+///
+/// Finds the line that opened this block, then asks the same question the before-rule asks of
+/// a decision in value position: `switch (i) {` under an unfinished binding closes an
+/// expression, and the declaration runs on to its own semicolon.
+fn closer_ends_a_value(file: &LexedFile, index: usize) -> bool {
+	let lines = &file.lines;
+	let mut cursor = index;
+
+	while cursor > 0 {
+		cursor -= 1;
+
+		let Some(line) = lines.get(cursor) else {
+			return false;
+		};
+
+		if !line.is_code() {
+			continue;
+		}
+
+		let mask = &line.masked_code;
+		let opens = mask.matches('{').count();
+
+		if opens > mask.matches('}').count() && decision_belongs_to_a_binding(lines, cursor) {
+			return true;
+		}
+
+		if opens > mask.matches('}').count() {
+			return false;
+		}
+	}
+
+	false
 }
 
 /// Builds the finding for a statement crowded against the control-flow block above it.
@@ -1580,6 +1626,70 @@ pub fn mixed_indentation(file: &LexedFile) -> Vec<Finding> {
 ///
 /// Two shapes count: a line that opens a delimiter which has not closed yet, and a line whose own text
 /// begins inside one. In both cases the keyword it carries belongs to an expression.
+/// Whether the decision on line `index` is the value half of a binding opened above it.
+///
+/// Walks up through continuation lines — `final x =`, `cond ??`, then `switch (i) {` — until it
+/// meets either the assignment that makes this a value or a line that is not a continuation.
+fn decision_belongs_to_a_binding(lines: &[LexedLine], index: usize) -> bool {
+	const EXPRESSION_KEYWORDS: &[&str] = &["switch", "if", "match", "when"];
+
+	let Some(line) = lines.get(index) else {
+		return false;
+	};
+
+	let code = line.masked_code.trim_start();
+
+	if !EXPRESSION_KEYWORDS
+		.iter()
+		.any(|keyword| code.starts_with(keyword))
+	{
+		return false;
+	}
+
+	let mut cursor = index;
+
+	while cursor > 0 {
+		cursor -= 1;
+
+		let Some(above) = lines.get(cursor).map(|above| above.masked_code.trim_end()) else {
+			return false;
+		};
+
+		if above.is_empty() {
+			continue;
+		}
+
+		// A finished statement ends in a semicolon or a brace; the binding above a value-form
+		// decision has not finished, which is exactly why the decision is its value. An
+		// assigned-and-finished line like `let a = 1;` therefore stops the walk rather than
+		// answering it.
+		if above.ends_with(';') || above.ends_with('}') || above.ends_with('{') {
+			return false;
+		}
+
+		if above.ends_with('=')
+			|| above.ends_with("=>")
+			|| above.ends_with("return")
+			|| above.ends_with("return (")
+		{
+			return true;
+		}
+
+		let continues = above.ends_with("??")
+			|| above.ends_with("&&")
+			|| above.ends_with("||")
+			|| above.ends_with('+')
+			|| above.ends_with(',')
+			|| above.ends_with('(');
+
+		if !continues {
+			return false;
+		}
+	}
+
+	false
+}
+
 fn inside_expression(
 	lines: &[LexedLine],
 	line: &LexedLine,
@@ -1590,6 +1700,13 @@ fn inside_expression(
 	// if flag { a } else { b }` has an `if` on the line, and reporting it asked for a blank line in the middle
 	// of a binding.
 	if is_expression_branch(line) {
+		return true;
+	}
+
+	// A decision that is the *value* of a binding continues the assignment opened above it:
+	// `final x = cond ??\n    switch (i) {`. The declaration has not finished, so the switch is
+	// not a statement and no blank belongs between it and its binding.
+	if decision_belongs_to_a_binding(lines, index) {
 		return true;
 	}
 
@@ -1778,14 +1895,20 @@ fn continues_statement(line: &LexedLine) -> bool {
 
 /// Whether `code` begins with a keyword that continues a decision chain.
 fn starts_with_continuation_keyword(code: &str) -> bool {
-	const CONTINUATIONS: &[&str] = &["else", "elsif", "elif", "catch", "finally", "on "];
+	const CONTINUATIONS: &[&str] = &["else", "elsif", "elif", "catch", "finally", "on"];
 
 	CONTINUATIONS.iter().any(|keyword| {
 		let Some(rest) = code.strip_prefix(keyword) else {
 			return false;
 		};
 
-		rest.is_empty() || rest.starts_with(char::is_whitespace) || rest.starts_with('{')
+		// The keyword must end at a word boundary: `oncall()` is an identifier, and `elsewhere`
+		// is not an `else`. The `on` clause carries its exception type after a space
+		// (`on XmlParserException {`), which the boundary check accepts.
+		rest.is_empty()
+			|| rest.starts_with(char::is_whitespace)
+			|| rest.starts_with('{')
+			|| rest.starts_with('(')
 	})
 }
 
