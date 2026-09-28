@@ -8,7 +8,6 @@ func tricky() -> String {
     """
     let raw = #"literal \#(name) here"#
     let joined = block + raw
-
     return joined
 }
 
