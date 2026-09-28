@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.11](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.11) (2026-09-28)
+
+### Fixes
+
+- **A ternary arm continues its statement.** A switch expression as one arm of a ternary — `? switch (…) { … }` — closes with a brace, and the `: fallback` arm below it continues the binding. The after-rule read that closer as a finished chain and padded a blank before the `:`, which dart format removed. A closer followed by a continuation line now stands down, and `:` joins the continuation openers. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #50](https://github.com/ifiokjr/monostyle/pull/50)
+
 ## [0.3.10](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.10) (2026-09-28)
 
 ### Fixes
