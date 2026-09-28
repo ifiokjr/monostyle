@@ -524,7 +524,7 @@ fn a_return_outside_a_match_is_still_reported() {
 	// a sequential exit and the rule still applies.
 	let findings = run(
 		whitespace::blank_line_before_return,
-		"fn work() -> u32 {\n    let a = compute();\n    return a;\n}\n",
+		"fn work() -> u32 {\n    prepare();\n    return compute();\n}\n",
 	);
 
 	assert_eq!(
@@ -804,24 +804,6 @@ fn an_unterminated_directive_line_marks_the_next_line_a_continuation() {
 }
 
 #[test]
-fn the_missing_blank_line_before_control_flow_is_reported_not_fixed() {
-	// The finding names a real readability cost, but the fix is gone on purpose: padding before
-	// branches dominated real repositories' diffs by a thousand blank lines at a time and fought
-	// every formatter's opinion of where a break may go. Where the blank belongs is a judgement
-	// the annotation leaves to the author; the rules that still fix — after a block, before a
-	// return, detached comments, stacked blanks — are the ones every formatter agrees with.
-	let findings = run(
-		whitespace::blank_line_before_control_flow,
-		"fn work() {\n    let bits = load();\n    if bits.is_empty() {\n        return;\n    }\n    store(bits);\n}\n",
-	);
-
-	assert!(
-		findings.iter().all(|finding| finding.fix.is_none()),
-		"the before-control-flow rule reports without editing: {findings:?}"
-	);
-}
-
-#[test]
 fn a_destructuring_condition_opens_its_body_on_a_later_line() {
 	// `if let Some(Segment { .. }) = classify_vec(inner)` closes its *pattern* on
 	// one line and opens its *body* on the next; the `})` line starts with a brace
@@ -883,4 +865,60 @@ fn a_closer_followed_by_a_continuation_line_has_not_finished() {
 		findings.is_empty(),
 		"a closer followed by a continuation has not finished: {findings:?}"
 	);
+}
+
+// ---------------------------------------------------------------------------
+// Breathing room around control flow — the fix returns
+// ---------------------------------------------------------------------------
+
+#[test]
+fn a_multi_line_control_flow_statement_gets_the_blank_above_it_fixed() {
+	// The reviewer's rule: there should always be breathing room around a
+	// control-flow statement. The fix was demoted to a finding after it dominated
+	// real diffs with blanks formatters removed, but the formatter conflicts were
+	// the positional defects fixed since — the fix returns with them.
+	let source = "export function hasBinary(dir: string): boolean {\n  const binDir = join(dir, \"bin\");\n  if (!existsSync(binDir)) {\n    return false;\n  }\n  const entries = readdirSync(binDir);\n  return entries.some((entry) => entry.startsWith(\"mdt\"));\n}\n";
+	let lexed = lex(source, Language::TypeScript);
+	let config = RulesConfig::default();
+	let findings = whitespace::blank_line_before_control_flow(&lexed, &config);
+
+	assert!(
+		findings
+			.iter()
+			.any(|finding| finding.fix.is_some() && finding.span.start_line == 3),
+		"the crowded `if` carries a fix: {findings:?}"
+	);
+}
+
+#[test]
+fn a_single_line_control_flow_statement_needs_no_blank_above_it() {
+	// The reviewer's exception: languages with single-line ternaries and `if`
+	// expressions read fine crowded against the statement above them — the
+	// decision is a clause of the surrounding line, not a block of its own.
+	let source = "fn pick(count: u32) -> u32 {\n    let base = load();\n    if count > 0 { return base + 1; }\n    let other = 2;\n    if count > 2 { return base + 2; }\n    base\n}\n";
+	let lexed = lex(source, Language::Rust);
+	let findings = whitespace::blank_line_before_control_flow(&lexed, &RulesConfig::default());
+
+	assert!(
+		findings.is_empty(),
+		"single-line control flow is fine without the blank: {findings:?}"
+	);
+}
+
+#[test]
+fn the_restored_fix_anchors_above_an_attribute_block() {
+	// The fix inserts at the attribute block's start rather than between the
+	// attribute and the statement — a break there is a clippy error under
+	// `-D warnings`.
+	let source = "fn work() {\n    ready();\n    #[cfg(feature = \"slow\")]\n    if slow_path() {\n        wait();\n    }\n}\n";
+	let lexed = lex(source, Language::Rust);
+	let findings = whitespace::blank_line_before_control_flow(&lexed, &RulesConfig::default());
+
+	assert_eq!(
+		findings.len(),
+		1,
+		"exactly the crowded decision: {findings:?}"
+	);
+	let fix = findings[0].fix.as_ref().expect("the fix is restored");
+	assert_eq!(fix.span.start_line, 3, "the anchor is the attribute line");
 }

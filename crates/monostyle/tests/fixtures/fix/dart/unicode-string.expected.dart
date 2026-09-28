@@ -2,7 +2,6 @@
 
 String greet() {
   final s = 'héllo {wörld} 你好 🎉';
-
   return s;
 }
 

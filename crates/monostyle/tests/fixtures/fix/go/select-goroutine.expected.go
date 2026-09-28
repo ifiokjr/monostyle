@@ -18,6 +18,7 @@ func main() {
 		select {
 		case value := <-ch:
 			println(value)
+
 		case <-done:
 			return
 		}

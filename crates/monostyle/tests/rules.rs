@@ -502,11 +502,10 @@ fn fix_targets_the_collapse_by_rule_name() {
 
 #[test]
 fn only_the_formatter_safe_rules_are_listed_as_fixable() {
-	// Every fixable rule is an edit a formatter leaves alone: deleting blank lines past the
-	// allowance, padding after a block, a blank before a trailing return, and re-attaching a
-	// comment. Padding *before* control flow is deliberately absent — formatters argued with where
-	// those breaks belong, so that finding reports without editing. A new fixable rule needs the
-	// same argument made for it, so the list is pinned.
+	// Every fixable rule is an edit a formatter leaves alone: padding around control
+	// flow, a blank before a trailing return, re-attaching a comment, and collapsing
+	// the blanks past the allowance. A new fixable rule needs the same argument made
+	// for it, so the list is pinned.
 	let mut names = listed_rules(&["rules", "--fixable", "--format", "json"]);
 	names.sort();
 
@@ -514,6 +513,7 @@ fn only_the_formatter_safe_rules_are_listed_as_fixable() {
 		names,
 		vec![
 			"readability/blank-line-after-control-flow",
+			"readability/blank-line-before-control-flow",
 			"readability/blank-line-before-return",
 			"readability/detached-comment",
 			"readability/excessive-blank-lines"

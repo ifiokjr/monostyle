@@ -39,17 +39,18 @@ fn line_span(line: &LexedLine) -> Span {
 	Span::new(line.start_byte, line.end_byte, line.number, line.number)
 }
 
-/// Reports control-flow statements that are not preceded by a blank line.
+/// Reports control-flow statements that are not preceded by a blank line, and inserts the
+/// blank.
 ///
 /// Sequential `if` statements read as a rushed block when they are stacked directly on top
 /// of each other; a blank line before each one lets the reader treat them as separate
 /// decisions rather than one dense paragraph.
 ///
-/// The finding deliberately carries no fix. Padding before branches was the one edit the fixer
-/// made that formatters argued with — chains and conditions carry the same keywords as statements
-/// — and on real repositories it dominated every diff with blank lines at a scale no reviewer
-/// wanted. Where the break belongs is left to the author; the rules that still fix are the ones
-/// every formatter agrees with.
+/// Two shapes are deliberately left crowded: a single-line decision — `if (a > b) return 1;`,
+/// a ternary — is a clause of its surroundings rather than a block of its own, and a binding
+/// followed by the single-line return that uses it is one thought, which is that rule's own
+/// exemption to make. The fix anchors above any attribute block the statement carries, because
+/// a break between an attribute and its item is a lint error rather than a style choice.
 pub fn blank_line_before_control_flow(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	if !config.require_blank_line_before_control_flow {
 		return Vec::new();
@@ -59,9 +60,33 @@ pub fn blank_line_before_control_flow(file: &LexedFile, config: &RulesConfig) ->
 	let depths = PrefixDepth::new(&file.lines);
 
 	for (index, line) in file.lines.iter().enumerate() {
-		if !needs_blank_line(&file.lines, &depths, index, line, config) {
+		let Some(anchor) = needs_blank_line(&file.lines, &depths, index, line, config) else {
 			continue;
-		}
+		};
+
+		// The fix inserts a line break at the anchor's start, which puts a blank line
+		// above the statement — or above its attribute block when it carries one —
+		// without touching its content or indentation. The anchor always exists
+		// because it is at most the statement's own index.
+		let fix = file.lines.get(anchor).map_or(
+			Fix::insert(
+				Span::new(line.start_byte, line.start_byte, line.number, line.number),
+				"\n",
+				"insert a blank line above",
+			),
+			|anchor_line| {
+				Fix::insert(
+					Span::new(
+						anchor_line.start_byte,
+						anchor_line.start_byte,
+						anchor_line.number,
+						anchor_line.number,
+					),
+					"\n",
+					"insert a blank line above",
+				)
+			},
+		);
 
 		findings.push(
 			FindingBuilder::new(
@@ -79,6 +104,7 @@ pub fn blank_line_before_control_flow(file: &LexedFile, config: &RulesConfig) ->
 				"Add a blank line before this statement so the reader can treat it as a \
 				 separate decision rather than part of the previous block.",
 			)
+			.fix(fix)
 			.build(),
 		);
 	}
@@ -86,32 +112,42 @@ pub fn blank_line_before_control_flow(file: &LexedFile, config: &RulesConfig) ->
 	findings
 }
 
-/// Decides whether a line is a control-flow statement missing the blank line above it.
+/// Decides whether a line is a control-flow statement missing the blank line above it, and
+/// which line the blank belongs above.
 ///
-/// Every exemption this rule has lives here, so the loop body stays a filter and a builder. Each one
-/// is a case where a blank line would be wrong rather than merely absent.
+/// Every exemption this rule has lives here, so the loop body stays a filter and a builder.
+/// Each one is a case where a blank line would be wrong rather than merely absent. The
+/// returned index is the anchor the fix inserts at: the statement, or the attribute block
+/// attached above it.
 fn needs_blank_line(
 	lines: &[LexedLine],
 	depths: &PrefixDepth,
 	index: usize,
 	line: &LexedLine,
 	config: &RulesConfig,
-) -> bool {
+) -> Option<usize> {
 	if !line.is_code() || line.decisions.is_empty() {
-		return false;
+		return None;
 	}
 
 	// An attribute is not a statement, so a keyword inside one is a name rather than a decision.
 	// `#[serde(default, rename_all = "kebab-case")]` was reported as a `default` branch missing its
 	// blank line, which asked for a blank line inside an attribute list.
 	if is_attribute(line) {
-		return false;
+		return None;
 	}
 
 	// A line that opens a block is a declaration, not a statement, so it is exempt: the space
 	// belongs before the statements inside it, not before the declaration itself.
 	if is_block_declaration(line) {
-		return false;
+		return None;
+	}
+
+	// A decision written on one line — `if (a > b) return 1;` — is a clause of the
+	// statement above it rather than a block of its own, so it reads fine crowded.
+	// Languages with single-line ternaries and `if` expressions get the same reading.
+	if is_single_line_control_flow(line) {
+		return None;
 	}
 
 	// Every way a line can belong to the statement above it rather than be a statement of its
@@ -119,18 +155,21 @@ fn needs_blank_line(
 	// places it inside an expression, or it reopens a chain (`} else if`). In all four the
 	// keyword it carries is an expression rather than a new decision.
 	if continues_the_statement_above(lines, line, depths, index) {
-		return false;
+		return None;
 	}
 
 	// An attribute belongs to the statement below it, so the separation this rule asks for is
 	// the one above the whole attribute block. Measured at the statement alone, a blank that
 	// already sits above the attribute would be invisible and the rule would double-report a
 	// separation the file already has.
+	let anchor = attribute_anchor(lines, index);
+
 	crowded_against_the_previous_statement(
 		lines,
-		attribute_anchor(lines, index),
+		anchor,
 		config.min_blank_lines_between_control_flow,
 	)
+	.then_some(anchor)
 }
 
 /// Whether the line at `index` belongs to the statement above it rather than being a statement
@@ -603,6 +642,16 @@ pub fn blank_line_before_return(file: &LexedFile, config: &RulesConfig) -> Vec<F
 			continue;
 		}
 
+		// A single-line binding and the single-line return that uses it are one
+		// thought: `const entries = readdirSync(dir);` then `return entries.some(…)`
+		// reads as a unit, and the blank between them is superfluous. A multi-line
+		// return keeps its gap, and so does a return with no reference to the
+		// binding, because those really are separate thoughts.
+		if returns_the_binding_above(&file.lines, index, line) {
+			bodies.visit(file, line);
+			continue;
+		}
+
 		// An attribute configures the return below it, so the separation this rule
 		// measures is the one above the whole attribute block. The block's anchor is
 		// reused for the fix too: a break between an outer attribute and its item is
@@ -675,6 +724,55 @@ pub fn blank_line_before_return(file: &LexedFile, config: &RulesConfig) -> Vec<F
 	}
 
 	findings
+}
+
+/// Whether `line` is a single-line return of a binding declared on the line above.
+///
+/// The reviewer's two-line rule: when the declaration above is one line, the return is one
+/// line, and the return expression uses what the declaration bound, the pair is one thought
+/// and no blank belongs between them. Both lines must carry their `;`, which is what makes
+/// "one line" checkable: a multi-line return or declaration keeps its gap.
+fn returns_the_binding_above(lines: &[LexedLine], index: usize, line: &LexedLine) -> bool {
+	let return_code = line.masked_code.trim();
+	let Some(previous) = previous_code_line(lines, index) else {
+		return false;
+	};
+	let binding = previous.masked_code.trim();
+
+	let bound = line_words(binding);
+	let used = line_words(return_code);
+
+	return_code.ends_with(';')
+		&& binding.ends_with(';')
+		&& bound.len() < used.len() + 8
+		&& declares_a_binding(binding)
+		&& bound
+			.get(1..)
+			.is_some_and(|names| shares_a_word(names, &used))
+}
+
+/// The words of a masked line, punctuation dropped — including the punctuation
+/// inside a word, so `binDir.existsSync` yields both names and a return that
+/// uses the binding as a receiver still references it.
+fn line_words(code: &str) -> Vec<&str> {
+	code.split(|character: char| !character.is_alphanumeric() && character != '_')
+		.filter(|word| !word.is_empty())
+		.collect()
+}
+
+/// Whether a statement both opens with a binding keyword and assigns to it: the shape
+/// `const name = value;`, `let`, `var`, `final`, or `val`.
+fn declares_a_binding(code: &str) -> bool {
+	let Some((first, rest)) = code.split_once(' ') else {
+		return false;
+	};
+
+	matches!(first, "const" | "let" | "var" | "final" | "val") && rest.contains('=')
+}
+
+/// Whether any of `binding`'s words appears in `words` — the return uses the binding.
+fn shares_a_word(binding: &[&str], words: &[&str]) -> bool {
+	binding.iter().any(|word| words.contains(word))
 }
 
 /// Returns true when a line is an early-return guard clause.

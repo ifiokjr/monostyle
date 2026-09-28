@@ -56,6 +56,7 @@ pub fn process(input: &Input, mode: Mode, flags: Flags, cache: &Cache) -> Result
     let x = compute(ab, cd, ef, gh, input.scale, input.offset, input.limit, input.target);
     // The retry count is final once validated.
     let total = x.scale + input.offset;
+    log_the_total(&total);
     return Ok(total);
 
 
@@ -312,6 +313,7 @@ fn only_the_formatter_safe_rules_produce_a_fix() {
 		unique,
 		vec![
 			"readability/blank-line-after-control-flow",
+			"readability/blank-line-before-control-flow",
 			"readability/blank-line-before-return",
 			"readability/detached-comment",
 			"readability/excessive-blank-lines"
@@ -326,6 +328,7 @@ fn every_finding_of_a_fixable_rule_carries_a_fix() {
 	// conditionally, which makes `monostyle fix` unreliable.
 	const FIXABLE: &[&str] = &[
 		"readability/blank-line-after-control-flow",
+		"readability/blank-line-before-control-flow",
 		"readability/blank-line-before-return",
 		"readability/detached-comment",
 		"readability/excessive-blank-lines",
@@ -348,11 +351,10 @@ fn every_finding_of_a_fixable_rule_carries_a_fix() {
 }
 
 #[test]
-fn the_blank_line_before_control_flow_finding_never_edits() {
-	// The rule reports without fixing on purpose: where a break before a branch belongs is a
-	// judgement call formatters argued with, so the finding names the spot and leaves the edit
-	// to the author. A fix reappearing here would resurrect the thousand-blank-line diffs that
-	// dominated real repositories.
+fn the_blank_line_before_control_flow_fix_never_lands_inside_a_statement() {
+	// The restored fix carries the guards that were missing when it was first
+	// demoted: every finding's insertion sits at a statement boundary (or above
+	// an attribute block), never inside a chain, condition, or directive.
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
 
 	let findings = run_rules(&lexed, &RulesConfig::default());
@@ -361,10 +363,12 @@ fn the_blank_line_before_control_flow_finding_never_edits() {
 		.iter()
 		.filter(|finding| finding.rule == "readability/blank-line-before-control-flow")
 	{
-		assert!(
-			finding.fix.is_none(),
-			"the before-control-flow rule reports without editing"
-		);
+		let fix = finding
+			.fix
+			.as_ref()
+			.expect("the before-control-flow rule carries a fix");
+
+		assert_eq!(fix.replacement, "\n", "the fix only inserts a line break");
 	}
 }
 

@@ -8,6 +8,7 @@ Stream<int> gen(int n) async* {
 
 Future<void> main() async {
   var total = 0;
+
   await for (final v in gen(4)) {
     total += v;
   }
