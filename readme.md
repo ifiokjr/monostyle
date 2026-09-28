@@ -65,6 +65,15 @@ The repository ships a composite action, so a workflow needs two lines to render
 
 The tag pins both the action and the binary it downloads (a branch or commit-SHA reference falls back to the latest release, or pass an explicit `version:`). `if: always()` is what keeps the annotations appearing on a red build.
 
+Repositories whose security policy requires commit-SHA pinning pass the version explicitly, because a SHA cannot name one:
+
+```yaml
+- uses: ifiokjr/monostyle@27ce2de5dcef4759f1dad8804e1dbbe81b0fa9f1 # v0.3.18
+  if: always()
+  with:
+    version: 0.3.18
+```
+
 ## Rules
 
 ### Readability
