@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.9](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.9) (2026-09-28)
+
+### Fixes
+
+- **A destructuring closer is not a finished statement.** `if let Some(Segment { .. }) = classify_vec(inner)` closes its pattern on one line and opens its body on the next; the after-rule read the `})` as a finished chain and padded a blank before the `{`, which rustfmt removed. A closer whose remainder continues into a binding now stands down. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #46](https://github.com/ifiokjr/monostyle/pull/46)
+
 ## [0.3.8](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.8) (2026-09-28)
 
 ### Features
