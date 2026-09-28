@@ -32,7 +32,7 @@ fn fixture(name: &str) -> PathBuf {
 fn workspace_root() -> PathBuf {
 	PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 		.parent()
-		.and_then(std::path::Path::parent)
+		.and_then(Path::parent)
 		.expect("the crate lives two levels below the workspace root")
 		.to_path_buf()
 }
