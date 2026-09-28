@@ -84,7 +84,12 @@ fn assert_unchanged(tool: &str, arguments: &[&str], content: &[u8], extension: &
 	let probe_directory = workspace_root().join("target/formatter-agreement");
 	std::fs::create_dir_all(&probe_directory).expect("create the probe directory");
 	let probe = probe_directory.join(format!("probe.{extension}"));
-	std::fs::write(&probe, content).expect("write the probe");
+
+	// A Windows checkout rewrites the fixture to CRLF while this repository's rustfmt enforces
+	// Unix newlines; the line endings are not what this tier measures, so they are normalised
+	// away before the probe is written.
+	let normalised = String::from_utf8_lossy(content).replace("\r\n", "\n");
+	std::fs::write(&probe, normalised.as_bytes()).expect("write the probe");
 
 	let status = Command::new(tool)
 		.args(arguments)
