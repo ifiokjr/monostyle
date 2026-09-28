@@ -99,3 +99,39 @@ fn a_default_label_is_not_a_branch_in_rust_even_when_called_default() {
 		lines[0]
 	);
 }
+
+#[test]
+fn a_multiline_plain_string_hides_its_content_from_the_signals() {
+	// A Rust `"…"` may legally contain a bare newline, so an unterminated
+	// opening quote is a continuing literal, not a misread: its first line's
+	// content leaked into the masked view and the `return` inside the string
+	// fired the before-return rule, padding a blank into the literal that
+	// rustfmt then removed.
+	let lines = decisions(
+		"fn probe() {\n    let x = mock(\n        \"1.0.0\",\n        &[(\n            \"signMessage\",\n            \"return Promise.resolve([{\n                signedMessage: 1,\n            }]);\",\n        )],\n    );\n}\n",
+		Language::Rust,
+	);
+
+	for line in &lines {
+		assert!(
+			line.iter().all(|decision| decision != "return"),
+			"no decision may come from inside the string: {line:?}"
+		);
+	}
+
+	// The lines that hold nothing but string content are literal, not code.
+	let lexed = lex(
+		"fn probe() {\n    let x = mock(\n        \"1.0.0\",\n        &[(\n            \"signMessage\",\n            \"return Promise.resolve([{\n                signedMessage: 1,\n            }]);\",\n        )],\n    );\n}\n",
+		Language::Rust,
+	);
+	let opening = &lexed.lines[5];
+
+	assert!(
+		opening.is_literal(),
+		"the string's opening line is literal content, not code"
+	);
+	assert!(
+		!opening.is_return,
+		"the `return` inside the string is not a return statement"
+	);
+}

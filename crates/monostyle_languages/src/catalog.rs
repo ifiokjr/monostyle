@@ -83,7 +83,19 @@ const NULLISH: &[&str] = &["??", "?.", "??="];
 // Per-language tables
 // ---------------------------------------------------------------------------
 const RUST_STRINGS: &[StringRule] = &[
-	StringRule::escaped("\"", "\""),
+	// A Rust `"…"` may legally contain a bare newline, so the plain quote is multiline:
+	// an unterminated opening quote continues onto the next line rather than being
+	// mis-read as code, which leaked the string's first line into the masked view.
+	StringRule {
+		open: "\"",
+		close: "\"",
+		escapes: true,
+		multiline: true,
+		interpolates: false,
+		extra_escapes: &[],
+	},
+	// A `'…'` is a char literal or lifetime, and neither spans lines; an unterminated
+	// one is a mis-read (a digit separator, most often) and must not swallow the file.
 	StringRule::escaped("'", "'"),
 ];
 
