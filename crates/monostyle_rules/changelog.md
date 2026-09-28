@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.19](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.19) (2026-09-28)
+
+### Fixes
+
+- **A return on a continuation line is a clause, not an exit.** `) return null;` closes a multi-line `if (` condition and carries the return as a clause of that statement, but the before-return rule read it as an exit crowded against work and placed a blank above it, which dprint removed. The rule now applies the same continuation guards as the before-control-flow rule. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #67](https://github.com/ifiokjr/monostyle/pull/67)
+
 ## [0.3.18](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.18) (2026-09-28)
 
 ### Changed
