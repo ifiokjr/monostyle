@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.16](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.16) (2026-09-28)
+
+Grouped release for `release`.
+
+### Fixes
+
+- 🟢 **monostyle_rules**: **A do-while tail is the same statement.** `} while (…);` closes the loop the lines above opened, but its `while` read as a new decision and the restored before-control-flow fix padded a blank before it, which dart format removed. Only the braced form is exempt — a bare `while (…) {` is still a statement of its own. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #60](https://github.com/ifiokjr/monostyle/pull/60)
+
 ## [0.3.15](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.15) (2026-09-28)
 
 Grouped release for `release`.
