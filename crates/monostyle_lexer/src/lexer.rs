@@ -1846,13 +1846,13 @@ fn apply_code_signals(line: &mut LexedLine, profile: &LanguageProfile) {
 	let joined = words.join(" ");
 
 	for keyword in profile.decision_keywords {
-		for _ in 0..count_keyword(&joined, keyword) {
+		for _ in 0..count_decision(&masked, &joined, keyword) {
 			line.decisions.push((*keyword).to_string());
 		}
 	}
 
 	for keyword in profile.nesting_keywords {
-		for _ in 0..count_keyword(&joined, keyword) {
+		for _ in 0..count_decision(&masked, &joined, keyword) {
 			line.nesting.push((*keyword).to_string());
 		}
 	}
@@ -1919,6 +1919,65 @@ fn count_keyword(joined: &str, keyword: &str) -> usize {
 		.split_whitespace()
 		.filter(|word| *word == keyword)
 		.count()
+}
+
+/// Counts a keyword with the position it occupies checked against the code around it.
+///
+/// Two decision keywords are also identifiers in other positions, and counting those invents
+/// decisions that do not exist. `for` heads a loop only when the loop follows it — an argument
+/// list in the C family, or an `in`/`of` iteration in Rust and JavaScript — while in
+/// `impl From<X> for Y` and the `for<'a>` binder the word names something else; counting it is
+/// what detached `#[cfg]` attributes from their items downstream. `default` is a decision only
+/// as a switch arm (`default:` or `default =>`); `ServerConfig::default()` is a trait call, and
+/// Rust has no `default` arm at all.
+fn count_decision(masked: &str, joined: &str, keyword: &str) -> usize {
+	match keyword {
+		"for" => {
+			count_keyword_where(masked, keyword, |rest| {
+				let rest = rest.trim_start();
+				let rest = rest.strip_prefix("await").map_or(rest, str::trim_start);
+
+				rest.starts_with('(')
+					|| rest
+						.split_whitespace()
+						.any(|word| word == "in" || word == "of")
+			})
+		}
+		"default" => {
+			count_keyword_where(masked, keyword, |rest| {
+				rest.trim_start().starts_with(':') || rest.trim_start().starts_with("=>")
+			})
+		}
+		_ => count_keyword(joined, keyword),
+	}
+}
+
+/// Counts whole-word occurrences of `keyword` whose following text passes `accepts`.
+fn count_keyword_where(masked: &str, keyword: &str, accepts: impl Fn(&str) -> bool) -> usize {
+	let bytes = masked.as_bytes();
+	let mut count = 0;
+	let mut searched = 0;
+
+	while let Some(offset) = masked[searched..].find(keyword) {
+		let start = searched + offset;
+		let end = start + keyword.len();
+		let bounds_word = (start == 0 || !is_word_byte(bytes[start - 1]))
+			&& (end == bytes.len() || !is_word_byte(bytes[end]));
+
+		if bounds_word && accepts(&masked[end..]) {
+			count += 1;
+		}
+
+		searched = end;
+	}
+
+	count
+}
+
+/// Whether a byte can continue an identifier: a keyword bordering one of these is part of a
+/// longer name rather than the keyword itself.
+fn is_word_byte(byte: u8) -> bool {
+	byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'$'
 }
 
 /// Expands leading whitespace to a column width, counting tabs as four columns.
