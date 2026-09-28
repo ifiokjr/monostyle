@@ -1,6 +1,6 @@
 [package]
 name = "monostyle"
-version = "0.3.8"
+version = "0.3.9"
 authors.workspace = true
 categories.workspace = true
 edition.workspace = true
