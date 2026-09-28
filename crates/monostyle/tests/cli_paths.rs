@@ -270,3 +270,34 @@ fn fixing_one_rule_leaves_the_others() {
 		"the blank run is collapsed: {fixed}"
 	);
 }
+
+#[test]
+fn anchored_ignore_patterns_match_under_an_absolute_root() {
+	// `content/**` silently failed to ignore anything when monostyle was invoked
+	// with an absolute path: the pattern is root-relative by gitignore semantics,
+	// but the walker hands `allows` the full absolute path, whose leading segments
+	// are the machine's directory names. Patterns like `**/x` hid the bug because
+	// a leading `**` matches those segments.
+	use monostyle::analysis::collect_paths;
+	use monostyle_core::IgnoreConfig;
+
+	let temp = tempfile::tempdir().expect("a temporary directory");
+	let content = temp.path().join("content");
+	fs::create_dir_all(&content).expect("create the directory");
+	fs::write(content.join("page.md"), "# Title\n\ntext\n").expect("write");
+	fs::write(temp.path().join("main.rs"), "fn a() {}\n").expect("write");
+
+	let config = IgnoreConfig {
+		patterns: vec!["content/**".to_string()],
+		..IgnoreConfig::default()
+	};
+	let ignored = collect_paths(temp.path(), true, &config)
+		.into_iter()
+		.filter(|path| path.ends_with("page.md"))
+		.count();
+
+	assert_eq!(
+		ignored, 0,
+		"content/** must ignore the file under an absolute root"
+	);
+}
