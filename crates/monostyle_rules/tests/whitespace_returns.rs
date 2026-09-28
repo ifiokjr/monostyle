@@ -28,3 +28,18 @@ fn a_blank_line_before_a_return_satisfies_the_rule() {
 		"the blank line already separates the return: {findings:?}"
 	);
 }
+
+#[test]
+fn a_return_under_an_attribute_keeps_the_attribute_attached() {
+	// `#[cfg(test)]\nreturn …` — the attribute configures the return, so the blank
+	// the rule asks for belongs above the attribute. rustfmt rejects a break
+	// between an outer attribute and its item (clippy: empty_line_after_outer_attr).
+	let findings = returns_in(
+		"fn command(&self) -> Command {\n    #[cfg(test)]\n    return Command::new(&self.path);\n\n    #[cfg(not(test))]\n    return self.build();\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"a return directly under its attribute needs no inserted blank: {findings:?}"
+	);
+}

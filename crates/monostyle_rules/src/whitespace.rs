@@ -416,6 +416,14 @@ impl OpenDecisions {
 			return false;
 		}
 
+		// A condition that ends with a braced expression — `} == compare(target)` —
+		// opens its body on the next line, so the statement is still forming. A body
+		// brace cannot follow a finished statement, which makes the next line the
+		// tell regardless of how the condition ended.
+		if next_code_line_opens_a_body(file, index) {
+			return false;
+		}
+
 		// A decision written as a *value* — `final x = cond ?? switch (i) { … };` — is an
 		// expression assigned to a binding: its brace ends the value rather than a statement,
 		// so the declaration above it is still unfinished and no blank belongs below.
@@ -465,6 +473,22 @@ impl OpenDecisions {
 
 		ended
 	}
+}
+
+/// Whether the next code line opens a block, which means the line above it is an
+/// unfinished statement whose body is arriving.
+///
+/// A finished statement is never followed by a bare `{`, so a closer sitting above one —
+/// `} == compare(target)` ending an `if` condition — is still part of the statement it
+/// opens into, and the space below it belongs to the body, not to separation.
+fn next_code_line_opens_a_body(file: &LexedFile, index: usize) -> bool {
+	file.lines
+		.get(index + 1..)
+		.and_then(|rest| {
+			rest.iter()
+				.find(|candidate| !candidate.is_blank() && !candidate.is_comment())
+		})
+		.is_some_and(|next| next.masked_code.trim_start().starts_with('{'))
 }
 
 /// Builds the finding for a statement crowded against the control-flow block above it.
@@ -559,12 +583,18 @@ pub fn blank_line_before_return(file: &LexedFile, config: &RulesConfig) -> Vec<F
 			continue;
 		}
 
-		if has_separation_above(&file.lines, index, 1) {
+		// An attribute configures the return below it, so the separation this rule
+		// measures is the one above the whole attribute block. The block's anchor is
+		// reused for the fix too: a break between an outer attribute and its item is
+		// an error under clippy's `empty_line_after_outer_attribute`.
+		let anchor_index = attribute_anchor(&file.lines, index);
+
+		if has_separation_above(&file.lines, anchor_index, 1) {
 			bodies.visit(file, line);
 			continue;
 		}
 
-		let Some(previous) = previous_code_line(&file.lines, index) else {
+		let Some(previous) = previous_code_line(&file.lines, anchor_index) else {
 			bodies.visit(file, line);
 			continue;
 		};
@@ -591,7 +621,17 @@ pub fn blank_line_before_return(file: &LexedFile, config: &RulesConfig) -> Vec<F
 			continue;
 		}
 
-		let anchor = Span::new(line.start_byte, line.start_byte, line.number, line.number);
+		let anchor = file.lines.get(anchor_index).map_or(
+			Span::new(line.start_byte, line.start_byte, line.number, line.number),
+			|anchor_line| {
+				Span::new(
+					anchor_line.start_byte,
+					anchor_line.start_byte,
+					anchor_line.number,
+					anchor_line.number,
+				)
+			},
+		);
 		let fix = Fix::insert(anchor, "\n", "insert a blank line above the return");
 
 		findings.push(
