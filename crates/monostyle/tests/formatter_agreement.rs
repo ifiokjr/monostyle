@@ -3,9 +3,14 @@
 //! The fixture corpus proves the fixer is byte-safe; these tests prove the stronger property the
 //! downstream rollout depended on: on input a formatter already accepts, the fixer's output must
 //! still be accepted. A blank line the formatter removes is a disagreement about the same file,
-//! and enough of them made real repositories' lint gates fail. The inputs are kept
-//! formatter-clean by hand; if a tool is not installed the test reports a skip rather than
-//! failing, so the suite still runs where the toolchain is thin.
+//! and enough of them made real repositories' lint gates fail.
+//!
+//! The inputs are kept formatter-clean under this repository's own configuration, which is why
+//! the probe runs inside `target/` rather than a system temporary directory: rustfmt discovers
+//! its configuration by walking up from the file, and a machine's `~/.rustfmt.toml` would
+//! otherwise decide the test's outcome. Under `target/` the repository's pinned toolchain and
+//! `rustfmt.toml` apply identically on every machine. If a tool is not installed the test
+//! reports a skip rather than failing, so the suite still runs where the toolchain is thin.
 
 use std::path::Path;
 use std::path::PathBuf;
@@ -21,6 +26,15 @@ fn fixture(name: &str) -> PathBuf {
 	PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 		.join("tests/fixtures/formatter_clean")
 		.join(name)
+}
+
+/// Returns the workspace root, where the pinned toolchain and rustfmt.toml live.
+fn workspace_root() -> PathBuf {
+	PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+		.parent()
+		.and_then(std::path::Path::parent)
+		.expect("the crate lives two levels below the workspace root")
+		.to_path_buf()
 }
 
 /// Runs `monostyle fix` over a copy of `source` and returns the fixed bytes.
@@ -61,23 +75,28 @@ fn tool_available(name: &str) -> bool {
 		.is_ok_and(|status| status.success())
 }
 
-/// Asserts `tool` leaves `content` unchanged, printing its output on disagreement.
-fn assert_unchanged(tool: &str, arguments: &[&str], working_dir: &Path, content: &[u8]) {
-	let temp = tempfile::tempdir().expect("a temporary directory");
-	let file = temp.path().join("probe");
-	std::fs::write(&file, content).expect("write the probe");
+/// Asserts `tool` leaves `content` unchanged, printing the fixture on disagreement.
+///
+/// The probe file is written inside the workspace's `target/` — inside a gitignored directory the
+/// formatter can discover this repository's configuration, so every machine runs the same
+/// formatting rules rather than whatever the machine's home directory happens to carry.
+fn assert_unchanged(tool: &str, arguments: &[&str], content: &[u8], extension: &str) {
+	let probe_directory = workspace_root().join("target/formatter-agreement");
+	std::fs::create_dir_all(&probe_directory).expect("create the probe directory");
+	let probe = probe_directory.join(format!("probe.{extension}"));
+	std::fs::write(&probe, content).expect("write the probe");
 
 	let status = Command::new(tool)
 		.args(arguments)
-		.arg(file.file_name().expect("a file name"))
-		.current_dir(temp.path())
+		.arg(&probe)
+		.current_dir(workspace_root())
 		.status()
 		.expect("run the formatter");
 
 	assert!(
 		status.success(),
-		"{tool} rejected the fixed output in {}; the fixer and {tool} disagree",
-		working_dir.display()
+		"{tool} rejected the fixed output at {}; the fixer and {tool} disagree",
+		probe.display()
 	);
 }
 
@@ -98,7 +117,7 @@ fn the_fixer_never_disagrees_with_rustfmt() {
 
 		let fixed = fixed_bytes(&path);
 
-		assert_unchanged("rustfmt", &["--check"], &path, &fixed);
+		assert_unchanged("rustfmt", &["--check", "--edition", "2024"], &fixed, "rs");
 	}
 }
 
@@ -122,8 +141,8 @@ fn the_fixer_never_disagrees_with_dart_format() {
 		assert_unchanged(
 			"dart",
 			&["format", "--output=none", "--set-exit-if-changed"],
-			&path,
 			&fixed,
+			"dart",
 		);
 	}
 }

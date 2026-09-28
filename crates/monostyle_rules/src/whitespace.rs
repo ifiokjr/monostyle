@@ -114,33 +114,11 @@ fn needs_blank_line(
 		return false;
 	}
 
-	// A line that opens with a continuation token — a `.` method call, a binary operator, a
-	// closing bracket — extends the statement above it no matter what keywords it carries.
-	// `args.bounty\n    .set(if on { 1 } else { 0 });` holds an `if` inside one statement, and
-	// these chains sit outside any brackets, so the depth table cannot see them.
-	if is_continuation_line(line) {
-		return false;
-	}
-
-	// A directive whose `;` has not arrived is still open, so its clauses continue it rather
-	// than starting statements. Dart's conditional imports are the shape that failed
-	// `dart format` downstream: `import 'stub.dart'\n    if (dart.library.io) 'io.dart'`.
-	if continues_a_directive(lines, index) {
-		return false;
-	}
-
-	// A continuation line is part of the statement above it, so a keyword inside it is an expression
-	// rather than a new decision. An inline conditional in an argument list — `path / "x" if flag
-	// else "y"` — was reported as a missing blank line before a branch, which asked for a blank line
-	// inside a single expression.
-	if inside_expression(lines, line, depths, index) {
-		return false;
-	}
-
-	// A continuation of the statement above — `} else if`, `} catch`, or a bare `else` — is the
-	// same decision, not a new one. Padding between a chain's own branches would put a blank
-	// line in the middle of a single statement.
-	if continues_statement(line) {
+	// Every way a line can belong to the statement above it rather than be a statement of its
+	// own: it opens with a continuation token, it continues an open directive, the depth table
+	// places it inside an expression, or it reopens a chain (`} else if`). In all four the
+	// keyword it carries is an expression rather than a new decision.
+	if continues_the_statement_above(lines, line, depths, index) {
 		return false;
 	}
 
@@ -148,6 +126,49 @@ fn needs_blank_line(
 	// the one above the whole attribute block. Measured at the statement alone, a blank that
 	// already sits above the attribute would be invisible and the rule would double-report a
 	// separation the file already has.
+	crowded_against_the_previous_statement(
+		lines,
+		attribute_anchor(lines, index),
+		config.min_blank_lines_between_control_flow,
+	)
+}
+
+/// Whether the line at `index` belongs to the statement above it rather than being a statement
+/// of its own.
+///
+/// Each clause is a shape a formatter would reject a blank line in, found by rolling the fixer
+/// across real repositories: a chained method call or binary operator that continues outside any
+/// brackets, an import directive whose `;` has not arrived (Dart's conditional imports), a line
+/// the depth table places inside an expression, and a line that reopens a chain such as
+/// `} else if`.
+fn continues_the_statement_above(
+	lines: &[LexedLine],
+	line: &LexedLine,
+	depths: &PrefixDepth,
+	index: usize,
+) -> bool {
+	if is_continuation_line(line) {
+		return true;
+	}
+
+	if continues_a_directive(lines, index) {
+		return true;
+	}
+
+	if inside_expression(lines, line, depths, index) {
+		return true;
+	}
+
+	continues_statement(line)
+}
+
+/// The index of the line a blank belongs above: the statement, or the attribute block attached
+/// to it when there is one.
+///
+/// An attribute is metadata for the statement below it, so the separation the rule asks for
+/// opens above the whole block — a break between an attribute and its item is a hard error for
+/// clippy's `empty_line_after_outer_attribute`.
+fn attribute_anchor(lines: &[LexedLine], index: usize) -> usize {
 	let mut anchor = index;
 
 	while let Some(above) = anchor.checked_sub(1).and_then(|above| lines.get(above)) {
@@ -158,11 +179,20 @@ fn needs_blank_line(
 		anchor -= 1;
 	}
 
+	anchor
+}
+
+/// Whether the statement at `anchor` sits crowded against the code above it.
+fn crowded_against_the_previous_statement(
+	lines: &[LexedLine],
+	anchor: usize,
+	required_blanks: usize,
+) -> bool {
 	// Separation is a property of the immediately preceding physical line. A blank line or a comment
 	// above the statement already gives the reader the break this rule asks for, which is why the
 	// check is on the physical neighbour rather than the previous code line: a comment between two
 	// statements is a deliberate separator, not a violation.
-	if has_separation_above(lines, anchor, config.min_blank_lines_between_control_flow) {
+	if has_separation_above(lines, anchor, required_blanks) {
 		return false;
 	}
 
