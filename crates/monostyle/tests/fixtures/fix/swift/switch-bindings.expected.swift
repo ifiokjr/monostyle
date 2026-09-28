@@ -10,7 +10,6 @@ func render(_ payload: Payload) -> String {
     switch payload {
     case .text(let value):
         label = "text {wrapped} \(value)"
-
     case .count(let number):
         label = "count \(number)"
     }

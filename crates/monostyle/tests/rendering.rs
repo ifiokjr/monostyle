@@ -412,3 +412,86 @@ fn a_package_with_no_name_field_is_skipped() {
 
 	assert!(detect_packages(temp.path()).is_empty());
 }
+
+// ---------------------------------------------------------------------------
+// GitHub workflow-command output
+// ---------------------------------------------------------------------------
+
+/// Analyzes a temporary directory containing one Rust file.
+fn analyze_source(source: &str) -> monostyle::analysis::ProjectReport {
+	let temp = tempfile::tempdir().expect("a temporary directory");
+	std::fs::write(temp.path().join("work.rs"), source).expect("write");
+
+	let options = AnalysisOptions {
+		cache: false,
+		..AnalysisOptions::default()
+	};
+	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
+
+	analyze_paths(&paths, &options)
+}
+
+#[test]
+fn github_annotations_are_capped_with_a_summary_line() {
+	// GitHub renders at most ten annotations of each level per step and fifty per run, so a
+	// repository with a thousand findings produces a log full of commands the interface throws
+	// away. The renderer keeps what can render and says how much was held back, which is what a
+	// reviewer needs to know the annotations are a sample, not the report.
+	let source: String = std::iter::once("fn work() {\n".to_string())
+		.chain((0..40).map(|index| format!("    let value_{index} = {};\n", index + 100)))
+		.chain(std::iter::once("}\n".to_string()))
+		.collect();
+	let report = analyze_source(&source);
+	let rendered = report::render_project_github(&report);
+
+	let warnings = rendered
+		.lines()
+		.filter(|line| line.starts_with("::warning"))
+		.count();
+	let notices = rendered
+		.lines()
+		.filter(|line| line.starts_with("::notice"))
+		.count();
+
+	assert!(
+		report
+			.files
+			.iter()
+			.map(|file| file.findings.len())
+			.sum::<usize>()
+			> 10,
+		"the fixture must produce more findings than the cap"
+	);
+	assert_eq!(warnings, 10, "only the first ten warnings can render");
+	assert_eq!(notices, 1, "exactly one summary line for the remainder");
+	assert!(
+		rendered.contains("more findings"),
+		"the summary must say how much was held back"
+	);
+}
+
+#[test]
+fn github_annotations_are_all_emitted_below_the_cap() {
+	// Under the cap every finding renders, so the summary line must not appear and pad the log
+	// with noise a small diff does not need.
+	let report = analyze_source("fn work() {\n    let size = 120;\n}\n");
+	let rendered = report::render_project_github(&report);
+	let total: usize = report.files.iter().map(|file| file.findings.len()).sum();
+
+	assert!(
+		total > 0 && total <= 10,
+		"the fixture must sit under the cap"
+	);
+	assert_eq!(
+		rendered
+			.lines()
+			.filter(|line| line.starts_with("::"))
+			.count(),
+		total,
+		"every finding becomes one command"
+	);
+	assert!(
+		!rendered.contains("more findings"),
+		"no summary under the cap"
+	);
+}

@@ -4,7 +4,6 @@
 class Registry
   # Skip when the target is missing.
   def scan(target)
-
     return nil if target.nil?
 
     target.read

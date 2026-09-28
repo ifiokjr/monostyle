@@ -2,11 +2,13 @@
 
 <!-- {=autofixExplanation} -->
 
-Five rules are auto-fixable, and every edit is one a formatter leaves alone.
+Four rules are auto-fixable, and every edit is one a formatter leaves alone.
 
-`blank-line-before-control-flow` and `blank-line-after-control-flow` insert a blank line on either side of a decision — before the branch and after its block. `blank-line-before-return` inserts one before a return. `detached-comment` re-attaches a comment that padding has stranded. `excessive-blank-lines` removes the blank lines past the allowance, keeping exactly the number the finding measured against, so it can never disagree with the rule and a second pass changes nothing.
+`blank-line-after-control-flow` inserts a blank line after a decision's block closes. `blank-line-before-return` inserts one before a return. `detached-comment` re-attaches a comment that padding has stranded. `excessive-blank-lines` removes the blank lines past the allowance, keeping exactly the number the finding measured against, so it can never disagree with the rule and a second pass changes nothing.
 
-Rustfmt, Prettier, Black, and `dart format` all preserve blank lines between statements and none of them add or remove one, so none of these fixes can fight the project's own tooling. Together they are what make the whitespace rules safe to follow automatically: the rules ask for gaps on every side of a decision, and the fixer applies the gaps while the ceiling keeps them bounded.
+`blank-line-before-control-flow` reports without fixing. Where a break before a branch belongs is the one blank-line question formatters argued with — chained calls and multi-line conditions carry the same keywords as statements — and auto-inserting it dominated real repositories' diffs with blank lines at a scale no reviewer wanted. The annotation names the spot; the author places the break.
+
+Rustfmt, Prettier, Black, and `dart format` all preserve blank lines between statements and none of them add or remove one, so none of these fixes can fight the project's own tooling. Together they are what make the whitespace rules safe to follow automatically: the rules ask for gaps around decisions, and the fixer applies the ones whose placement is unambiguous while the ceiling keeps them bounded.
 
 Every other rule explains itself and leaves the change to you — breaking a long line, renaming an identifier, extracting a function, and adding an explanatory comment are judgement calls whose automated version would be worse than the problem. The fix output shows both: what was applied, and what still needs a decision, with the suggestion attached.
 

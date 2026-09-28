@@ -44,6 +44,12 @@ fn line_span(line: &LexedLine) -> Span {
 /// Sequential `if` statements read as a rushed block when they are stacked directly on top
 /// of each other; a blank line before each one lets the reader treat them as separate
 /// decisions rather than one dense paragraph.
+///
+/// The finding deliberately carries no fix. Padding before branches was the one edit the fixer
+/// made that formatters argued with — chains and conditions carry the same keywords as statements
+/// — and on real repositories it dominated every diff with blank lines at a scale no reviewer
+/// wanted. Where the break belongs is left to the author; the rules that still fix are the ones
+/// every formatter agrees with.
 pub fn blank_line_before_control_flow(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	if !config.require_blank_line_before_control_flow {
 		return Vec::new();
@@ -57,20 +63,11 @@ pub fn blank_line_before_control_flow(file: &LexedFile, config: &RulesConfig) ->
 			continue;
 		}
 
-		// The fix is mechanical: insert a line break at the start of this line, which puts a blank
-		// line above it without touching its content or indentation.
-		let span = line_span(line);
-		let fix = Fix::insert(
-			Span::new(span.start_byte, span.start_byte, line.number, line.number),
-			"\n",
-			"insert a blank line above",
-		);
-
 		findings.push(
 			FindingBuilder::new(
 				"readability/blank-line-before-control-flow",
 				Category::Readability,
-				span,
+				line_span(line),
 			)
 			.severity(Severity::Minor)
 			.weight(1.0)
@@ -82,7 +79,6 @@ pub fn blank_line_before_control_flow(file: &LexedFile, config: &RulesConfig) ->
 				"Add a blank line before this statement so the reader can treat it as a \
 				 separate decision rather than part of the previous block.",
 			)
-			.fix(fix)
 			.build(),
 		);
 	}
@@ -118,30 +114,89 @@ fn needs_blank_line(
 		return false;
 	}
 
-	// A continuation line is part of the statement above it, so a keyword inside it is an expression
-	// rather than a new decision. An inline conditional in an argument list — `path / "x" if flag
-	// else "y"` — was reported as a missing blank line before a branch, which asked for a blank line
-	// inside a single expression.
+	// Every way a line can belong to the statement above it rather than be a statement of its
+	// own: it opens with a continuation token, it continues an open directive, the depth table
+	// places it inside an expression, or it reopens a chain (`} else if`). In all four the
+	// keyword it carries is an expression rather than a new decision.
+	if continues_the_statement_above(lines, line, depths, index) {
+		return false;
+	}
+
+	// An attribute belongs to the statement below it, so the separation this rule asks for is
+	// the one above the whole attribute block. Measured at the statement alone, a blank that
+	// already sits above the attribute would be invisible and the rule would double-report a
+	// separation the file already has.
+	crowded_against_the_previous_statement(
+		lines,
+		attribute_anchor(lines, index),
+		config.min_blank_lines_between_control_flow,
+	)
+}
+
+/// Whether the line at `index` belongs to the statement above it rather than being a statement
+/// of its own.
+///
+/// Each clause is a shape a formatter would reject a blank line in, found by rolling the fixer
+/// across real repositories: a chained method call or binary operator that continues outside any
+/// brackets, an import directive whose `;` has not arrived (Dart's conditional imports), a line
+/// the depth table places inside an expression, and a line that reopens a chain such as
+/// `} else if`.
+fn continues_the_statement_above(
+	lines: &[LexedLine],
+	line: &LexedLine,
+	depths: &PrefixDepth,
+	index: usize,
+) -> bool {
+	if is_continuation_line(line) {
+		return true;
+	}
+
+	if continues_a_directive(lines, index) {
+		return true;
+	}
+
 	if inside_expression(lines, line, depths, index) {
-		return false;
+		return true;
 	}
 
-	// A continuation of the statement above — `} else if`, `} catch`, or a bare `else` — is the
-	// same decision, not a new one. Padding between a chain's own branches would put a blank
-	// line in the middle of a single statement.
-	if continues_statement(line) {
-		return false;
+	continues_statement(line)
+}
+
+/// The index of the line a blank belongs above: the statement, or the attribute block attached
+/// to it when there is one.
+///
+/// An attribute is metadata for the statement below it, so the separation the rule asks for
+/// opens above the whole block — a break between an attribute and its item is a hard error for
+/// clippy's `empty_line_after_outer_attribute`.
+fn attribute_anchor(lines: &[LexedLine], index: usize) -> usize {
+	let mut anchor = index;
+
+	while let Some(above) = anchor.checked_sub(1).and_then(|above| lines.get(above)) {
+		if !is_attribute(above) {
+			break;
+		}
+
+		anchor -= 1;
 	}
 
+	anchor
+}
+
+/// Whether the statement at `anchor` sits crowded against the code above it.
+fn crowded_against_the_previous_statement(
+	lines: &[LexedLine],
+	anchor: usize,
+	required_blanks: usize,
+) -> bool {
 	// Separation is a property of the immediately preceding physical line. A blank line or a comment
 	// above the statement already gives the reader the break this rule asks for, which is why the
 	// check is on the physical neighbour rather than the previous code line: a comment between two
 	// statements is a deliberate separator, not a violation.
-	if has_separation_above(lines, index, config.min_blank_lines_between_control_flow) {
+	if has_separation_above(lines, anchor, required_blanks) {
 		return false;
 	}
 
-	let Some(previous) = previous_code_line(lines, index) else {
+	let Some(previous) = previous_code_line(lines, anchor) else {
 		return false;
 	};
 
@@ -156,6 +211,63 @@ fn needs_blank_line(
 
 	// The first statement inside a block has nothing above it to separate from.
 	!(previous.opens_block() || is_block_declaration(previous))
+}
+
+/// Opening tokens that mark a line as the continuation of the statement above it.
+///
+/// A chained method call, a binary operator, or a closing bracket extends an expression that is
+/// still open even though no bracket encloses it. The cost of the breadth is that a rare
+/// statement-shaped line — a dereference assignment beginning `*` — is exempted too, which
+/// suppresses one finding rather than corrupting anything.
+const CONTINUATION_OPENERS: &[&str] = &[
+	".", "?.", "::", "..", "||", "&&", "??", "=>", "?", "+", "*", "&", "|", "^", "%", ",", ")", "]",
+];
+
+/// Words that continue a statement when they open a line: Dart's `as` and `is`, Kotlin's
+/// `where`, Python's boolean operators, and the `in` membership test.
+const CONTINUATION_WORDS: &[&str] = &["as", "is", "in", "where", "and", "or"];
+
+/// Whether a line opens with a token that can only continue the statement above it.
+fn is_continuation_line(line: &LexedLine) -> bool {
+	let trimmed = line.masked_code.trim_start();
+
+	CONTINUATION_OPENERS
+		.iter()
+		.any(|token| trimmed.starts_with(token))
+		|| CONTINUATION_WORDS.iter().any(|word| {
+			trimmed
+				.strip_prefix(*word)
+				.is_some_and(|rest| rest.starts_with(' ') || rest.starts_with('\t'))
+		})
+}
+
+/// Directive keywords that can span lines before their `;` arrives.
+const DIRECTIVES: &[&str] = &["import", "export", "using", "library", "part", "@import"];
+
+/// Whether the line at `index` continues an import-style directive that is still open.
+///
+/// The walk back stops at the first line that finished its statement, because nothing below a
+/// `;` can be continuing it. A directive chain is short, so the walk is capped rather than
+/// unbounded.
+fn continues_a_directive(lines: &[LexedLine], index: usize) -> bool {
+	const CHAIN_LIMIT: usize = 12;
+
+	for candidate in lines.iter().take(index).rev().take(CHAIN_LIMIT) {
+		let code = candidate.masked_code.trim();
+
+		if code.ends_with(';') {
+			return false;
+		}
+
+		if DIRECTIVES
+			.iter()
+			.any(|directive| code.starts_with(directive))
+		{
+			return true;
+		}
+	}
+
+	false
 }
 
 /// Returns true when a line is a control-flow statement whose whole body sits on the same line.
