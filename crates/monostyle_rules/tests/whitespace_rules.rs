@@ -938,3 +938,19 @@ fn a_match_arm_guard_is_part_of_its_arm() {
 		"an arm guard continues its arm, not a new statement: {findings:?}"
 	);
 }
+
+#[test]
+fn a_do_while_tail_is_the_same_statement() {
+	// `} while (…);` closes the loop the lines above opened — the `while` is the
+	// tail of one statement, and dart format removes any blank placed before it.
+	let findings = run_in(
+		whitespace::blank_line_before_control_flow,
+		"String nextId() {\n  do {\n    id = 'drawing-${next.value++}';\n  } while (editor.annotations.any((a) => a.id == id));\n  return id;\n}\n",
+		Language::Dart,
+	);
+
+	assert!(
+		findings.is_empty(),
+		"a do-while tail continues its statement: {findings:?}"
+	);
+}

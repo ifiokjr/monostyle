@@ -2179,7 +2179,18 @@ fn continues_statement(line: &LexedLine) -> bool {
 	// Brace languages: a closer that reopens — the `}` is the previous branch's end, and what
 	// follows it belongs to the same statement.
 	if let Some(after) = code.strip_prefix('}') {
-		return starts_with_continuation_keyword(after.trim_start());
+		let after = after.trim_start();
+
+		// A do-while's tail is its statement's own closer: `} while (…);` ends the
+		// loop the lines above opened, so its `while` is not a new decision. A bare
+		// `while (…) {` still is one, which is why only the braced form is exempt.
+		if after.starts_with("while")
+			&& (after[5..].starts_with(char::is_whitespace) || after[5..].starts_with('('))
+		{
+			return true;
+		}
+
+		return starts_with_continuation_keyword(after);
 	}
 
 	starts_with_continuation_keyword(code)
