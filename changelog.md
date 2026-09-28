@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.13](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.13) (2026-09-28)
+
+Grouped release for `release`.
+
+### Fixes
+
+- _Packages:_ 🟢 _monostyle_, 🟢 _monostyle_languages_ **Rust plain strings may span lines.** A Rust `"…"` can legally contain a bare newline, but the plain quote was registered as a single-line literal, so an opening quote with no closer on its line was treated as a mis-read and the string's first line was scanned as code — the `return` inside an embedded JavaScript mock fired the before-return rule, and the inserted blank landed inside the literal where rustfmt removed it. The plain quote is now a multiline rule; the char-literal quote stays single-line, where an unterminated one really is a mis-read. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #54](https://github.com/ifiokjr/monostyle/pull/54)
+
 ## [0.3.12](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.12) (2026-09-28)
 
 Grouped release for `release`.
