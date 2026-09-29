@@ -208,17 +208,38 @@ impl Language {
 			_ => None,
 		};
 
-		// A tag that begins with a language's name and continues with more of it, such as `typescript5`
-		// or `python3`, resolves to that language. The previous containment test matched in both
-		// directions, which made `brainfuck` resolve to C and `typescriptx` to TypeScript: a single-letter
-		// name appears inside almost every word, so the rule was matching noise.
+		// A tag that names a language and continues with either a version (`python3`,
+		// `typescript5`) or a comma-separated attribute list (`rust,no_run`, `js,ignore`)
+		// resolves to that language. Any other continuation is a misspelling: a bare prefix
+		// match made `rustt` resolve to Rust and `javascriptt` to JavaScript, so the rule that
+		// exists to catch typos could never fire on one.
 		aliased.or_else(|| {
 			Self::ALL
 				.iter()
 				.copied()
-				.filter(|language| primary.starts_with(language.name()))
+				.filter(|language| {
+					primary
+						.strip_prefix(language.name())
+						.is_some_and(Self::is_version_or_attributes)
+				})
 				.max_by_key(|language| language.name().len())
 		})
+	}
+
+	/// Whether the text after a language's name is a version or an attribute list.
+	fn is_version_or_attributes(suffix: &str) -> bool {
+		let Some(first) = suffix.chars().next() else {
+			return false;
+		};
+
+		if first == ',' {
+			return true;
+		}
+
+		first.is_ascii_digit()
+			&& suffix
+				.chars()
+				.all(|character| character.is_ascii_digit() || character == '.')
 	}
 
 	/// Resolves a language from its canonical name.

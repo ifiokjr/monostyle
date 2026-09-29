@@ -54,8 +54,11 @@ const C_DECISIONS: &[&str] = &[
 
 /// Block-opening keywords shared by the C family.
 const C_NESTING: &[&str] = &[
-	"if", "else if", "else", "for", "while", "switch", "match", "case", "when", "catch", "except",
-	"rescue", "loop", "try",
+	// `case` and `when` are deliberately absent: an arm label is a branch of a decision that
+	// is already counted, and its body sits at the arm's level rather than a level deeper, so
+	// counting them reported every switch as deeply nested.
+	"if", "else if", "else", "for", "while", "switch", "match", "catch", "except", "rescue", "loop",
+	"try",
 ];
 
 /// Short-circuiting operators shared by the C family.
@@ -173,7 +176,8 @@ const DART_DECISIONS: &[&str] = &[
 
 /// Dart nesting keywords.
 const DART_NESTING: &[&str] = &[
-	"if", "else if", "else", "for", "while", "do", "switch", "case", "catch", "on", "try",
+	// `case` and `on` are arm labels, as in the C family.
+	"if", "else if", "else", "for", "while", "do", "switch", "catch", "try",
 ];
 
 /// Swift string rules.
@@ -189,7 +193,9 @@ const SWIFT_DECISIONS: &[&str] = &[
 
 /// Swift nesting keywords.
 const SWIFT_NESTING: &[&str] = &[
-	"if", "else if", "else", "guard", "for", "while", "repeat", "switch", "case", "catch", "do",
+	// `case` and `do` are deliberately absent: a `case` is an arm label, and `do` opens the
+	// block a `catch` pairs with rather than a nesting step of its own.
+	"if", "else if", "else", "guard", "for", "while", "repeat", "switch", "catch",
 ];
 
 /// Swift null-coalescing and optional-chaining operators.

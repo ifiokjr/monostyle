@@ -486,3 +486,113 @@ fn commented_out_code_adjacent_to_documentation_is_still_reported() {
 		"hidden code beside documentation should still be reported: {findings:?}"
 	);
 }
+
+#[test]
+fn an_enum_discriminant_is_named_by_its_variant() {
+	// `Insolvent = 5,` — the variant is the name. Requiring a constant for each discriminant
+	// would duplicate the variant's own name.
+	let findings = run(
+		quality::magic_numbers,
+		"enum Error {\n    Empty = 1,\n    InvalidMint = 6,\n    Insolvent = 5,\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"a discriminant names itself: {findings:?}"
+	);
+}
+
+#[test]
+fn a_type_parameter_is_named_by_its_type() {
+	// `[u8; 32]` and `String<64>` say what the number means: a byte width and a capacity.
+	let findings = run(
+		quality::magic_numbers,
+		"pub struct Config {\n    pub authority: [u8; 32],\n    pub label: String<64>,\n    pub values: Vec<u16, 8>,\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"type parameters name their own sizes: {findings:?}"
+	);
+}
+
+#[test]
+fn a_data_table_row_is_named_by_its_table() {
+	// A row of byte values has no name to give each entry.
+	let findings = run(
+		quality::magic_numbers,
+		"const WRAPPED_SOL_MINT: [u8; 32] = [\n    6, 155, 136, 87, 254, 171, 129, 132,\n    251, 104, 127, 99, 70, 24, 192, 53,\n];\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"a table row names itself by column: {findings:?}"
+	);
+}
+
+#[test]
+fn a_literal_in_ordinary_code_is_still_reported() {
+	// The exemptions are positional. A bare literal in the middle of logic is still unnamed.
+	let findings = run(
+		quality::magic_numbers,
+		"fn rate(seconds: u64) -> u64 {\n    seconds * 86400 / 7\n}\n",
+	);
+
+	assert!(
+		!findings.is_empty(),
+		"an unnamed literal in logic is reported"
+	);
+}
+
+#[test]
+fn a_same_line_handler_that_acts_on_the_error_is_kept() {
+	// Swift writes `} catch { result(flutterError(error)) }`; the earlier code fell through to
+	// the next line, which is the enclosing brace, and read that as an empty body.
+	let source = "func handle() {\n  do {\n    try work()\n  } catch { result(flutterError(error, code: \"invalid\")) }\n}\n";
+	let lexed = lex(source, Language::Swift);
+	let findings = quality::empty_handlers(&lexed, &RulesConfig::default());
+
+	assert!(
+		findings.is_empty(),
+		"the handler acts on the error: {findings:?}"
+	);
+}
+
+#[test]
+fn a_same_line_handler_that_discards_the_error_is_reported() {
+	let source = "func handle() {\n  do {\n    try work()\n  } catch {}\n}\n";
+	let lexed = lex(source, Language::Swift);
+	let findings = quality::empty_handlers(&lexed, &RulesConfig::default());
+
+	assert_eq!(
+		findings.len(),
+		1,
+		"an empty handler is reported: {findings:?}"
+	);
+}
+
+#[test]
+fn a_named_field_initialiser_names_its_literal() {
+	// `max_line_width: 120` in a configuration default says what the number is; the field name
+	// is the name. Requiring a constant for each field would rename the field twice.
+	let findings = run(
+		quality::magic_numbers,
+		"impl Default for Config {\n    fn default() -> Self {\n        Self {\n            max_line_width: 120,\n            max_unit_lines: 80,\n            min_maintainability: 40.0,\n        }\n    }\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"a named field names its value: {findings:?}"
+	);
+}
+
+#[test]
+fn an_unnamed_tuple_value_is_still_reported() {
+	// The exemption is the field name. A bare value in a tuple or argument list has none.
+	let findings = run(
+		quality::magic_numbers,
+		"fn build() -> Limits {\n    Limits::new(120, 80)\n}\n",
+	);
+
+	assert!(!findings.is_empty(), "an unnamed argument is reported");
+}

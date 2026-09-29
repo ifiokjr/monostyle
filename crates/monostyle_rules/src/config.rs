@@ -57,6 +57,15 @@ pub struct RulesConfig {
 	pub max_parameters_inline: usize,
 	/// Maximum indentation width before a line is considered over-indented.
 	pub max_indent_width: usize,
+	/// Columns a tab counts for when indentation and line width are measured.
+	///
+	/// The two rules that measure columns — this one and the line-width rule — are judging a
+	/// line the formatter produced, so the project's own tab setting is what the measurement
+	/// must use. dprint's common TypeScript configuration writes tabs that draw two columns
+	/// wide; charging four made every multi-level line in those projects report as
+	/// over-indented and over-long, which is the formatter's output rather than the author's
+	/// choice. Rust's default is four, which is why that stays the default here.
+	pub tab_width: usize,
 	/// Maximum line width, in columns, before a line is considered overlong.
 	///
 	/// Set this to match the project's formatter rather than leaving the default, so the rule agrees
@@ -134,6 +143,7 @@ impl Default for RulesConfig {
 			max_nesting_depth: 3,
 			max_parameters_inline: 3,
 			max_indent_width: 24,
+			tab_width: 4,
 			max_line_width: 120,
 			severe_line_width_ratio: 1.35,
 
@@ -169,6 +179,22 @@ impl RulesConfig {
 	#[must_use]
 	pub fn is_enabled(&self, rule: &str) -> bool {
 		!self.disabled_rules.iter().any(|disabled| disabled == rule)
+	}
+
+	/// The width of a line's leading whitespace under the configured tab width.
+	///
+	/// The lexer expands tabs at four columns because it runs before configuration is
+	/// available; a rule that measures columns re-derives the width from the raw indent so a
+	/// project's tab setting decides what its formatter's output measures.
+	#[must_use]
+	pub fn indentation_width(&self, line: &monostyle_lexer::LexedLine) -> usize {
+		line.indent_text.chars().fold(0, |width, character| {
+			if character == '\t' {
+				width + self.tab_width
+			} else {
+				width + 1
+			}
+		})
 	}
 
 	/// Width past which a line is a severe problem rather than a minor one.

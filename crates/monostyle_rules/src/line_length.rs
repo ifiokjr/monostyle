@@ -56,11 +56,11 @@ pub fn overlong_lines(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	let mut findings = Vec::new();
 
 	for line in &file.lines {
-		let Some(severity) = overlong_severity(line, limit, severe) else {
+		let Some(severity) = overlong_severity(line, limit, severe, config.tab_width) else {
 			continue;
 		};
 
-		findings.push(overlong_finding(line, severity, limit));
+		findings.push(overlong_finding(line, severity, limit, config.tab_width));
 	}
 
 	findings
@@ -70,12 +70,17 @@ pub fn overlong_lines(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 ///
 /// Returning the severity rather than a boolean keeps the decision in one place: the loop no longer
 /// needs to re-derive why a line was skipped.
-fn overlong_severity(line: &LexedLine, limit: usize, severe: usize) -> Option<Severity> {
+fn overlong_severity(
+	line: &LexedLine,
+	limit: usize,
+	severe: usize,
+	tab_width: usize,
+) -> Option<Severity> {
 	if !line.is_code() {
 		return None;
 	}
 
-	let width = display_width(line);
+	let width = display_width(line, tab_width);
 
 	if width <= limit {
 		return None;
@@ -95,8 +100,13 @@ fn overlong_severity(line: &LexedLine, limit: usize, severe: usize) -> Option<Se
 }
 
 /// Builds the finding for a line that is over the limit.
-fn overlong_finding(line: &LexedLine, severity: Severity, limit: usize) -> Finding {
-	let width = display_width(line);
+fn overlong_finding(
+	line: &LexedLine,
+	severity: Severity,
+	limit: usize,
+	tab_width: usize,
+) -> Finding {
+	let width = display_width(line, tab_width);
 
 	FindingBuilder::new(
 		"readability/overlong-line",
@@ -115,17 +125,19 @@ fn overlong_finding(line: &LexedLine, severity: Severity, limit: usize) -> Findi
 	.build()
 }
 
-/// Returns a line's display width, with tabs expanded.
+/// Returns a line's display width, with tabs expanded at the configured width.
 ///
 /// Trailing comments are excluded because a comment is prose, and the column a code reader cares
-/// about ends where the code does.
-fn display_width(line: &LexedLine) -> usize {
+/// about ends where the code does. The tab width comes from configuration because the width being
+/// measured is the formatter's output: a project writing two-column tabs draws a line narrower
+/// than one writing four-column tabs, and the limit should describe what a reader sees.
+fn display_width(line: &LexedLine, tab_width: usize) -> usize {
 	line.text
 		.chars()
 		.take(line.trailing_comment_column.unwrap_or(usize::MAX))
 		.fold(0, |width, character| {
 			if character == '\t' {
-				width + 4
+				width + tab_width
 			} else {
 				width + 1
 			}
