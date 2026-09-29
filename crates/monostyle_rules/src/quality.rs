@@ -42,8 +42,9 @@ pub fn magic_numbers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 			continue;
 		}
 
-		// A literal in a constant declaration is already named by the declaration it sits in.
-		if is_constant_declaration(line) {
+		// A literal in a constant declaration is already named by the declaration it sits in,
+		// and a discriminant, type parameter, or data-table row names itself by position.
+		if is_constant_declaration(line) || is_self_naming_literal(line) {
 			continue;
 		}
 
@@ -260,9 +261,12 @@ fn handler_discards_its_error(file: &LexedFile, index: usize, line: &LexedLine) 
 		.split_once('{')
 		.map(|(_head, tail)| tail.trim())
 		&& inline.contains('}')
-		&& body_is_empty(inline)
 	{
-		return true;
+		// The body is right here, so whatever it does is what the handler does. Without this
+		// return, a non-empty one-line body fell through to the next-line branch, whose "next
+		// code line" is the enclosing close brace — so every Swift `} catch { result(…) }`
+		// reported as an empty handler that in fact acts on the error.
+		return body_is_empty(inline);
 	}
 
 	// Otherwise the body is the next code line, since a brace or an indent follows the handler.
@@ -500,6 +504,95 @@ fn is_conventional(value: f64) -> bool {
 		.any(|candidate| (candidate - value).abs() < f64::EPSILON)
 }
 
+/// Whether a literal on this line is named by its position rather than by a constant.
+///
+/// Four positions carry their own name and cannot take another: an enum variant's discriminant
+/// (`Insolvent = 5,` — the variant names it), a named field's value (`max_line_width: 120` — the
+/// field names it), a type's own parameter (`[u8; 32]`, `String<64>` — the type says what the
+/// number is), and a row of a data table whose head names the column. Each was a class of finding
+/// no one could act on: naming a discriminant duplicates the variant, and naming a const-generic
+/// capacity is not something the derive API expects.
+fn is_self_naming_literal(line: &LexedLine) -> bool {
+	let code = line.masked_code.trim();
+
+	if code.is_empty() {
+		return false;
+	}
+
+	is_variant_discriminant(code)
+		|| is_named_field_value(code)
+		|| is_type_parameter(code)
+		|| is_data_table_row(code)
+}
+
+/// Whether the line assigns a bare number to something named with a capital.
+///
+/// `Insolvent = 5,` and `Circle(..) = 1,` are enum variants, whose names do the naming. A
+/// lowercase target is a binding, which is what the rule is for.
+fn is_variant_discriminant(code: &str) -> bool {
+	let Some((left, right)) = code.split_once('=') else {
+		return false;
+	};
+
+	right.trim().trim_end_matches(',').parse::<f64>().is_ok()
+		&& left
+			.trim()
+			.chars()
+			.next()
+			.is_some_and(|first| first.is_ascii_uppercase())
+}
+
+/// Whether the line sets a named field to a bare number: `max_line_width: 120,`.
+///
+/// A bare argument in a call or a value in a tuple has no name next to it and is still reported.
+fn is_named_field_value(code: &str) -> bool {
+	let Some((name, value)) = code.split_once(':').or_else(|| code.split_once('=')) else {
+		return false;
+	};
+
+	let name =
+		name.trim_start_matches(|character: char| !character.is_alphanumeric() && character != '_');
+
+	!name.is_empty()
+		&& name
+			.chars()
+			.all(|character| character.is_alphanumeric() || character == '_')
+		&& value.trim().trim_end_matches(',').parse::<f64>().is_ok()
+}
+
+/// Whether the line holds a capacity in a type position: `[u8; 32]`, `String<64>`, `Vec<u16, 8>`.
+fn is_type_parameter(code: &str) -> bool {
+	if code.contains('[') && code.contains(';') && code.contains(']') {
+		return true;
+	}
+
+	let Some(parameters) = code.split('<').nth(1) else {
+		return false;
+	};
+
+	let Some(parameters) = parameters.split('>').next() else {
+		return false;
+	};
+
+	!parameters.trim().is_empty()
+		&& parameters
+			.chars()
+			.all(|character| character.is_alphanumeric() || matches!(character, ',' | ' ' | '_'))
+}
+
+/// Whether the line is a row of a data table: `6, 155, 136, 87,`.
+///
+/// Prose in a comment or string is masked out, so only numbers and separators remain.
+fn is_data_table_row(code: &str) -> bool {
+	let is_separator =
+		|character: char| matches!(character, ',' | ' ' | '-' | '.' | '_' | 'x' | '[' | ']');
+
+	code.chars().any(|character| character.is_ascii_digit())
+		&& code
+			.chars()
+			.all(|character| character.is_ascii_digit() || is_separator(character))
+}
+
 /// Whether a line declares a constant, in which case its literal is already named.
 fn is_constant_declaration(line: &LexedLine) -> bool {
 	/// Keywords that introduce a named constant.
@@ -633,13 +726,32 @@ fn last_identifier(text: &str) -> Option<String> {
 
 /// Whether a short name is conventional enough to keep.
 fn is_conventional_name(name: &str) -> bool {
-	/// Single letters that are idiomatic in math and iteration.
+	/// Single letters that are idiomatic in math and iteration, plus the names that are not
+	/// choices at all.
+	///
+	/// The second group is what the first pass over real repositories turned up: `Ok` and `Err`
+	/// are variants of one type, `u8` and `i32` are primitive type names, `V1` is a version in
+	/// an enum whose siblings name the others, and `dx`/`dy`/`rx`/`ry` are the coordinate names
+	/// every graphics and geometry convention uses. Reporting those asked for renames no author
+	/// can make.
 	const CONVENTIONAL: &[&str] = &[
 		"i", "j", "k", "n", "x", "y", "z", "w", "h", "r", "g", "b", "a", "t", "id", "ok", "up",
-		"db", "fs", "io", "os", "el", "ev", "to", "us", "me", "it", "_",
+		"db", "fs", "io", "os", "el", "ev", "to", "us", "me", "it", "_", "d", "s", "v", "e", "f",
+		"m", "p", "q", "u", "c", "o", "ar", "op", "ir", "fd", "rc", "ch", "ns", "ms", "us", "dx",
+		"dy", "dw", "dh", "rx", "ry", "cx", "cy", "tx", "ty", "px", "py", "sx", "sy",
 	];
 
-	CONVENTIONAL.contains(&name)
+	/// Names that are language or platform vocabulary rather than the author's choice.
+	///
+	/// Matched case-sensitively: `Ok` is the variant while `ok` is a variable, and only the
+	/// first is out of the author's hands.
+	const BUILTIN: &[&str] = &[
+		"Ok", "Err", "Some", "None", "OK", "Id", "u8", "u16", "u32", "u64", "u128", "usize", "i8",
+		"i16", "i32", "i64", "i128", "isize", "f32", "f64", "bool", "str", "T", "K", "V", "E", "U",
+		"N", "Self", "Box", "Vec", "V1", "V2", "V3",
+	];
+
+	CONVENTIONAL.contains(&name) || BUILTIN.contains(&name)
 }
 
 /// Whether a comment line looks like code rather than prose.

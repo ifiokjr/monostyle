@@ -483,3 +483,42 @@ fn the_retired_composite_name_still_disables_its_rules() {
 		"the retired composite name should disable both rules: {findings:?}"
 	);
 }
+
+#[test]
+fn a_well_known_fence_language_is_not_unknown() {
+	// `toml`, `yaml`, `json`, and `text` are valid info strings even though monostyle does not
+	// analyze them. Reporting them as unknown told every repository documenting its own
+	// configuration that its fences were misspelled.
+	let source = "# Config\n\n```toml\ntitle = \"x\"\n```\n\n```yaml\nkey: value\n```\n\n```json\n{}\n```\n\n```text\nplain\n```\n";
+	let findings = findings_for(source, "markdown/fence-language-unknown");
+
+	assert!(
+		findings.is_empty(),
+		"known fence tags are not unknown languages: {findings:?}"
+	);
+}
+
+#[test]
+fn a_misspelled_fence_language_is_still_reported() {
+	let source = "# Example\n\n```rustt\nfn main() {}\n```\n";
+	let findings = findings_for(source, "markdown/fence-language-unknown");
+
+	assert_eq!(
+		findings.len(),
+		1,
+		"a misspelling is still reported: {findings:?}"
+	);
+}
+
+#[test]
+fn a_document_titled_by_frontmatter_has_a_title() {
+	// A docs site titles its pages in frontmatter, so the first heading is a section rather
+	// than the document's title. The rule reads the frontmatter before deciding there is none.
+	let source = "---\ntitle: Examples\n---\n\n## Getting started\n\ntext\n";
+	let findings = findings_for(source, "markdown/no-title");
+
+	assert!(
+		findings.is_empty(),
+		"frontmatter carries the title: {findings:?}"
+	);
+}

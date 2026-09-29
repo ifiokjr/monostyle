@@ -954,3 +954,117 @@ fn a_do_while_tail_is_the_same_statement() {
 		"a do-while tail continues its statement: {findings:?}"
 	);
 }
+
+// ---------------------------------------------------------------------------
+// Excessive indentation measures nesting, not the formatter's alignment
+// ---------------------------------------------------------------------------
+
+#[test]
+fn a_deeply_indented_call_argument_is_not_excessive_nesting() {
+	// A formatter splits a long call by indenting each argument one level past
+	// the call, so a call nested three levels deep produces argument lines at
+	// seven levels. Those lines continue the call above them; they do not open
+	// anything. Counting them made every real repository report hundreds of
+	// findings that no author could act on without flattening a call the
+	// formatter would re-split.
+	let source = "fn probe() {\n\tif ready {\n\t\tif armed {\n\t\t\tif live {\n\t\t\t\tlet outcome = handle(\n\t\t\t\t\trequest,\n\t\t\t\t\tResponse {\n\t\t\t\t\t\tstatus,\n\t\t\t\t\t\tbody: Payload {\n\t\t\t\t\t\t\tbytes,\n\t\t\t\t\t\t\tmeta,\n\t\t\t\t\t\t},\n\t\t\t\t\t},\n\t\t\t\t);\n\t\t\t}\n\t\t}\n\t}\n}\n";
+	let findings = run(whitespace::excessive_indentation, source);
+
+	assert!(
+		findings.is_empty(),
+		"argument lines continue the call above them: {findings:?}"
+	);
+}
+
+#[test]
+fn a_deeply_indented_statement_is_still_reported() {
+	// The rule keeps its purpose: a statement that opens inside that much
+	// nesting really is hard to read, and flattening it is the fix the
+	// suggestion names.
+	let source = "fn probe() {\n\tif a {\n\t\tif b {\n\t\t\tif c {\n\t\t\t\tif d {\n\t\t\t\t\tif e {\n\t\t\t\t\t\tif f {\n\t\t\t\t\t\t\tif g {\n\t\t\t\t\t\t\t\twork();\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}\n";
+	let findings = run(whitespace::excessive_indentation, source);
+
+	assert_eq!(
+		findings.len(),
+		2,
+		"both over-limit statements are reported: {findings:?}"
+	);
+	assert_eq!(findings[0].span.start_line, 8, "the `if g` is reported");
+	assert_eq!(
+		findings[1].span.start_line, 9,
+		"the call inside it is reported"
+	);
+}
+
+#[test]
+fn a_match_arm_label_is_not_excessive_nesting() {
+	// `case`/`default`/`when` labels sit one level deeper than the switch they
+	// belong to, and their bodies one deeper still. A switch inside a method is
+	// a normal shape, not a nesting problem, and formatters keep the arms where
+	// the author put them.
+	let source = "fn describe(value: u32) -> String {\n\tif a {\n\t\tif b {\n\t\t\tmatch value {\n\t\t\t\t0 => \"zero\".to_string(),\n\t\t\t\t1 => {\n\t\t\t\t\tlet label = compute(\n\t\t\t\t\t\tvalue,\n\t\t\t\t\t\tContext {\n\t\t\t\t\t\t\tkind,\n\t\t\t\t\t\t\tname,\n\t\t\t\t\t\t},\n\t\t\t\t\t);\n\t\t\t\t\tlabel\n\t\t\t\t}\n\t\t\t\t_ => \"other\".to_string(),\n\t\t\t}\n\t\t}\n\t}\n}\n";
+	let findings = run(whitespace::excessive_indentation, source);
+
+	assert!(
+		findings.is_empty(),
+		"arm bodies and their call arguments are not nesting: {findings:?}"
+	);
+}
+
+#[test]
+fn a_closing_bracket_line_is_not_excessive_nesting() {
+	// A closer is indented to match what it closes, so a deeply nested literal
+	// ends with a deep `)` or `]`. It opens nothing.
+	let source = "fn probe() {\n\tif a {\n\t\tif b {\n\t\t\tif c {\n\t\t\t\tlet value = build(\n\t\t\t\t\tConfig {\n\t\t\t\t\t\tname,\n\t\t\t\t\t\tpayload: Payload {\n\t\t\t\t\t\t\tbytes: vec![\n\t\t\t\t\t\t\t\t1,\n\t\t\t\t\t\t\t],\n\t\t\t\t\t\t},\n\t\t\t\t\t},\n\t\t\t\t);\n\t\t\t}\n\t\t}\n\t}\n}\n";
+	let findings = run(whitespace::excessive_indentation, source);
+
+	assert!(
+		findings.is_empty(),
+		"a closer matches what it closes rather than opening a block: {findings:?}"
+	);
+}
+
+#[test]
+fn the_indentation_limit_is_configurable() {
+	let source = "fn probe() {\n\tif a {\n\t\tif b {\n\t\t\tif c {\n\t\t\t\tif d {\n\t\t\t\t\tif e {\n\t\t\t\t\t\tif f {\n\t\t\t\t\t\t\tif g {\n\t\t\t\t\t\t\t\twork();\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}\n";
+	let lexed = lex(source, Language::Rust);
+	let default_findings = whitespace::excessive_indentation(&lexed, &RulesConfig::default());
+	let raised = RulesConfig {
+		max_indent_width: 40,
+		..RulesConfig::default()
+	};
+
+	assert!(
+		!default_findings.is_empty(),
+		"the fixture nests past the default limit"
+	);
+	assert!(
+		whitespace::excessive_indentation(&lexed, &raised).is_empty(),
+		"the configured limit raises the bar"
+	);
+}
+
+#[test]
+fn the_tab_width_is_configurable_for_tab_indented_projects() {
+	// A project that formats with `useTabs: true, indentWidth: 2` — dprint's
+	// common TypeScript setting — draws a seven-tab line fourteen columns wide,
+	// but the lexer charges four columns per tab. Both the indentation and the
+	// line-length rules measure the formatter's output rather than the author's
+	// choice, so the project needs a way to say what its tabs mean.
+	let source = "function probe() {\n\t\t\t\t\t\t\tconst value = compute(\n\t\t\t\t\t\t\t\tinput,\n\t\t\t\t\t\t\t);\n}\n";
+	let lexed = lex(source, Language::TypeScript);
+	let two_wide = RulesConfig {
+		tab_width: 2,
+		..RulesConfig::default()
+	};
+
+	assert!(
+		whitespace::excessive_indentation(&lexed, &two_wide).is_empty(),
+		"seven tabs are fourteen columns when a tab is two"
+	);
+	assert_eq!(
+		whitespace::excessive_indentation(&lexed, &RulesConfig::default()).len(),
+		1,
+		"the default of four columns still reports it"
+	);
+}

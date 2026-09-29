@@ -638,74 +638,11 @@ pub fn blank_line_before_return(file: &LexedFile, config: &RulesConfig) -> Vec<F
 		// as the arm it is rather than as the first statement of its own body.
 		let in_alternatives = bodies.region() == Region::Alternatives;
 
-		if !line.is_code() || !line.is_return {
-			bodies.visit(file, line);
-			continue;
-		}
-
-		// A line that continues the statement above it — `) return null;` closing
-		// a multi-line `if (` condition, most often — carries the return as a
-		// clause of that statement rather than as an exit of its own, and every
-		// formatter removes a blank placed above it.
-		if continues_the_statement_above(&file.lines, line, &depths, index) {
-			bodies.visit(file, line);
-			continue;
-		}
-
-		// An early-return guard *is* the pattern this style prefers, so it is never reported.
-		// Reporting it would penalize exactly the structure the guide recommends.
-		if is_guard_clause(line) {
-			bodies.visit(file, line);
-			continue;
-		}
-
-		// A single-line binding and the single-line return that uses it are one
-		// thought: `const entries = readdirSync(dir);` then `return entries.some(…)`
-		// reads as a unit, and the blank between them is superfluous. A multi-line
-		// return keeps its gap, and so does a return with no reference to the
-		// binding, because those really are separate thoughts.
-		if returns_the_binding_above(&file.lines, index, line) {
-			bodies.visit(file, line);
-			continue;
-		}
-
-		// An attribute configures the return below it, so the separation this rule
-		// measures is the one above the whole attribute block. The block's anchor is
-		// reused for the fix too: a break between an outer attribute and its item is
-		// an error under clippy's `empty_line_after_outer_attribute`.
-		let anchor_index = attribute_anchor(&file.lines, index);
-
-		if has_separation_above(&file.lines, anchor_index, 1) {
-			bodies.visit(file, line);
-			continue;
-		}
-
-		let Some(previous) = previous_code_line(&file.lines, anchor_index) else {
+		let Some(anchor_index) = crowded_return(&file.lines, &depths, index, line, in_alternatives)
+		else {
 			bodies.visit(file, line);
 			continue;
 		};
-
-		// A return as the first statement of its block is idiomatic and needs no preamble.
-		if previous.opens_block() {
-			bodies.visit(file, line);
-			continue;
-		}
-
-		// A return directly after another return is a sequence of guards, which reads fine.
-		if previous.is_return {
-			bodies.visit(file, line);
-			continue;
-		}
-
-		// A return inside a match or switch arm is an alternative, not a sequential exit:
-		// the arms are cases of one decision, and padding between them is the formatter's
-		// call. `Err(e) => return e,` is the case that matters — the arm is a single line,
-		// and inserting a blank between it and the arm above it chops the match into
-		// pieces the way no formatter would.
-		if in_alternatives {
-			bodies.visit(file, line);
-			continue;
-		}
 
 		let anchor = file.lines.get(anchor_index).map_or(
 			Span::new(line.start_byte, line.start_byte, line.number, line.number),
@@ -790,6 +727,53 @@ fn declares_a_binding(code: &str) -> bool {
 /// Whether any of `binding`'s words appears in `words` — the return uses the binding.
 fn shares_a_word(binding: &[&str], words: &[&str]) -> bool {
 	binding.iter().any(|word| words.contains(word))
+}
+
+/// Whether this line is a return the rule should report, and which line the blank belongs above.
+///
+/// Every exemption lives here so the loop above stays a filter and a builder, the same shape the
+/// control-flow rule uses. Each clause is a case where a blank would be wrong rather than merely
+/// absent: a continuation line carries the return as a clause of the statement above it, a guard
+/// is the structure the style recommends, a single-line binding and its return are one thought,
+/// and a return inside a match arm is an alternative rather than a sequential exit.
+fn crowded_return(
+	lines: &[LexedLine],
+	depths: &PrefixDepth,
+	index: usize,
+	line: &LexedLine,
+	in_alternatives: bool,
+) -> Option<usize> {
+	if !line.is_code() || !line.is_return {
+		return None;
+	}
+
+	if continues_the_statement_above(lines, line, depths, index) || is_guard_clause(line) {
+		return None;
+	}
+
+	if returns_the_binding_above(lines, index, line) || in_alternatives {
+		return None;
+	}
+
+	// An attribute configures the return below it, so the separation this rule measures is the
+	// one above the whole attribute block. The block's anchor is reused for the fix too: a
+	// break between an outer attribute and its item is an error under clippy's
+	// `empty_line_after_outer_attribute`.
+	let anchor_index = attribute_anchor(lines, index);
+
+	if has_separation_above(lines, anchor_index, 1) {
+		return None;
+	}
+
+	let previous = previous_code_line(lines, anchor_index)?;
+
+	// A return as the first statement of its block is idiomatic and needs no preamble, and a
+	// return directly after another return is a sequence of guards, which reads fine.
+	if previous.opens_block() || previous.is_return {
+		return None;
+	}
+
+	Some(anchor_index)
 }
 
 /// Returns true when a line is an early-return guard clause.
@@ -1858,15 +1842,29 @@ fn blank_line_convention(language: monostyle_core::Language) -> usize {
 ///
 /// Deep indentation is the visual symptom of nesting, and it is reported here as a layout
 /// problem so that the reader is told to flatten rather than only that complexity is high.
+///
+/// Only a line that opens something is measured. A formatter indents a call's arguments one
+/// level past the call and a closer to match what it closes, so a call three levels deep
+/// produces lines five and six levels deep that no author chose and no flattening can remove;
+/// counting them made every real repository report hundreds of findings that were the
+/// formatter's own output. The same applies to a match arm's label and body, which belong to
+/// the arm rather than to a new level.
 pub fn excessive_indentation(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	let mut findings = Vec::new();
+	let depths = PrefixDepth::new(&file.lines);
 
-	for line in &file.lines {
+	for (index, line) in file.lines.iter().enumerate() {
 		if !line.is_code() {
 			continue;
 		}
 
-		if line.indent <= config.max_indent_width {
+		let indent = config.indentation_width(line);
+
+		if indent <= config.max_indent_width {
+			continue;
+		}
+
+		if carries_no_structure(&file.lines, &depths, index, line) {
 			continue;
 		}
 
@@ -1879,8 +1877,8 @@ pub fn excessive_indentation(file: &LexedFile, config: &RulesConfig) -> Vec<Find
 			.severity(Severity::Major)
 			.weight(1.5)
 			.message(format!(
-				"indented {} columns, over the {} column limit",
-				line.indent, config.max_indent_width
+				"indented {indent} columns, over the {} column limit",
+				config.max_indent_width
 			))
 			.suggestion(
 				"Flatten this block with early returns, or extract the inner logic into its \
@@ -1891,6 +1889,83 @@ pub fn excessive_indentation(file: &LexedFile, config: &RulesConfig) -> Vec<Find
 	}
 
 	findings
+}
+
+/// Whether a line's indentation comes from the shape around it rather than from nesting
+/// the author introduced.
+///
+/// Three shapes: a line that continues an expression opened above it (an argument, a chained
+/// call, an operator continuation), a line that closes one (a `)`, `]`, or `}` matching an
+/// opener above it), and a match or switch arm — its label and its body sit inside the arm's
+/// own level. None of them is a block the author can flatten, and every formatter reproduces
+/// them from the surrounding structure.
+fn carries_no_structure(
+	lines: &[LexedLine],
+	depths: &PrefixDepth,
+	index: usize,
+	line: &LexedLine,
+) -> bool {
+	if is_continuation_line(line) || starts_inside_expression(depths, index) {
+		return true;
+	}
+
+	let code = line.masked_code.trim_start();
+
+	// A closer matches the opener above it; its depth is the expression's, not a new level.
+	if matches!(code.chars().next(), Some(')' | ']' | '}')) {
+		return true;
+	}
+
+	// An arm label (`0 =>`, `case _:`, `default:`) or the body that follows its arrow is part
+	// of the decision's level rather than a nesting step inside it.
+	if is_alternative_arm(lines, index, line) {
+		return true;
+	}
+
+	false
+}
+
+/// Whether the line at `index` is a match or switch arm, or a statement inside one.
+///
+/// An arm's body lives one indent past its label, and a nested call inside that body two, so
+/// the whole arm is exempt rather than the label alone. The region is found by walking back to
+/// the nearest arm label or the opener that ends the search.
+fn is_alternative_arm(lines: &[LexedLine], index: usize, line: &LexedLine) -> bool {
+	const ARM_LABEL: &[&str] = &["case ", "default:", "default =>", "when ", "_ =>"];
+
+	let code = line.masked_code.trim_start();
+
+	if ARM_LABEL.iter().any(|label| code.starts_with(label))
+		|| code.contains(" => ")
+		|| code.ends_with("=>")
+	{
+		return true;
+	}
+
+	// Walk back to the nearest line that is an arm label, stopping at the switch's own opener
+	// so an unrelated statement above the match is not mistaken for part of it.
+	for candidate in lines.iter().take(index).rev().take(24) {
+		let candidate_code = candidate.masked_code.trim_start();
+
+		if ARM_LABEL
+			.iter()
+			.any(|label| candidate_code.starts_with(label))
+			|| candidate_code.ends_with("=>")
+		{
+			// The arm's body ends when a line at the arm's own indent appears.
+			return candidate.indent < line.indent;
+		}
+
+		if candidate_code.ends_with("match")
+			|| candidate_code.contains("switch (")
+			|| candidate_code.contains("switch ")
+			|| candidate.indent < line.indent.saturating_sub(8)
+		{
+			break;
+		}
+	}
+
+	false
 }
 
 /// Reports files that mix tabs and spaces for indentation.

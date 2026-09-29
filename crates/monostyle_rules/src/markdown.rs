@@ -100,8 +100,88 @@ fn unscoreable_fences(file: &LexedFile, annotated: bool) -> Vec<Finding> {
 		.iter()
 		.filter(|fence| fence.language.is_none())
 		.filter(|fence| fence.info_string.trim().is_empty() != annotated)
+		.filter(|fence| !annotated || !is_known_unanalyzed_language(&fence.info_string))
 		.map(unscoreable_fence)
 		.collect()
+}
+
+/// Whether an info string names a real language that monostyle has no analyzer for.
+///
+/// A fence tag is not a misspelling just because the tool cannot measure the example inside it.
+/// `toml`, `yaml`, `json`, and `text` are the tags a configuration-heavy README uses constantly —
+/// reporting them told every repository documenting its own settings that its fences were wrong,
+/// which is a tool gap dressed up as a finding. Only a tag that names no language at all is
+/// reported now, so `rustt` still surfaces while `toml` does not.
+fn is_known_unanalyzed_language(info_string: &str) -> bool {
+	/// Tags for formats monostyle reads as data rather than code.
+	const UNANALYZED: &[&str] = &[
+		"toml",
+		"yaml",
+		"yml",
+		"json",
+		"jsonc",
+		"json5",
+		"text",
+		"txt",
+		"plaintext",
+		"plain",
+		"diff",
+		"patch",
+		"dotenv",
+		"env",
+		"ini",
+		"cfg",
+		"conf",
+		"mdx",
+		"nu",
+		"nushell",
+		"dhall",
+		"csv",
+		"tsv",
+		"http",
+		"graphql",
+		"gql",
+		"protobuf",
+		"proto",
+		"sql",
+		"dockerfile",
+		"docker",
+		"makefile",
+		"make",
+		"just",
+		"justfile",
+		"justfile",
+		"xml",
+		"html",
+		"css",
+		"scss",
+		"sass",
+		"less",
+		"svg",
+		"regex",
+		"log",
+		"console",
+		"output",
+		"shell-session",
+		"requirements",
+		"lock",
+		"gitignore",
+		"editorconfig",
+		"prometheus",
+		"terraform",
+		"hcl",
+		"kdl",
+		"ron",
+		"jsonnet",
+	];
+
+	let primary = info_string
+		.split_whitespace()
+		.next()
+		.unwrap_or_default()
+		.to_ascii_lowercase();
+
+	UNANALYZED.contains(&primary.as_str())
 }
 
 /// Returns the document's text, reconstructed from its lines.
@@ -238,6 +318,34 @@ pub fn prose_runs(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 		.collect()
 }
 
+/// Whether the document's frontmatter declares a title.
+///
+/// The block must open the file with `---` and close with `---` or `...`, and a line inside it
+/// must set `title`. Anything else — a horizontal rule at the top, prose followed by a rule —
+/// is not frontmatter and does not count.
+fn declares_a_title(file: &LexedFile) -> bool {
+	let mut lines = file.lines.iter().map(|line| line.text.trim());
+
+	if lines.next() != Some("---") {
+		return false;
+	}
+
+	for line in lines.take(30) {
+		if line == "---" || line == "..." {
+			return false;
+		}
+
+		if line
+			.strip_prefix("title:")
+			.is_some_and(|value| !value.trim().is_empty())
+		{
+			return true;
+		}
+	}
+
+	false
+}
+
 /// Reports a document that does not begin with a top-level heading.
 ///
 /// A document whose first heading is level 2 or deeper has no title, which breaks outlines and
@@ -245,6 +353,13 @@ pub fn prose_runs(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 /// renumber the rest.
 pub fn missing_title(file: &LexedFile) -> Vec<Finding> {
 	if !is_markdown(file) {
+		return Vec::new();
+	}
+
+	// A docs site titles its pages in frontmatter, and renders that title as the page's
+	// heading, so the first Markdown heading is a section rather than the document's title.
+	// Every page in a Jaspr or Astro site was reported for this.
+	if declares_a_title(file) {
 		return Vec::new();
 	}
 
