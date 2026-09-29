@@ -5,7 +5,7 @@ monostyle_languages: patch
 monostyle_rules: minor
 ---
 
-# Measure what the author chose, not what the formatter produced
+# Measure what the author chose, not the formatter
 
 Rolling monostyle across ten real repositories produced more than 40,000 findings, and the largest clusters were the tool being wrong rather than the code: the formatter's own layout punished as nesting, valid fence tags called misspellings, and names that belong to the language reported as naming problems. Each is fixed here.
 
