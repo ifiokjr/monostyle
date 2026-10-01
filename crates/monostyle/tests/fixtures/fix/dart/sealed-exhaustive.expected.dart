@@ -16,7 +16,6 @@ String area(Shape sh) {
   switch (sh) {
     case Circle c:
       return 'circle ${c.r}';
-
     case Square s:
       return 'square {s} ${s.s}';
   }

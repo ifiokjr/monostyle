@@ -736,9 +736,8 @@ fn is_conventional_name(name: &str) -> bool {
 	/// can make.
 	const CONVENTIONAL: &[&str] = &[
 		"i", "j", "k", "n", "x", "y", "z", "w", "h", "r", "g", "b", "a", "t", "id", "ok", "up",
-		"db", "fs", "io", "os", "el", "ev", "to", "us", "me", "it", "_", "d", "s", "v", "e", "f",
-		"m", "p", "q", "u", "c", "o", "ar", "op", "ir", "fd", "rc", "ch", "ns", "ms", "us", "dx",
-		"dy", "dw", "dh", "rx", "ry", "cx", "cy", "tx", "ty", "px", "py", "sx", "sy",
+		"db", "fs", "io", "os", "el", "ev", "to", "us", "me", "it", "_", "ns", "ms", "dx", "dy",
+		"dw", "dh", "rx", "ry", "cx", "cy", "tx", "ty", "px", "py", "sx", "sy",
 	];
 
 	/// Names that are language or platform vocabulary rather than the author's choice.

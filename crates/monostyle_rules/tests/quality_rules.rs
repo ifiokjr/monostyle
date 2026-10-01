@@ -122,6 +122,32 @@ fn conventional_short_names_are_kept() {
 }
 
 #[test]
+fn coordinate_and_unit_abbreviations_are_kept_but_the_alphabet_is_not() {
+	// `dx`/`ms` name a direction and a unit — every convention writes them. A bare
+	// `d` or `e` names nothing; the author chose it, so the author can lengthen it.
+	let kept = run(
+		quality::short_identifiers,
+		"fn a() { let dx = origin.x - target.x; let ms = elapsed.as_millis(); }\n",
+	);
+
+	assert!(
+		kept.is_empty(),
+		"coordinates and units are vocabulary: {kept:?}"
+	);
+
+	let chosen = run(
+		quality::short_identifiers,
+		"fn a() { let d = deadline(); let e = fetch(d); let op = e.kind; }\n",
+	);
+
+	assert_eq!(
+		chosen.len(),
+		3,
+		"a chosen letter or abbreviation is a name to lengthen: {chosen:?}"
+	);
+}
+
+#[test]
 fn names_that_meet_the_length_are_ignored() {
 	let findings = run(quality::short_identifiers, "let value = compute();\n");
 

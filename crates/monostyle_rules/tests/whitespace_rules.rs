@@ -442,18 +442,19 @@ fn disabling_the_attachment_rule_silences_it() {
 }
 
 #[test]
-fn two_single_line_control_flow_statements_need_no_blank_between_them() {
-	// `if (a > b) return 1;` followed by `if (c < d) return 0;` is a tight guard
-	// sequence. Both statements are single-line, so padding between them would chop
-	// the sequence into pieces the way no formatter would.
+fn two_single_line_control_flow_statements_still_need_the_blank_between_them() {
+	// `if (a > b) return 1;` followed by `if (c < d) return 0;` — breathing room
+	// is uniform: every control-flow statement separates from the statement above
+	// it, whatever either weighs.
 	let findings = run(
 		whitespace::blank_line_before_control_flow,
 		"if (a > b) return 1;\nif (c < d) return 0;\n\nconst e = 'amazing';\n",
 	);
 
-	assert!(
-		findings.is_empty(),
-		"single-line control flow statements read as a sequence: {findings:?}"
+	assert_eq!(
+		findings.len(),
+		1,
+		"a single-line guard still asks for the blank: {findings:?}"
 	);
 }
 
@@ -475,16 +476,17 @@ fn a_multi_line_block_still_asks_for_a_blank_before_the_next_statement() {
 
 #[test]
 fn a_single_line_block_still_asks_for_a_blank_before_a_control_flow_successor() {
-	// `if first { go(); }` is single-line control flow, so the `if` after it should
-	// not need a blank — the same reasoning as the guard-sequence exemption.
+	// `if first { go(); }` before `if second { go(); }` — the second guard opens
+	// control flow, so it separates from the statement above it like any other.
 	let findings = run(
 		whitespace::blank_line_before_control_flow,
 		"fn work(first: bool, second: bool) {\n    if first { go(); }\n    if second { go(); }\n}\n",
 	);
 
-	assert!(
-		findings.is_empty(),
-		"single-line blocks in a row read as a sequence: {findings:?}"
+	assert_eq!(
+		findings.len(),
+		1,
+		"a single-line block before a guard still asks for the blank: {findings:?}"
 	);
 }
 
@@ -891,17 +893,17 @@ fn a_multi_line_control_flow_statement_gets_the_blank_above_it_fixed() {
 }
 
 #[test]
-fn a_single_line_control_flow_statement_needs_no_blank_above_it() {
-	// The reviewer's exception: languages with single-line ternaries and `if`
-	// expressions read fine crowded against the statement above them — the
-	// decision is a clause of the surrounding line, not a block of its own.
+fn a_single_line_control_flow_statement_still_needs_the_blank_above_it() {
+	// Breathing room is uniform: even a single-line decision separates from the
+	// statement above it, so each guard is visible as control flow at a glance.
 	let source = "fn pick(count: u32) -> u32 {\n    let base = load();\n    if count > 0 { return base + 1; }\n    let other = 2;\n    if count > 2 { return base + 2; }\n    base\n}\n";
 	let lexed = lex(source, Language::Rust);
 	let findings = whitespace::blank_line_before_control_flow(&lexed, &RulesConfig::default());
 
-	assert!(
-		findings.is_empty(),
-		"single-line control flow is fine without the blank: {findings:?}"
+	assert_eq!(
+		findings.len(),
+		2,
+		"each single-line guard asks for the blank above it: {findings:?}"
 	);
 }
 
@@ -1008,6 +1010,49 @@ fn a_match_arm_label_is_not_excessive_nesting() {
 	assert!(
 		findings.is_empty(),
 		"arm bodies and their call arguments are not nesting: {findings:?}"
+	);
+}
+
+#[test]
+fn a_control_flow_statement_inside_a_call_argument_is_excessive_nesting() {
+	// The teeth the blanket exemption removed: a closure body inside a call is
+	// nesting the author chose, whatever encloses it. Its decisions and returns
+	// are the flattening the rule suggests — extract the closure.
+	let source = "function probe() {\n\tif (a) {\n\t\tif (b) {\n\t\t\tif (c) {\n\t\t\t\tif (live) {\n\t\t\t\t\t\tif (armed) {\n\t\t\t\t\t\t\tconst out = run(async () => {\n\t\t\t\t\t\t\t\tif (ready) {\n\t\t\t\t\t\t\t\t\treturn work();\n\t\t\t\t\t\t\t\t}\n\t\t\t\t\t\t\t});\n\t\t\t\t\t\t}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}\n";
+	let findings = run(whitespace::excessive_indentation, source);
+
+	assert_eq!(
+		findings.len(),
+		2,
+		"the guard and the return inside the call are the author's nesting: {findings:?}"
+	);
+	assert_eq!(
+		findings[0].span.start_line, 8,
+		"the `if (ready)` is reported"
+	);
+	assert_eq!(
+		findings[1].span.start_line, 9,
+		"the return inside it is reported"
+	);
+}
+
+#[test]
+fn a_statement_inside_a_multi_line_arm_body_is_measured() {
+	// The label exemption covers the label, not the region: an `if` nested inside
+	// a multi-line arm body is nesting like any other, and a switch does not make
+	// it free.
+	let source = "fn probe(v: u32) {\n\tif a {\n\t\tif b {\n\t\t\tif c {\n\t\t\t\tif d {\n\t\t\t\t\tmatch v {\n\t\t\t\t\t\t0 => {\n\t\t\t\t\t\t\tif e {\n\t\t\t\t\t\t\t\twork();\n\t\t\t\t\t\t\t}\n\t\t\t\t\t\t}\n\t\t\t\t\t\t_ => {}\n\t\t\t\t\t}\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n}\n";
+	let findings = run(whitespace::excessive_indentation, source);
+
+	assert_eq!(
+		findings.len(),
+		2,
+		"an `if` inside an arm body is real nesting: {findings:?}"
+	);
+	assert_eq!(findings[0].span.start_line, 8, "the `if e` is reported");
+	assert_eq!(
+		findings[1].span.start_line, 9,
+		"the statement under it is reported"
 	);
 }
 
