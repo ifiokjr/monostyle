@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.24](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.24) (2026-10-01)
+
+Grouped release for `release`.
+
+### Fixes
+
+- **A multiline ternary is one statement.** A ternary spread over lines carries no brackets for the depth table to see, so `group-separation` read its `?` and `:` arms as separate statements and split one — inserting a blank between a condition and its arm that the project's formatter removes. Continuation openers now join the statement above them. _Packages:_ 🟢 _monostyle_, 🟢 _monostyle_rules_ _Owner:_ Ifiok Jr. · _Introduced in:_ [83d0c3a](https://github.com/ifiokjr/monostyle/commit/83d0c3a36c9583a0dd0ec766e6b471c3f6976f33)
+
 ## [0.3.23](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.23) (2026-10-01)
 
 Grouped release for `release`.
