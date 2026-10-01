@@ -45,3 +45,6 @@ docs/book/
 
 # Agent session tooling state (plans, scratch drafts)
 .zcode/
+
+# FVM Version Cache
+.fvm/

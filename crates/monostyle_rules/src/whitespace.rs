@@ -863,7 +863,14 @@ fn ignorable(
 
 	// A formatter may spread one statement over many physical lines. Only its first line extends the
 	// run; arguments, collection entries, and closing delimiters remain part of that statement.
-	starts_inside_expression(depths, index) || !line.starts_statement()
+	if starts_inside_expression(depths, index) || !line.starts_statement() {
+		return true;
+	}
+
+	// An import, export, or using directive is not a statement in a sequence: a header of thirty
+	// `use` lines is one block the formatter owns (rustfmt orders it, ktlint forbids blanks inside
+	// it), so it is invisible here rather than a run to split.
+	continues_a_directive(&file.lines, index)
 }
 
 /// Returns true when a line introduces an item rather than joining the current run.

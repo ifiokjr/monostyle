@@ -729,3 +729,24 @@ fn the_splitting_blank_opens_above_an_attached_comment() {
 		"the blank opens above the comment, not between it and its statement: {fix:?}"
 	);
 }
+
+#[test]
+fn an_import_header_is_never_split() {
+	// A header of `use` lines is one block the formatter owns: rustfmt orders
+	// it and ktlint forbids blanks inside it. Splitting it as a statement run
+	// produced blanks the project's own formatter rejects.
+	let mut source = String::from("#[cfg(test)]\nmod probes {\n    use core::fmt;\n");
+
+	for index in 0..14 {
+		source.push_str(&format!("    use core::hint::item_{index} as i{index};\n"));
+	}
+
+	source.push_str("    use std::vec::Vec;\n}\n");
+
+	let findings = groups_in(&source, Language::Rust);
+
+	assert!(
+		findings.is_empty(),
+		"an import header is a directive block, not a statement run: {findings:?}"
+	);
+}
