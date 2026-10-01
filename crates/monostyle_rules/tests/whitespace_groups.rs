@@ -675,3 +675,57 @@ fn a_long_run_in_a_loop_body_is_still_reported() {
 		"a loop body is a statement sequence: {findings:?}"
 	);
 }
+
+#[test]
+fn a_long_run_carries_a_fix_that_splits_at_the_limit() {
+	// The fix names where the next group starts: the (limit + 1)-th statement.
+	// A twelve-statement run takes one blank to become eight and four.
+	let mut source = String::from("fn render() {\n");
+
+	push_numbered(&mut source, 12, |index| {
+		format!("    let step_{index} = {index};")
+	});
+
+	source.push_str("}\n");
+
+	let findings = groups_in(&source, Language::Rust);
+
+	assert_eq!(findings.len(), 1, "the run is reported once: {findings:?}");
+
+	let fix = findings[0].fix.as_ref().expect("the run carries a fix");
+	assert_eq!(
+		fix.span.start_line, 10,
+		"the blank opens above the ninth statement: {fix:?}"
+	);
+	assert_eq!(fix.replacement, "\n");
+}
+
+#[test]
+fn the_splitting_blank_opens_above_an_attached_comment() {
+	// A comment directly above the (limit + 1)-th statement describes that
+	// statement, so the blank belongs above the comment — otherwise the fix
+	// strands the comment from its code.
+	let mut source = String::from("fn render() {\n");
+
+	push_numbered(&mut source, 8, |index| {
+		format!("    let step_{index} = {index};")
+	});
+
+	source.push_str("    // The tail of the table.\n");
+	source.push_str("    let step_9 = 9;\n");
+	source.push_str("}\n");
+
+	let findings = groups_in(&source, Language::Rust);
+
+	assert_eq!(
+		findings.len(),
+		1,
+		"nine statements are over the limit: {findings:?}"
+	);
+
+	let fix = findings[0].fix.as_ref().expect("the run carries a fix");
+	assert_eq!(
+		fix.span.start_line, 10,
+		"the blank opens above the comment, not between it and its statement: {fix:?}"
+	);
+}

@@ -294,6 +294,8 @@ fn only_the_formatter_safe_rules_produce_a_fix() {
 	// Fixes are restricted to the two edits a formatter leaves alone: inserting a blank line, and
 	// deleting the blank lines past the allowance. A third fixable rule would need the same argument
 	// made for it — that rustfmt, Prettier, Black, and `dart format` will not revert the edit.
+	// `group-separation` inserts a blank between statements, the same edit the before/after rules
+	// make; a run longer than twice the limit takes one blank per fixer pass.
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
 
 	let findings = run_rules(&lexed, &RulesConfig::default());
@@ -316,7 +318,8 @@ fn only_the_formatter_safe_rules_produce_a_fix() {
 			"readability/blank-line-before-control-flow",
 			"readability/blank-line-before-return",
 			"readability/detached-comment",
-			"readability/excessive-blank-lines"
+			"readability/excessive-blank-lines",
+			"readability/group-separation"
 		],
 		"only the formatter-safe rules should be auto-fixable"
 	);

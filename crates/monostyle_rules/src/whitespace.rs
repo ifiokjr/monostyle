@@ -923,7 +923,9 @@ enum Region {
 struct Run {
 	/// Index of the first line in the run, absent when no run is open.
 	start: Option<usize>,
-	length: usize,
+	/// The index of every statement in the run, in order, so a fix can name the line
+	/// the next group should start on.
+	indices: Vec<usize>,
 	/// True when the previous line was a doc comment, which makes the next line a new item.
 	previous_was_doc: bool,
 }
@@ -933,14 +935,13 @@ impl Run {
 	fn close(&mut self, file: &LexedFile, config: &RulesConfig, findings: &mut Vec<Finding>) {
 		check_run(
 			&file.lines,
-			self.start,
-			self.length,
+			&self.indices,
 			config.max_statements_per_group,
 			findings,
 		);
 
 		self.start = None;
-		self.length = 0;
+		self.indices.clear();
 		self.previous_was_doc = false;
 	}
 
@@ -959,7 +960,7 @@ impl Run {
 	/// Counts one line as part of the run.
 	fn extend(&mut self, index: usize) {
 		self.start.get_or_insert(index);
-		self.length += 1;
+		self.indices.push(index);
 		self.previous_was_doc = false;
 	}
 }
@@ -1441,24 +1442,41 @@ fn has_keyword(line: &LexedLine, keywords: &[&str]) -> bool {
 /// The limit is a statement count rather than a depth, because that is the thing the reader is being
 /// asked to change: the message names both the run and the limit, so a run can be split until the
 /// finding clears instead of being guessed at.
-fn check_run(
-	lines: &[LexedLine],
-	run_start: Option<usize>,
-	run_length: usize,
-	limit: usize,
-	findings: &mut Vec<Finding>,
-) {
+fn check_run(lines: &[LexedLine], run: &[usize], limit: usize, findings: &mut Vec<Finding>) {
+	let run_length = run.len();
+
 	if run_length <= limit {
 		return;
 	}
 
-	let Some(start) = run_start else {
+	let Some(&start) = run.first() else {
 		return;
 	};
 
 	let Some(line) = lines.get(start) else {
 		return;
 	};
+
+	// The fix splits the run at the first limit boundary: a blank above the
+	// (limit + 1)-th statement. A comment attached above that statement belongs
+	// to it, so the blank opens above the comment rather than stranding it.
+	// A run longer than twice the limit needs the fixer again for its second
+	// boundary, which is the same instruction.
+	let fix = run
+		.get(limit)
+		.and_then(|&split| split_anchor(lines, split))
+		.map(|anchor_line| {
+			Fix::insert(
+				Span::new(
+					anchor_line.start_byte,
+					anchor_line.start_byte,
+					anchor_line.number,
+					anchor_line.number,
+				),
+				"\n",
+				"insert a blank line to split the run",
+			)
+		});
 
 	findings.push(
 		FindingBuilder::new(
@@ -1476,8 +1494,27 @@ fn check_run(
 			 function are visible. A blank line every {limit} statements or fewer clears this \
 			 finding."
 		))
+		.fix(fix.unwrap_or_else(|| {
+			Fix::insert(
+				Span::new(line.start_byte, line.start_byte, line.number, line.number),
+				"\n",
+				"insert a blank line to split the run",
+			)
+		}))
 		.build(),
 	);
+}
+
+/// The line a splitting blank opens above: the statement itself, or the comment block
+/// attached above it when one is there, so the blank never strands a comment from its code.
+fn split_anchor(lines: &[LexedLine], index: usize) -> Option<&LexedLine> {
+	let mut anchor = index;
+
+	while anchor > 0 && lines.get(anchor - 1).is_some_and(LexedLine::is_comment) {
+		anchor -= 1;
+	}
+
+	lines.get(anchor)
 }
 
 /// Reports a comment separated from the code it documents.
