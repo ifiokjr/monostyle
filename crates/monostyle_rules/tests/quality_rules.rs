@@ -622,3 +622,80 @@ fn an_unnamed_tuple_value_is_still_reported() {
 
 	assert!(!findings.is_empty(), "an unnamed argument is reported");
 }
+
+#[test]
+fn an_assertions_literals_are_the_values_it_claims() {
+	// `expect(disc(ix), 12)` and `assert_eq!(len, 3)` state what the code must
+	// produce; naming the number would hide the claim. A literal in the logic
+	// the assertion exercises is still a choice, and still reported.
+	let claimed = run(
+		quality::magic_numbers,
+		"fn probe(ix: u8) {\n    expect(disc(ix), 12);\n    assert_eq!(len(&ix), 3);\n}\n",
+	);
+
+	assert!(
+		claimed.is_empty(),
+		"assertion arguments are the expected values: {claimed:?}"
+	);
+
+	let logic = run(
+		quality::magic_numbers,
+		"fn probe(ix: u8) {\n    let limit = compute(47);\n    expect(limit, 47);\n}\n",
+	);
+
+	assert_eq!(
+		logic.len(),
+		1,
+		"a literal in the logic under assertion is still a choice: {logic:?}"
+	);
+}
+
+#[test]
+fn a_constructor_wrapped_named_field_names_its_literal() {
+	// `lastValidBlockHeight: BigInt.from(123)` — the field names the value and
+	// the constructor names the type; a constant on top adds nothing.
+	let findings = run(
+		quality::magic_numbers,
+		"BlockMeta {\n    lastValidBlockHeight: BigInt.from(123),\n    unixTimestamp: u64(500),\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"the field and the constructor name the number: {findings:?}"
+	);
+}
+
+#[test]
+fn a_collection_of_only_literals_is_data() {
+	// A byte fixture or a golden vector is data; naming its numbers would
+	// obscure the shape the reader is checking.
+	let findings = run(
+		quality::magic_numbers,
+		"fn fixture() {\n    messageBytes: Uint8List.fromList([1, 2, 3, 4, 5]),\n}\n",
+	);
+
+	assert!(
+		findings.is_empty(),
+		"an all-literal collection is a data table: {findings:?}"
+	);
+}
+
+#[test]
+fn a_value_with_a_closer_before_its_opener_is_not_a_constructor() {
+	// `b) c(7` has a `)` before its `(`, so it is not a constructor call and it
+	// does not name anything — the 7 stays a finding, and reading the value
+	// must not panic on the reversed range.
+	let findings = run(
+		quality::magic_numbers,
+		"fn edge() {
+    a: b) c(7),
+}
+",
+	);
+
+	assert_eq!(
+		findings.len(),
+		1,
+		"the reversed value is not a constructor: {findings:?}"
+	);
+}
