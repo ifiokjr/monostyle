@@ -738,7 +738,11 @@ fn an_import_header_is_never_split() {
 	let mut source = String::from("#[cfg(test)]\nmod probes {\n    use core::fmt;\n");
 
 	for index in 0..14 {
-		source.push_str(&format!("    use core::hint::item_{index} as i{index};\n"));
+		source.push_str("    use core::hint::item_");
+		source.push_str(&index.to_string());
+		source.push_str(" as i");
+		source.push_str(&index.to_string());
+		source.push_str(";\n");
 	}
 
 	source.push_str("    use std::vec::Vec;\n}\n");
