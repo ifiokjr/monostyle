@@ -47,31 +47,30 @@ fn a_return_under_an_attribute_keeps_the_attribute_attached() {
 }
 
 #[test]
-fn a_single_line_binding_and_the_return_that_uses_it_are_one_thought() {
-	// The reviewer's two-line rule: when a single-line binding is followed by a
-	// single-line return that uses it, the pair reads as one thought and the
-	// blank between them is superfluous.
+fn a_single_line_binding_and_the_return_that_uses_it_still_needs_the_gap() {
+	// Breathing room applies uniformly: even a two-line bind-then-return tail
+	// gets its blank, so the exit stays visually distinct from the work above it.
 	let findings = returns_in(
 		"bool hasBinary(String dir) {\n  final binDir = join(dir, \"bin\");\n  return binDir.existsSync;\n}\n",
 	);
 
 	assert!(
-		findings.is_empty(),
-		"a binding and its return need no gap: {findings:?}"
+		!findings.is_empty(),
+		"a binding and its return still ask for separation: {findings:?}"
 	);
 }
 
 #[test]
-fn the_pair_rule_holds_across_binding_keywords_and_uses() {
-	// `let`, `const`, `var`, `final`, and `val` all bind; the return may compute
-	// with the binding rather than name it alone.
+fn the_gap_rule_holds_across_binding_keywords_and_uses() {
+	// `let`, `const`, `var`, `final`, and `val` all bind; whichever keyword
+	// introduced the binding, the return below it keeps its blank line.
 	let source =
 		"Number pick(int count) {\n  const base = load();\n  return base * count + 1;\n}\n";
 	let findings = returns_in(source);
 
 	assert!(
-		findings.is_empty(),
-		"compute-with-the-binding counts: {findings:?}"
+		!findings.is_empty(),
+		"compute-with-the-binding still asks for separation: {findings:?}"
 	);
 }
 

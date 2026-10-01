@@ -143,17 +143,11 @@ fn needs_blank_line(
 		return None;
 	}
 
-	// A decision written on one line — `if (a > b) return 1;` — is a clause of the
-	// statement above it rather than a block of its own, so it reads fine crowded.
-	// Languages with single-line ternaries and `if` expressions get the same reading.
-	if is_single_line_control_flow(line) {
-		return None;
-	}
-
-	// A line that ends with `=>` is a match or switch arm — including an arm whose
-	// pattern and guard were split across lines, where the `if` belongs to the arm
-	// above it. An arm is a clause of one decision, never a statement of its own.
-	if line.masked_code.trim_end().ends_with("=>") {
+	// A match or switch arm is a clause of one decision, never a statement of its own —
+	// whether it ends in Rust's `=>`, Java's `->`, or opens with a `case`/`default` label,
+	// including an arm whose pattern and guard were split across lines, where the `if`
+	// belongs to the arm above it.
+	if is_arm_label_line(line) {
 		return None;
 	}
 
@@ -246,15 +240,6 @@ fn crowded_against_the_previous_statement(
 		return false;
 	};
 
-	// Two single-line control-flow statements in a row are a tight guard sequence:
-	// `if (a > b) return 1;` followed by `if (c < d) return 0;` reads better without
-	// a blank between them, the same way a chain of early returns does. A multi-line
-	// block (one that opens a brace) still asks for the blank, because its body is a
-	// group rather than a line.
-	if is_single_line_control_flow(previous) {
-		return false;
-	}
-
 	// The first statement inside a block has nothing above it to separate from.
 	!(previous.opens_block() || is_block_declaration(previous))
 }
@@ -275,6 +260,24 @@ const CONTINUATION_OPENERS: &[&str] = &[
 const CONTINUATION_WORDS: &[&str] = &["as", "is", "in", "where", "and", "or"];
 
 /// Whether a line opens with a token that can only continue the statement above it.
+/// Whether the line is a match or switch arm: it opens with a `case`/`default`/`when`
+/// label, or its pattern ends in an arm arrow — Rust's `=>`, Java's `->`.
+///
+/// An arm is a clause of one decision, so it is never separated from the arms around
+/// it; a return riding on its arm's own label line is the arm's body rather than a
+/// sequential exit.
+fn is_arm_label_line(line: &LexedLine) -> bool {
+	let code = line.masked_code.trim();
+
+	code.starts_with("case ")
+		|| code.starts_with("default:")
+		|| code.starts_with("default =>")
+		|| code.starts_with("default ->")
+		|| code.starts_with("when ")
+		|| code.ends_with("=>")
+		|| code.ends_with("->")
+}
+
 fn is_continuation_line(line: &LexedLine) -> bool {
 	let trimmed = line.masked_code.trim_start();
 
@@ -315,26 +318,6 @@ fn continues_a_directive(lines: &[LexedLine], index: usize) -> bool {
 	}
 
 	false
-}
-
-/// Returns true when a line is a control-flow statement whose whole body sits on the same line.
-///
-/// `if (a > b) return 1;` and `if ready { go(); }` are single-line: their braces balance and nothing
-/// opens onto the lines below. The shape matters because padding between two of them chops a tight
-/// guard sequence into pieces — the same reasoning that exempts a chain of early returns.
-fn is_single_line_control_flow(line: &LexedLine) -> bool {
-	if line.decisions.is_empty() {
-		return false;
-	}
-
-	if line.opens_block() {
-		return false;
-	}
-
-	let opens = line.masked_code.matches('{').count();
-	let closes = line.masked_code.matches('}').count();
-
-	opens == closes
 }
 
 /// Returns true when the lines above `index` already separate this statement.
@@ -680,62 +663,13 @@ pub fn blank_line_before_return(file: &LexedFile, config: &RulesConfig) -> Vec<F
 	findings
 }
 
-/// Whether `line` is a single-line return of a binding declared on the line above.
-///
-/// The reviewer's two-line rule: when the declaration above is one line, the return is one
-/// line, and the return expression uses what the declaration bound, the pair is one thought
-/// and no blank belongs between them. Both lines must carry their `;`, which is what makes
-/// "one line" checkable: a multi-line return or declaration keeps its gap.
-fn returns_the_binding_above(lines: &[LexedLine], index: usize, line: &LexedLine) -> bool {
-	let return_code = line.masked_code.trim();
-	let Some(previous) = previous_code_line(lines, index) else {
-		return false;
-	};
-	let binding = previous.masked_code.trim();
-
-	let bound = line_words(binding);
-	let used = line_words(return_code);
-
-	return_code.ends_with(';')
-		&& binding.ends_with(';')
-		&& bound.len() < used.len() + 8
-		&& declares_a_binding(binding)
-		&& bound
-			.get(1..)
-			.is_some_and(|names| shares_a_word(names, &used))
-}
-
-/// The words of a masked line, punctuation dropped — including the punctuation
-/// inside a word, so `binDir.existsSync` yields both names and a return that
-/// uses the binding as a receiver still references it.
-fn line_words(code: &str) -> Vec<&str> {
-	code.split(|character: char| !character.is_alphanumeric() && character != '_')
-		.filter(|word| !word.is_empty())
-		.collect()
-}
-
-/// Whether a statement both opens with a binding keyword and assigns to it: the shape
-/// `const name = value;`, `let`, `var`, `final`, or `val`.
-fn declares_a_binding(code: &str) -> bool {
-	let Some((first, rest)) = code.split_once(' ') else {
-		return false;
-	};
-
-	matches!(first, "const" | "let" | "var" | "final" | "val") && rest.contains('=')
-}
-
-/// Whether any of `binding`'s words appears in `words` — the return uses the binding.
-fn shares_a_word(binding: &[&str], words: &[&str]) -> bool {
-	binding.iter().any(|word| words.contains(word))
-}
-
 /// Whether this line is a return the rule should report, and which line the blank belongs above.
 ///
 /// Every exemption lives here so the loop above stays a filter and a builder, the same shape the
 /// control-flow rule uses. Each clause is a case where a blank would be wrong rather than merely
 /// absent: a continuation line carries the return as a clause of the statement above it, a guard
-/// is the structure the style recommends, a single-line binding and its return are one thought,
-/// and a return inside a match arm is an alternative rather than a sequential exit.
+/// is the structure the style recommends, and a return inside a match arm — or riding on its
+/// arm's own label line — is an alternative rather than a sequential exit.
 fn crowded_return(
 	lines: &[LexedLine],
 	depths: &PrefixDepth,
@@ -751,7 +685,7 @@ fn crowded_return(
 		return None;
 	}
 
-	if returns_the_binding_above(lines, index, line) || in_alternatives {
+	if in_alternatives || is_arm_label_line(line) {
 		return None;
 	}
 
@@ -1864,7 +1798,7 @@ pub fn excessive_indentation(file: &LexedFile, config: &RulesConfig) -> Vec<Find
 			continue;
 		}
 
-		if carries_no_structure(&file.lines, &depths, index, line) {
+		if carries_no_structure(&depths, index, line) {
 			continue;
 		}
 
@@ -1894,18 +1828,22 @@ pub fn excessive_indentation(file: &LexedFile, config: &RulesConfig) -> Vec<Find
 /// Whether a line's indentation comes from the shape around it rather than from nesting
 /// the author introduced.
 ///
-/// Three shapes: a line that continues an expression opened above it (an argument, a chained
-/// call, an operator continuation), a line that closes one (a `)`, `]`, or `}` matching an
-/// opener above it), and a match or switch arm — its label and its body sit inside the arm's
-/// own level. None of them is a block the author can flatten, and every formatter reproduces
-/// them from the surrounding structure.
-fn carries_no_structure(
-	lines: &[LexedLine],
-	depths: &PrefixDepth,
-	index: usize,
-	line: &LexedLine,
-) -> bool {
-	if is_continuation_line(line) || starts_inside_expression(depths, index) {
+/// Two shapes: a line that continues an expression opened above it (a chained call, an
+/// operator continuation, an argument that starts no construct of its own) and a line that
+/// closes one (a `)`, `]`, or `}` matching an opener above it). What is *not* exempt inside
+/// an expression is a line that opens a block, carries a decision, or returns — a closure
+/// body or an `if` inside a call argument is nesting the author chose, and it is exactly the
+/// shape the rule's flatten-or-extract advice addresses.
+fn carries_no_structure(depths: &PrefixDepth, index: usize, line: &LexedLine) -> bool {
+	if is_continuation_line(line) {
+		return true;
+	}
+
+	if starts_inside_expression(depths, index)
+		&& !line.opens_block()
+		&& line.decisions.is_empty()
+		&& !line.is_return
+	{
 		return true;
 	}
 
@@ -1916,56 +1854,21 @@ fn carries_no_structure(
 		return true;
 	}
 
-	// An arm label (`0 =>`, `case _:`, `default:`) or the body that follows its arrow is part
-	// of the decision's level rather than a nesting step inside it.
-	if is_alternative_arm(lines, index, line) {
-		return true;
-	}
-
-	false
+	// An arm label (`0 =>`, `case _:`, `default:`) sits one level inside its decision by
+	// convention. The label alone is exempt; the statements in a multi-line arm body are
+	// nesting like any other and are measured.
+	is_alternative_arm(line)
 }
 
-/// Whether the line at `index` is a match or switch arm, or a statement inside one.
-///
-/// An arm's body lives one indent past its label, and a nested call inside that body two, so
-/// the whole arm is exempt rather than the label alone. The region is found by walking back to
-/// the nearest arm label or the opener that ends the search.
-fn is_alternative_arm(lines: &[LexedLine], index: usize, line: &LexedLine) -> bool {
+/// Whether the line is a match or switch arm label.
+fn is_alternative_arm(line: &LexedLine) -> bool {
 	const ARM_LABEL: &[&str] = &["case ", "default:", "default =>", "when ", "_ =>"];
 
 	let code = line.masked_code.trim_start();
 
-	if ARM_LABEL.iter().any(|label| code.starts_with(label))
+	ARM_LABEL.iter().any(|label| code.starts_with(label))
 		|| code.contains(" => ")
 		|| code.ends_with("=>")
-	{
-		return true;
-	}
-
-	// Walk back to the nearest line that is an arm label, stopping at the switch's own opener
-	// so an unrelated statement above the match is not mistaken for part of it.
-	for candidate in lines.iter().take(index).rev().take(24) {
-		let candidate_code = candidate.masked_code.trim_start();
-
-		if ARM_LABEL
-			.iter()
-			.any(|label| candidate_code.starts_with(label))
-			|| candidate_code.ends_with("=>")
-		{
-			// The arm's body ends when a line at the arm's own indent appears.
-			return candidate.indent < line.indent;
-		}
-
-		if candidate_code.ends_with("match")
-			|| candidate_code.contains("switch (")
-			|| candidate_code.contains("switch ")
-			|| candidate.indent < line.indent.saturating_sub(8)
-		{
-			break;
-		}
-	}
-
-	false
 }
 
 /// Reports files that mix tabs and spaces for indentation.
@@ -2240,7 +2143,13 @@ fn is_block_declaration(line: &LexedLine) -> bool {
 
 	let trimmed = line.masked_code.trim();
 
-	trimmed.ends_with('{')
+	// Ruby and friends open a block with a leading keyword rather than a trailing token:
+	// `def scan(target)` ends with its parameter list, so the trailing-token tests below
+	// cannot see the body it opens.
+	trimmed.starts_with("def ")
+		|| trimmed.starts_with("class ")
+		|| trimmed.starts_with("module ")
+		|| trimmed.ends_with('{')
 		|| trimmed.ends_with('(')
 		|| trimmed.ends_with("then")
 		|| trimmed.ends_with("do")
