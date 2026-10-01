@@ -3,7 +3,7 @@ monostyle: minor
 monostyle_rules: minor
 ---
 
-# Breathing room is uniform and nesting is measured where it lives
+# Breathing room is uniform; nesting is measured again
 
 Rolling the relaxed rules across the corpus showed three places where the tool had gone quiet on real findings. Each is restored here, and the false-positive guards stay.
 
