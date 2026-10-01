@@ -48,6 +48,14 @@ pub fn magic_numbers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 			continue;
 		}
 
+		// An assertion's literal is the value it claims: `expect(disc(ix), 12)` and
+		// `assert_eq!(len, 3)` state what the code must produce, and naming the
+		// number would hide the claim the test makes. A collection whose members
+		// are all literals is data the same way a data-table row is.
+		if is_assertion(line) || holds_only_data_collections(line) {
+			continue;
+		}
+
 		for literal in unnamed_literals(line) {
 			findings.push(magic_number_finding(line, &literal.text));
 		}
@@ -512,7 +520,7 @@ fn is_conventional(value: f64) -> bool {
 /// number is), and a row of a data table whose head names the column. Each was a class of finding
 /// no one could act on: naming a discriminant duplicates the variant, and naming a const-generic
 /// capacity is not something the derive API expects.
-fn is_self_naming_literal(line: &LexedLine) -> bool {
+pub fn is_self_naming_literal(line: &LexedLine) -> bool {
 	let code = line.masked_code.trim();
 
 	if code.is_empty() {
@@ -546,18 +554,151 @@ fn is_variant_discriminant(code: &str) -> bool {
 ///
 /// A bare argument in a call or a value in a tuple has no name next to it and is still reported.
 fn is_named_field_value(code: &str) -> bool {
-	let Some((name, value)) = code.split_once(':').or_else(|| code.split_once('=')) else {
+	// A field names the value beside it, however the value is written: a bare
+	// number or a constructor holding only numbers. A nested map names its inner
+	// fields with their own keys, so every colon is a candidate —
+	// `{'loadedAddresses': 42}` names the 42 at the inner colon. An `=` is a
+	// binding rather than a field, so it asks for a bare number and a single
+	// clean name, which is what keeps `let limit = compute(47);` a finding.
+	// A `::` path operator is not a field separator — `Limits::new(120, 80)`
+	// passes two unnamed arguments, and the colons in the path are not keys.
+	code.match_indices(':').any(|(position, _)| {
+		let double = (position > 0 && code.as_bytes().get(position - 1) == Some(&b':'))
+			|| code.as_bytes().get(position + 1) == Some(&b':');
+
+		!double && names_its_value(&code[..position], &code[position + 1..], true)
+	}) || code
+		.match_indices('=')
+		.any(|(position, _)| names_its_value(&code[..position], &code[position + 1..], false))
+}
+
+/// Whether `raw_name` is a field or key and `raw_value` a value it names.
+///
+/// A colon-separated field may be nested (`'meta': {'key': 1}`) and may hold a
+/// constructor call; an assignment holds only what its one name says it does.
+fn names_its_value(raw_name: &str, raw_value: &str, field: bool) -> bool {
+	let name = if field {
+		let Some(key) = last_key(raw_name) else {
+			return false;
+		};
+		key
+	} else {
+		raw_name.trim()
+	};
+
+	let unquoted = name.trim_matches('\'').trim_matches('"');
+
+	!unquoted.is_empty()
+		&& unquoted
+			.chars()
+			.all(|character: char| character.is_alphanumeric() || character == '_')
+		&& (raw_value
+			.trim()
+			.trim_end_matches(',')
+			.parse::<f64>()
+			.is_ok() || field && is_named_number(raw_value.trim().trim_end_matches(',')))
+}
+
+/// The name a nested key ends with: the last quoted string, or the last word.
+fn last_key(raw_name: &str) -> Option<&str> {
+	let trimmed = raw_name.trim_end();
+
+	if trimmed.ends_with('\'') || trimmed.ends_with('"') {
+		let quote = trimmed.chars().next_back()?;
+		let inner = &trimmed[..trimmed.len() - 1];
+		let start = inner.rfind(quote)? + 1;
+
+		return inner.get(start..);
+	}
+
+	trimmed
+		.rsplit(|character: char| !character.is_alphanumeric() && character != '_')
+		.find(|word| !word.is_empty())
+}
+
+/// Whether `value` is a number, or a constructor call holding only numbers —
+/// `123`, `BigInt.from(123)`, `u64(5)`. The field beside it names the value;
+/// the constructor names the type.
+fn is_named_number(value: &str) -> bool {
+	if value.parse::<f64>().is_ok() {
+		return true;
+	}
+
+	let (Some(open), Some(close)) = (value.find('('), value.rfind(')')) else {
 		return false;
 	};
 
-	let name =
-		name.trim_start_matches(|character: char| !character.is_alphanumeric() && character != '_');
+	if close <= open {
+		return false;
+	}
 
-	!name.is_empty()
-		&& name
-			.chars()
-			.all(|character| character.is_alphanumeric() || character == '_')
-		&& value.trim().trim_end_matches(',').parse::<f64>().is_ok()
+	let callee = &value[..open];
+	let arguments = &value[open + 1..close];
+
+	!callee.is_empty()
+		&& callee.chars().all(|character: char| {
+			character.is_alphanumeric() || character == '_' || character == '.'
+		}) && arguments
+		.chars()
+		.any(|character| character.is_ascii_hexdigit())
+		&& arguments.chars().all(|character: char| {
+			character.is_ascii_hexdigit()
+				|| matches!(character, ',' | ' ' | '_' | 'x' | 'X' | '.' | '+' | '-')
+		})
+}
+
+/// Whether the line asserts rather than computes: its literals are the values
+/// the code claims, not values the reader must interpret.
+pub fn is_assertion(line: &LexedLine) -> bool {
+	const MARKERS: &[&str] = &[
+		"assert",
+		"expect",
+		".toBe",
+		".toEqual",
+		".toStrictEqual",
+		".toBeCloseTo",
+		".toContain",
+		"deepEqual",
+		"strictEqual",
+	];
+
+	MARKERS
+		.iter()
+		.any(|marker| line.masked_code.contains(marker))
+}
+
+/// Whether the line builds a collection whose members are all literals — a
+/// byte fixture, a lookup row, a golden vector. The collection is data; naming
+/// its numbers would only obscure the shape the reader checks.
+pub fn holds_only_data_collections(line: &LexedLine) -> bool {
+	let code = &line.masked_code;
+
+	let mut search_from = 0;
+
+	while let Some(relative) = code[search_from..].find('[') {
+		let start = search_from + relative;
+
+		let Some(relative_end) = code[start..].find(']') else {
+			break;
+		};
+		let end = start + relative_end;
+		let members = &code[start + 1..end];
+
+		// A comma-separated run of numbers is a table rather than a coordinate
+		// or a size.
+		if members.matches(',').count() >= 1
+			&& members.chars().any(|character| character.is_ascii_digit())
+			&& members.chars().all(|character| {
+				character.is_ascii_hexdigit()
+					|| matches!(character, ',' | ' ' | '_' | 'x' | 'X' | '.' | '+' | '-')
+			}) {
+			return true;
+		}
+
+		search_from = end + 1;
+	}
+
+	false
 }
 
 /// Whether the line holds a capacity in a type position: `[u8; 32]`, `String<64>`, `Vec<u16, 8>`.
@@ -748,6 +889,10 @@ fn is_conventional_name(name: &str) -> bool {
 		"Ok", "Err", "Some", "None", "OK", "Id", "u8", "u16", "u32", "u64", "u128", "usize", "i8",
 		"i16", "i32", "i64", "i128", "isize", "f32", "f64", "bool", "str", "T", "K", "V", "E", "U",
 		"N", "Self", "Box", "Vec", "V1", "V2", "V3",
+		// `eq` and `ne` are the trait methods an equality impl must carry, and
+		// `on` is the event-registration name the whole web API surface uses —
+		// wasm_bindgen exports it verbatim. None of the three is a choice.
+		"on", "eq", "ne",
 	];
 
 	CONVENTIONAL.contains(&name) || BUILTIN.contains(&name)
