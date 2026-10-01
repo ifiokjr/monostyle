@@ -85,9 +85,10 @@ fn a_separated_control_flow_statement_is_not_reported() {
 
 #[test]
 fn a_long_statement_run_is_reported() {
-	// Group separation fires past the run limit. The most common real trigger is a run of `use` or
-	// `mod` declarations, which is what a preamble looks like before anyone groups it.
-	let body = lines_of((0..14).map(|index| format!("use crate::module_{index};\n")));
+	// Group separation fires past the run limit. A preamble of `mod` declarations is the
+	// trigger; a `use` header is a directive block the formatter owns, which the import
+	// test pins separately.
+	let body = lines_of((0..14).map(|index| format!("mod module_{index};\n")));
 	let findings = run(
 		whitespace::group_separation,
 		&format!("{body}\nfn entry() {{}}\n"),

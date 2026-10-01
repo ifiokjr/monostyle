@@ -292,7 +292,9 @@ fn is_continuation_line(line: &LexedLine) -> bool {
 }
 
 /// Directive keywords that can span lines before their `;` arrives.
-const DIRECTIVES: &[&str] = &["import", "export", "using", "library", "part", "@import"];
+const DIRECTIVES: &[&str] = &[
+	"use ", "pub use ", "import", "export", "using", "library", "part", "@import",
+];
 
 /// Whether the line at `index` continues an import-style directive that is still open.
 ///
@@ -301,6 +303,20 @@ const DIRECTIVES: &[&str] = &["import", "export", "using", "library", "part", "@
 /// unbounded.
 fn continues_a_directive(lines: &[LexedLine], index: usize) -> bool {
 	const CHAIN_LIMIT: usize = 12;
+
+	// A line that is itself a directive belongs to a header whatever the lines
+	// above look like: semicolon-terminated imports (`use a;` in Rust, `import
+	// 'a.dart';` in Dart) each end their own statement, so the walk below would
+	// stop at the previous one and never find the chain's start.
+	if let Some(line) = lines.get(index) {
+		let code = line.masked_code.trim_start();
+		if DIRECTIVES
+			.iter()
+			.any(|directive| code.starts_with(directive))
+		{
+			return true;
+		}
+	}
 
 	for candidate in lines.iter().take(index).rev().take(CHAIN_LIMIT) {
 		let code = candidate.masked_code.trim();
