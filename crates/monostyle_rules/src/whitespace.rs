@@ -883,6 +883,13 @@ fn ignorable(
 		return true;
 	}
 
+	// A ternary or operator continuation carries no brackets for the depth table
+	// to see, but it is still the statement above it: `final x = cond` then
+	// `? 'a'` then `: 'b'` is one statement, not three.
+	if is_continuation_line(line) {
+		return true;
+	}
+
 	// An import, export, or using directive is not a statement in a sequence: a header of thirty
 	// `use` lines is one block the formatter owns (rustfmt orders it, ktlint forbids blanks inside
 	// it), so it is invisible here rather than a run to split.

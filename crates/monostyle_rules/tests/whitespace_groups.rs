@@ -754,3 +754,18 @@ fn an_import_header_is_never_split() {
 		"an import header is a directive block, not a statement run: {findings:?}"
 	);
 }
+
+#[test]
+fn a_multiline_ternary_is_one_statement_not_three() {
+	// A ternary spread over lines carries no brackets for the depth table, so
+	// its arms read as statements unless the continuation opener is consulted.
+	// Splitting one inserted a blank between a condition and its arm, which the
+	// formatter removes and the diff review rejects.
+	let source = "String pick(int value) {\n	final label = value > 0\n		? 'positive'\n		: 'other';\n	return label;\n}\n";
+	let findings = groups_in(source, Language::Dart);
+
+	assert!(
+		findings.is_empty(),
+		"a ternary is one statement: {findings:?}"
+	);
+}
