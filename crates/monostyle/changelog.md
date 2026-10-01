@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.22](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.22) (2026-10-01)
+
+### Fixes
+
+- **Test data is not magic.** An assertion's literal is the value it claims — `expect(disc(ix), 12)` and `assert_eq!(len, 3)` state what the code must produce, and naming the number would hide the claim the test makes. A collection whose members are all literals is a data table wherever it sits, not only alone on a line: `Uint8List.fromList([1, 2, 3, 4, 5])` is a byte fixture. A named field holds a constructor call of numbers — `unixTimestamp: BigInt.from(123)` — the field names the value and the constructor names the type, and `Ident::new(120, 80)` stays two unnamed arguments because a path operator is not a field separator. `on`, `eq`, and `ne` join the language vocabulary: the event-registration name the web exports and the two methods an equality impl must carry are not choices an author can unmake. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #74](https://github.com/ifiokjr/monostyle/pull/74)
+
 ## [0.3.21](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.21) (2026-10-01)
 
 ### Features
