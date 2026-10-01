@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.23](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.23) (2026-10-01)
+
+### Fixes
+
+- **Import headers are not a statement run.** A header of `use`, `import`, or `using` lines is one block the formatter owns — rustfmt orders it, ktlint forbids blanks inside it — so `group-separation` no longer counts directives as statements and no longer splits the header. The split had been inserting blanks the project's own formatter or linter rejects. _Owner:_ Ifiok Jr. · _Introduced in:_ [fea18ba](https://github.com/ifiokjr/monostyle/commit/fea18ba6c95486b66affcac38b1d40bf5c01cb91)
+
 ## [0.3.22](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.22) (2026-10-01)
 
 ### Fixes
