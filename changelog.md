@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.25](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.25) (2026-10-05)
+
+Grouped release for `release`.
+
+### Features
+
+- **Blank lines are paragraphs.** The skill now teaches the grouping its `group-separation` rule is a proxy for: a blank line starts a new paragraph, a paragraph is one concept, and a declaration and the lines that complete it stay together. When the rule fires, the fix is the nearest concept boundary — not a blank wherever the statement count lands. Five evals pin the guidance: four grade regrouping answers against content-anchored checks plus the real binary, and the fifth keeps the skill's own Before/After example honest. The evals run in CI and ship with the package. _Packages:_ 🟠 _@monostyle-rs/skill_ _Owner:_ Ifiok Jr. · _Introduced in:_ [2876964](https://github.com/ifiokjr/monostyle/commit/2876964f0fc379ed421b424fef88af8f68b2cbe2)
+
 ## [0.3.24](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.24) (2026-10-01)
 
 Grouped release for `release`.
