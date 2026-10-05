@@ -215,7 +215,6 @@ impl IgnoreConfig {
 	pub fn allows_under(&self, path: &Path, root: &Path) -> bool {
 		let relative_to = |patterns: &[String]| {
 			let candidate = path.strip_prefix(root).unwrap_or(path);
-
 			Self::matches_any(patterns, candidate)
 		};
 
@@ -264,7 +263,6 @@ pub fn ignored_directories() -> &'static [&'static str] {
 fn has_ignored_component(path: &Path) -> bool {
 	path.components().any(|component| {
 		let name = component.as_os_str().to_string_lossy();
-
 		IGNORED_DIRECTORIES.iter().any(|ignored| name == *ignored)
 	})
 }
@@ -541,7 +539,6 @@ fn matches_segment(pattern: &str, text: &str) -> bool {
 				let (after_star, star_text) =
 					star.expect("`next_step` only backtracks when a star exists");
 				let widened = star_text + 1;
-
 				star = Some((after_star, widened));
 				pattern_index = after_star;
 				text_index = widened;

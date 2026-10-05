@@ -37,7 +37,6 @@ fn run_in(
 	language: Language,
 ) -> Vec<monostyle_core::Finding> {
 	let lexed = lex(source, language);
-
 	rule(&lexed, &RulesConfig::default())
 }
 

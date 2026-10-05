@@ -57,7 +57,6 @@ fn analyze_allow_empty(relative: &str) -> ProjectReport {
 		..AnalysisOptions::default()
 	};
 	let paths = collect_paths(&root, true, &options.rules.ignore);
-
 	analyze_paths(&paths, &options)
 }
 
@@ -571,7 +570,6 @@ fn repeated_analysis_of_many_files_is_identical() {
 	let scores: Vec<(f64, f64)> = (0..5)
 		.map(|_| {
 			let report = analyze_paths(&paths, &options);
-
 			(report.readability.value, report.complexity.value)
 		})
 		.collect();
@@ -591,7 +589,6 @@ fn repeated_analysis_of_many_files_is_identical() {
 	let unit_counts: Vec<usize> = (0..3)
 		.map(|_| {
 			let report = analyze_paths(&paths, &options);
-
 			report.files[0].units.len()
 		})
 		.collect();
@@ -609,7 +606,6 @@ fn every_unit_is_measured_with_its_own_lines() {
 	// Sixteen functions with 1 to 16 branches each.
 	let source = lines_of((1..=16).map(|count| {
 		let arms = lines_of((0..count).map(|arm| format!("    if x > {arm} {{ work(); }}\n")));
-
 		format!("fn f{count}(x: i32) {{\n{arms}}}\n\n")
 	}));
 

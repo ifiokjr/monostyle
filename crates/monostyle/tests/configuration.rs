@@ -23,7 +23,6 @@ fn options(contents: &str) -> AnalysisOptions {
 /// Writes a configuration file and loads it.
 fn load(contents: &str) -> monostyle::config::ConfigFile {
 	let mut file = tempfile::NamedTempFile::new().expect("a temporary file");
-
 	file.write_all(contents.as_bytes()).expect("write");
 	file.flush().expect("flush");
 

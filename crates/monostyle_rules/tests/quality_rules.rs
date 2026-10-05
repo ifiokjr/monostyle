@@ -15,14 +15,12 @@ fn run(
 	source: &str,
 ) -> Vec<monostyle_core::Finding> {
 	let lexed = lex(source, Language::Rust);
-
 	rule(&lexed, &RulesConfig::default())
 }
 
 /// Runs the line-length rule.
 fn run_lines(source: &str) -> Vec<monostyle_core::Finding> {
 	let lexed = lex(source, Language::Rust);
-
 	line_length::overlong_lines(&lexed, &RulesConfig::default())
 }
 

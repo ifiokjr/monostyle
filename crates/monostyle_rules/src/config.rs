@@ -202,7 +202,6 @@ impl RulesConfig {
 	pub fn severe_line_width(&self) -> usize {
 		#[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
 		let scaled = (self.max_line_width as f64 * self.severe_line_width_ratio).round() as usize;
-
 		scaled.max(self.max_line_width + 1)
 	}
 }

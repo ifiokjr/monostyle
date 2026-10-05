@@ -30,7 +30,6 @@ fn run(
 	source: &str,
 ) -> Vec<monostyle_core::Finding> {
 	let lexed = lex(source, Language::Rust);
-
 	rule(&lexed, &RulesConfig::default())
 }
 
@@ -77,7 +76,6 @@ fn complexity_per_file(
 /// Runs the documentation rule, which takes no configuration.
 fn run_documentation(source: &str) -> Vec<monostyle_core::Finding> {
 	let lexed = lex(source, Language::Rust);
-
 	comments::thin_documentation(&lexed)
 }
 

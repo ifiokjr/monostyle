@@ -35,7 +35,6 @@ fn stdout(args: &[&str]) -> String {
 /// Parses the JSON report from a `check` run.
 fn report(args: &[&str]) -> serde_json::Value {
 	let output = stdout(args);
-
 	serde_json::from_str(&output).expect("the report should be valid JSON")
 }
 
@@ -92,11 +91,9 @@ fn fired(args: &[&str]) -> Vec<String> {
 fn workspace(name: &str, contents: &str) -> (tempfile::TempDir, String) {
 	let temp = tempfile::tempdir().expect("a temporary directory");
 	let path = temp.path().join(name);
-
 	std::fs::write(&path, contents).expect("the fixture should be written");
 
 	let target = path.to_string_lossy().into_owned();
-
 	(temp, target)
 }
 
@@ -247,7 +244,6 @@ fn the_disable_flag_works_for_a_new_rule() {
 // ---------------------------------------------------------------------------
 fn crowded_function(count: usize) -> String {
 	let mut source = String::from("fn work() {\n");
-
 	push_statements(&mut source, count, "    ");
 
 	source.push_str("}\n");
@@ -322,7 +318,6 @@ fn the_statement_limit_is_configurable_through_a_config_file() {
 	// A config key that parses but is never consulted produces scores that describe a rule set nobody
 	// chose. This is the check that the value a project writes is the value the rule measures against.
 	let mut source = String::new();
-
 	push_statements(&mut source, 12, "");
 
 	let (temp, target) = workspace("work.rs", &source);

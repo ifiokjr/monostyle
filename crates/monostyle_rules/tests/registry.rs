@@ -403,7 +403,6 @@ fn every_registered_rule_is_documented() {
 		.map(|rule| rule.name)
 		.filter(|name| {
 			let short = name.split('/').next_back().unwrap_or(name);
-
 			!template.contains(&format!("`{short}`"))
 		})
 		.collect();
@@ -480,7 +479,6 @@ fn backtick_rule_name(line: &str) -> Option<String> {
 	}
 
 	let cell = trimmed.trim_start_matches('|').split('|').next()?.trim();
-
 	cell.strip_prefix('`')?
 		.strip_suffix('`')
 		.map(str::to_string)

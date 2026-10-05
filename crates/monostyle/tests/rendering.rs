@@ -30,7 +30,6 @@ fn analyze(relative: &str) -> monostyle::analysis::ProjectReport {
 		..AnalysisOptions::default()
 	};
 	let paths = collect_paths(&root, true, &options.rules.ignore);
-
 	analyze_paths(&paths, &options)
 }
 
@@ -381,7 +380,6 @@ fn a_pnpm_workspace_is_detected() {
 #[test]
 fn a_dart_package_is_detected() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
-
 	std::fs::write(temp.path().join("pubspec.yaml"), "name: my_app\n").expect("write");
 
 	let packages = detect_packages(temp.path());
@@ -396,7 +394,6 @@ fn a_malformed_manifest_is_skipped_rather_than_failing() {
 	// A repository with one broken manifest should still analyze, because refusing to score any of it
 	// would be a worse outcome than skipping the file that cannot be read.
 	let temp = tempfile::tempdir().expect("a temporary directory");
-
 	std::fs::write(temp.path().join("package.json"), "this is not json").expect("write");
 
 	let packages = detect_packages(temp.path());
@@ -407,7 +404,6 @@ fn a_malformed_manifest_is_skipped_rather_than_failing() {
 #[test]
 fn a_package_with_no_name_field_is_skipped() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
-
 	std::fs::write(temp.path().join("package.json"), r#"{"version": "1.0.0"}"#).expect("write");
 
 	assert!(detect_packages(temp.path()).is_empty());
@@ -427,7 +423,6 @@ fn analyze_source(source: &str) -> monostyle::analysis::ProjectReport {
 		..AnalysisOptions::default()
 	};
 	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
-
 	analyze_paths(&paths, &options)
 }
 

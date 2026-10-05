@@ -200,7 +200,6 @@ impl ConfigExt for AnalysisOptions {
 					.and_then(|path| path.as_str())
 					.unwrap_or("<unnamed>");
 				let label = format!("{name}.rules");
-
 				reject_unknown_keys(&merged, rules, &label)?;
 			}
 		}

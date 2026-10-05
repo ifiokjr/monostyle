@@ -251,7 +251,6 @@ fn report_nothing(
 	if args.format == OutputFormat::Json {
 		let empty = analyze_paths(&[], options);
 		let rendered = report::render_project_json(&empty)?;
-
 		write_output(&rendered, args.output.as_deref())?;
 	}
 
@@ -662,7 +661,6 @@ fn run_rules(args: &RulesArgs) -> Result<ExitCode, Box<dyn std::error::Error>> {
 
 		rules.retain(|rule| {
 			let config = monostyle_rules::RulesConfig::default();
-
 			(rule.run)(&lexed, &config)
 				.iter()
 				.any(|finding| finding.fix.is_some())

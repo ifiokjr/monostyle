@@ -241,7 +241,6 @@ fn measure(content: &[char]) -> (usize, usize) {
 /// list is not an argument list, so the width and count rules do not apply to it.
 fn is_annotation(line: &LexedLine) -> bool {
 	let trimmed = line.masked_code.trim_start();
-
 	trimmed.starts_with("#[") || trimmed.starts_with("#![") || trimmed.starts_with('@')
 }
 

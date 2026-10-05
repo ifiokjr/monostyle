@@ -210,7 +210,6 @@ fn introduces_handler(line: &LexedLine) -> bool {
 	// The check is on the pattern followed by a fat arrow so an `Err` in an expression is not mistaken for a
 	// handler.
 	let trimmed = line.masked_code.trim_start();
-
 	trimmed.starts_with("Err")
 		&& line.masked_code.contains("=>")
 		&& line.masked_code.trim_end().ends_with('{')
@@ -587,7 +586,6 @@ fn names_its_value(raw_name: &str, raw_value: &str, field: bool) -> bool {
 	};
 
 	let unquoted = name.trim_matches('\'').trim_matches('"');
-
 	!unquoted.is_empty()
 		&& unquoted
 			.chars()
@@ -772,7 +770,6 @@ fn binding_names(text: &str, language: Language) -> Vec<String> {
 /// Whether a line is an import, whose aliases are not the author's naming choice.
 fn is_import(text: &str) -> bool {
 	let trimmed = text.trim_start();
-
 	trimmed.starts_with("import ") || trimmed.starts_with("use ") || trimmed.starts_with("from ")
 }
 

@@ -147,7 +147,6 @@ pub fn score_color(value: f64) -> fn(&str) -> String {
 #[must_use]
 pub fn score(value: f64) -> String {
 	let text = format!("{value:.1}");
-
 	score_color(value)(&text)
 }
 

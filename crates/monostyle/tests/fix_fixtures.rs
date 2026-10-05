@@ -107,7 +107,6 @@ fn fixed_text(
 
 	let outcome = fix_file(path, &fixes, false).expect("the fixture should be fixable");
 	let rewritten = std::fs::read_to_string(path).expect("the fixture should read back");
-
 	(rewritten, outcome)
 }
 

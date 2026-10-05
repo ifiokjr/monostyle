@@ -34,7 +34,6 @@ use crate::style;
 #[must_use]
 pub fn render_project(report: &ProjectReport, explain: bool, show_units: bool) -> String {
 	let mut output = String::new();
-
 	render_header(&mut output, report);
 	render_impact(&mut output, report);
 

@@ -161,6 +161,30 @@ jobs:
       - name: enforce the quality floor
         run: ./target/release/monostyle check crates --fail-under 95 --quiet
 
+  # The skill ships guidance no rule enforces — blank lines are paragraphs.
+  # These evals pin its examples and reference answers to behaviour the real
+  # binary can check, so the guidance cannot silently drift from the tool.
+  skill-evals:
+    name: skill evals
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+        with:
+          toolchain: nightly-2026-09-07
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: build monostyle
+        run: cargo build --release --package monostyle
+
+      - name: run the skill evals
+        run: python3 packages/monostyle__skill/evals/run.py
+
   npm:
     name: npm packages
     runs-on: ubuntu-latest

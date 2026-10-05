@@ -86,7 +86,6 @@ pub fn fence_without_language(file: &LexedFile, config: &RulesConfig) -> Vec<Fin
 /// Every fence in the document.
 fn scoreable_fences(file: &LexedFile) -> Vec<CodeFence> {
 	let source = document_source(file);
-
 	monostyle_markdown::analyze(&source).fences
 }
 
@@ -237,7 +236,6 @@ fn unscoreable_fence(fence: &CodeFence) -> Finding {
 /// attribute those findings to the wrong lines.
 fn nested_layout_findings(lexed: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	let mut findings = Vec::new();
-
 	findings.extend(whitespace::blank_line_before_control_flow(lexed, config));
 	findings.extend(whitespace::blank_line_before_return(lexed, config));
 	findings.extend(whitespace::group_separation(lexed, config));
@@ -292,7 +290,6 @@ pub fn prose_runs(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 		.collect::<Vec<_>>()
 		.join("\n");
 	let document = monostyle_markdown::analyze(&source);
-
 	document
 		.prose_runs
 		.iter()
@@ -423,7 +420,6 @@ pub fn skipped_heading_levels(file: &LexedFile) -> Vec<Finding> {
 /// can be disabled on its own.
 pub fn heading_structure(file: &LexedFile) -> Vec<Finding> {
 	let mut findings = missing_title(file);
-
 	findings.extend(skipped_heading_levels(file));
 
 	findings

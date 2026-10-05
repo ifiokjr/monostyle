@@ -168,7 +168,6 @@ impl LexedLine {
 	#[must_use]
 	pub fn has_doc_marker(&self) -> bool {
 		let trimmed = self.text.trim_start();
-
 		trimmed.starts_with("///") || trimmed.starts_with("//!")
 	}
 
@@ -192,7 +191,6 @@ impl LexedLine {
 	#[must_use]
 	pub fn opens_block(&self) -> bool {
 		let trimmed = self.masked_code.trim_end();
-
 		trimmed.ends_with('{')
 			|| trimmed.ends_with("then")
 			|| trimmed.ends_with("do")

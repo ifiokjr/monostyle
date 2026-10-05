@@ -16,7 +16,6 @@ use monostyle_rules::whitespace;
 /// Runs the group-separation rule over a source snippet.
 fn groups_in(source: &str, language: Language) -> Vec<Finding> {
 	let lexed = lex(source, language);
-
 	whitespace::group_separation(&lexed, &RulesConfig::default())
 }
 
@@ -34,7 +33,6 @@ fn groups_with_limit(source: &str, language: Language, limit: usize) -> Vec<Find
 /// Builds a run of numbered one-line statements.
 fn statements(count: usize) -> String {
 	let mut text = String::new();
-
 	push_numbered(&mut text, count, |index| format!("call_{index}();"));
 
 	text
@@ -149,7 +147,6 @@ fn a_long_run_inside_a_function_body_is_reported() {
 	// The blind spot: every statement in a function body was classified as a new item, so a run inside
 	// one was never measured. A function body is exactly the sequence this rule exists to measure.
 	let mut source = String::from("fn work() {\n");
-
 	push_numbered(&mut source, 10, |index| format!("    step_{index}();"));
 
 	source.push_str("}\n");
@@ -171,7 +168,6 @@ fn a_long_run_inside_a_function_body_is_reported() {
 #[test]
 fn a_function_body_split_into_fitting_groups_is_not_reported() {
 	let mut source = String::from("fn work() {\n");
-
 	push_numbered(&mut source, 8, |index| format!("    step_{index}();"));
 
 	source.push_str("\n    tail();\n}\n");
@@ -187,7 +183,6 @@ fn a_function_body_split_into_fitting_groups_is_not_reported() {
 #[test]
 fn a_long_run_inside_a_control_flow_block_is_reported() {
 	let mut source = String::from("fn work() {\n    if flag {\n");
-
 	push_numbered(&mut source, 9, |index| format!("        step_{index}();"));
 
 	source.push_str("    }\n}\n");
@@ -207,7 +202,6 @@ fn a_declaration_without_a_keyword_breaks_the_run() {
 	// declaration is an item rather than a statement, so the run it introduces is measured separately
 	// instead of being counted from the declaration line.
 	let mut source = String::from("void emit() {\n");
-
 	push_numbered(&mut source, 10, |index| format!("  step_{index}();"));
 
 	source.push_str("}\n");
@@ -230,7 +224,6 @@ fn a_type_body_of_many_members_is_not_reported() {
 	// A struct's fields are one item, not ten statements. Reporting them was the false positive that
 	// made the rule noise on every data-heavy file.
 	let mut source = String::from("struct Big {\n");
-
 	push_numbered(&mut source, 10, |index| format!("    field_{index}: u32,"));
 
 	source.push_str("}\n");
@@ -246,7 +239,6 @@ fn a_type_body_of_many_members_is_not_reported() {
 #[test]
 fn an_impl_block_of_many_methods_is_not_reported() {
 	let mut source = String::from("impl Thing {\n");
-
 	push_numbered(&mut source, 10, |index| {
 		format!("    fn method_{index}(&self) {{}}")
 	});
@@ -264,7 +256,6 @@ fn an_impl_block_of_many_methods_is_not_reported() {
 #[test]
 fn a_class_body_of_many_fields_is_not_reported() {
 	let mut source = String::from("class Widget {\n");
-
 	push_numbered(&mut source, 10, |index| {
 		format!("  final field_{index} = {index};")
 	});
@@ -282,7 +273,6 @@ fn a_class_body_of_many_fields_is_not_reported() {
 #[test]
 fn a_struct_literal_of_many_fields_is_not_reported() {
 	let mut source = String::from("fn build() -> Point {\n    let point = Point {\n");
-
 	push_numbered(&mut source, 12, |index| {
 		format!("        field_{index}: {index},")
 	});
@@ -320,7 +310,6 @@ fn a_declaration_nested_in_a_function_ends_with_its_own_body() {
 	// A struct declared inside a function ends at its closing brace, and the statements after it belong
 	// to the function again.
 	let mut source = String::from("fn work() {\n    struct Inner {\n");
-
 	push_numbered(&mut source, 10, |index| {
 		format!("        field_{index}: u32,")
 	});
@@ -441,7 +430,6 @@ fn a_balanced_one_line_block_does_not_corrupt_the_run() {
 	// `if a > 0 { work(); }` opens and closes a block on its own line. It must not leave the tracker
 	// inside a body, which would silence the statements that follow it.
 	let mut source = String::from("fn work() {\n    let a = 1;\n    if a > 0 { work(); }\n");
-
 	push_numbered(&mut source, 9, |index| format!("    step_{index}();"));
 
 	source.push_str("}\n");
@@ -461,7 +449,6 @@ fn a_balanced_one_line_block_does_not_corrupt_the_run() {
 #[test]
 fn a_long_run_inside_a_python_function_is_reported() {
 	let mut source = String::from("def work():\n");
-
 	push_numbered(&mut source, 10, |index| format!("    step_{index}()"));
 
 	let findings = groups_in(&source, Language::Python);
@@ -476,7 +463,6 @@ fn a_long_run_inside_a_python_function_is_reported() {
 #[test]
 fn a_long_run_inside_a_ruby_method_is_reported() {
 	let mut source = String::from("def work\n");
-
 	push_numbered(&mut source, 10, |index| format!("  step_{index}"));
 
 	source.push_str("end\n");
@@ -498,7 +484,6 @@ fn a_long_run_inside_a_ruby_method_is_reported() {
 #[test]
 fn a_long_run_inside_a_lua_function_is_reported() {
 	let mut source = String::from("function work()\n");
-
 	push_numbered(&mut source, 10, |index| {
 		format!("  local step_{index} = {index}")
 	});
@@ -660,7 +645,6 @@ fn a_long_run_in_a_loop_body_is_still_reported() {
 	// The other half of the same distinction: a loop body runs to completion, so its statements are a
 	// sequence and the rule still measures them.
 	let mut source = String::from("fn render() {\n    for y in 0..10 {\n");
-
 	push_numbered(&mut source, 9, |index| {
 		format!("        let step_{index} = {index};")
 	});
@@ -681,7 +665,6 @@ fn a_long_run_carries_a_fix_that_splits_at_the_limit() {
 	// The fix names where the next group starts: the (limit + 1)-th statement.
 	// A twelve-statement run takes one blank to become eight and four.
 	let mut source = String::from("fn render() {\n");
-
 	push_numbered(&mut source, 12, |index| {
 		format!("    let step_{index} = {index};")
 	});
@@ -706,7 +689,6 @@ fn the_splitting_blank_opens_above_an_attached_comment() {
 	// statement, so the blank belongs above the comment — otherwise the fix
 	// strands the comment from its code.
 	let mut source = String::from("fn render() {\n");
-
 	push_numbered(&mut source, 8, |index| {
 		format!("    let step_{index} = {index};")
 	});

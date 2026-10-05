@@ -434,7 +434,6 @@ fn config_can_be_printed_as_json() {
 fn a_configuration_file_changes_the_thresholds() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
 	let config = temp.path().join("monostyle.toml");
-
 	std::fs::write(&config, "[rules]\nmax-line-width = 20\n").expect("write");
 
 	// The config is discovered by walking up from the analyzed path, so the fixture is analyzed from
@@ -460,7 +459,6 @@ fn a_configuration_file_changes_the_thresholds() {
 fn an_explicit_config_path_is_used() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
 	let config = temp.path().join("custom.toml");
-
 	std::fs::write(&config, "[rules]\nmax-line-width = 200\n").expect("write");
 
 	let output = run(&[
@@ -592,7 +590,6 @@ fn messy_fixture(directory: &std::path::Path) -> PathBuf {
 	// One clean function and several tangled ones, so the filters have something to discriminate on.
 	let tangled = lines_of((0..4).map(|index| {
 		let arms = lines_of((0..10).map(|arm| format!("    if x > {arm} {{ work(); }}\n")));
-
 		format!("fn t{index}(x: i32) {{\n{arms}}}\n")
 	}));
 
@@ -934,7 +931,6 @@ fn fix_leaves_an_ignored_section_alone() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
 	let source = temp.path().join("scratch.rs");
 	let original = "fn a() {\n    work();\n    if x {\n        work();\n    }\n}\n";
-
 	std::fs::write(&source, original).expect("write");
 	std::fs::write(
 		temp.path().join("monostyle.toml"),

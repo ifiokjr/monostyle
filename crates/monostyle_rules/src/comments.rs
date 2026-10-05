@@ -43,7 +43,6 @@ fn lead_in_starts_at(file: &LexedFile, start_line: usize) -> usize {
 	// the declaration; the comment walk only runs once the line above is a comment, which is how
 	// the whole doc block is included rather than only its last line.
 	let mut top = start_line.saturating_sub(1).max(1);
-
 	top = walk_while(file, top, |line| {
 		line.is_code() && line.masked_code.trim_start().starts_with("#[")
 	});

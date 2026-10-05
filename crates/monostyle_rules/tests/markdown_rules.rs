@@ -18,7 +18,6 @@ use monostyle_rules::run_rules;
 /// its message. Filtering on the namespace would hide exactly the findings these tests are about.
 fn analyze(source: &str) -> Vec<monostyle_core::Finding> {
 	let lexed = lex(source, Language::Markdown);
-
 	run_rules(&lexed, &RulesConfig::default())
 }
 
@@ -402,7 +401,6 @@ fn each_fence_problem_can_be_disabled_on_its_own() {
 			..RulesConfig::default()
 		};
 		let lexed = lex(source, Language::Markdown);
-
 		run_rules(&lexed, &config)
 	};
 

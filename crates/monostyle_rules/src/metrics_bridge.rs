@@ -68,7 +68,6 @@ pub fn units(file: &LexedFile) -> Vec<CodeUnit> {
 pub fn unit_lines<'file>(file: &'file LexedFile, unit: &CodeUnit) -> &'file [LexedLine] {
 	let start = unit.start_line.saturating_sub(1).min(file.lines.len());
 	let end = unit.end_line.min(file.lines.len());
-
 	file.lines.get(start..end).unwrap_or_default()
 }
 

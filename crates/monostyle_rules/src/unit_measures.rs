@@ -81,7 +81,6 @@ impl UnitSet {
 			.into_iter()
 			.map(|unit| {
 				let metrics = measure(file, &unit);
-
 				MeasuredUnit { unit, metrics }
 			})
 			.collect();
@@ -164,6 +163,5 @@ fn measure(file: &LexedFile, unit: &CodeUnit) -> UnitMetrics {
 pub fn lines_of<'file>(file: &'file LexedFile, unit: &CodeUnit) -> &'file [LexedLine] {
 	let start = unit.start_line.saturating_sub(1).min(file.lines.len());
 	let end = unit.end_line.min(file.lines.len());
-
 	file.lines.get(start..end).unwrap_or_default()
 }

@@ -70,7 +70,6 @@ pub fn cognitive_complexity_of_lines(lines: &[LexedLine]) -> CognitiveComplexity
 		// The nesting level a construct sits at is the depth *before* this line opens anything, which
 		// is why the cost is computed first and the depth updated after.
 		let cost = line_cost(line, depth);
-
 		total += cost.total;
 		nesting_penalty += cost.nesting_penalty;
 
@@ -194,7 +193,6 @@ fn positions_of<'text>(
 	std::iter::from_fn(move || {
 		let found = text.get(search_from..)?.find(needle)?;
 		let absolute = search_from + found;
-
 		search_from = absolute + needle.len();
 
 		Some(absolute)
@@ -228,7 +226,6 @@ fn opens_nesting(line: &LexedLine) -> bool {
 	// A line that opens a block ends in a brace or a block keyword, which is how brace
 	// languages signal nestable structure without a keyword to match.
 	let trimmed = line.masked_code.trim_end();
-
 	trimmed.ends_with('{') || trimmed.ends_with("then") || trimmed.ends_with("do")
 }
 

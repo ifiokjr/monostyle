@@ -286,7 +286,6 @@ impl Cache {
 	pub fn stats(&self) -> (usize, usize) {
 		let hits = self.hits.lock().map_or(0, |hits| *hits);
 		let misses = self.misses.lock().map_or(0, |misses| *misses);
-
 		(hits, misses)
 	}
 
@@ -306,7 +305,6 @@ impl Cache {
 	/// Reads an entry from disk.
 	fn read_entry(&self, path: &Path) -> Option<CachedFile> {
 		let bytes = std::fs::read(self.entry_path(path)).ok()?;
-
 		decode_entry(&bytes)
 	}
 

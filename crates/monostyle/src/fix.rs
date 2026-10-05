@@ -222,7 +222,6 @@ fn whitespace_only(fixes: &[Fix]) -> bool {
 /// Whether every line feed in `source` is preceded by a carriage return.
 fn is_pure_crlf(source: &str) -> bool {
 	let bytes = source.as_bytes();
-
 	bytes
 		.iter()
 		.zip(bytes.iter().skip(1))

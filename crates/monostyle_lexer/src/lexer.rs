@@ -1427,7 +1427,6 @@ fn mark_doc_strings(lines: &mut [LexedLine]) {
 
 		// A declaration reopens the expectation: the next literal inside it is its docstring.
 		let starts_scope = line.masked_code.trim_end().ends_with(':');
-
 		expect_docstring = starts_scope;
 
 		if line.is_code() && !starts_scope {
@@ -1617,7 +1616,6 @@ fn literal_continues(body: &str, raw: bool) -> bool {
 /// and `r'\'` does not escape at all.
 fn literal_has_close(body: &str, rule: &StringRule, hashes: usize, raw: bool, end: &str) -> bool {
 	let escapes = rule.escapes && !raw;
-
 	hashes > 0 || find_literal_close(body, end, escapes, rule.extra_escapes).is_some()
 }
 
@@ -1791,7 +1789,6 @@ fn terminates_with_suffix(candidate: &str, delimiter: &str) -> bool {
 	};
 
 	let rest = rest.trim_start();
-
 	rest.is_empty() || rest.starts_with(';') || rest.starts_with(',')
 }
 
@@ -1936,7 +1933,6 @@ fn count_decision(masked: &str, joined: &str, keyword: &str) -> usize {
 			count_keyword_where(masked, keyword, |rest| {
 				let rest = rest.trim_start();
 				let rest = rest.strip_prefix("await").map_or(rest, str::trim_start);
-
 				rest.starts_with('(')
 					|| rest
 						.split_whitespace()

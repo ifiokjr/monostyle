@@ -8,7 +8,6 @@ use monostyle_rules::whitespace;
 /// Runs the return-spacing rule over a Dart snippet.
 fn returns_in(source: &str) -> Vec<monostyle_core::Finding> {
 	let lexed = lex(source, Language::Dart);
-
 	whitespace::blank_line_before_return(&lexed, &RulesConfig::default())
 }
 

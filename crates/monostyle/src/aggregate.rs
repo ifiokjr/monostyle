@@ -271,7 +271,6 @@ impl RuleImpact {
 #[must_use]
 pub fn rank_file_impact(files: &[FileScore]) -> Vec<FileScore> {
 	let mut ranked = files.to_vec();
-
 	ranked.sort_by(|left, right| {
 		right
 			.total_penalty

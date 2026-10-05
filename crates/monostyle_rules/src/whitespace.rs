@@ -268,7 +268,6 @@ const CONTINUATION_WORDS: &[&str] = &["as", "is", "in", "where", "and", "or"];
 /// sequential exit.
 fn is_arm_label_line(line: &LexedLine) -> bool {
 	let code = line.masked_code.trim();
-
 	code.starts_with("case ")
 		|| code.starts_with("default:")
 		|| code.starts_with("default =>")
@@ -425,7 +424,6 @@ impl OpenDecisions {
 		let depth_before = self.depth;
 		let opens = line.masked_code.matches('{').count();
 		let closes = line.masked_code.matches('}').count();
-
 		self.depth = depth_before.saturating_add(opens).saturating_sub(closes);
 
 		// A body whose braces balance on the opener's own line — `if ready { work(); }` — never
@@ -499,7 +497,6 @@ impl OpenDecisions {
 					.next_back()
 					.is_some_and(|character| "=!<>".contains(character));
 			let after_is_equal = after_braces[at + 1..].starts_with('=');
-
 			!before_is_operator && !after_is_equal
 		};
 
@@ -931,7 +928,6 @@ fn introduces_alternative(line: &LexedLine) -> bool {
 
 	// A C-family arm: `case 0:`, `default:`, optionally followed by a brace.
 	let head = trimmed.split('{').next().unwrap_or(trimmed);
-
 	has_keyword(line, ARM_KEYWORDS) && (trimmed.ends_with(':') || head.trim_end().ends_with(':'))
 }
 
@@ -1082,7 +1078,6 @@ impl Bodies {
 		let opens = line.masked_code.matches('{').count();
 		let closes = line.masked_code.matches('}').count();
 		let depth_before = self.depth;
-
 		self.depth = depth_before.saturating_add(opens).saturating_sub(closes);
 
 		// A body closes once the depth returns to the level it was declared at.
@@ -1229,7 +1224,6 @@ fn opens_statement_block(line: &LexedLine) -> bool {
 	}
 
 	let trimmed = line.masked_code.trim_end();
-
 	trimmed.ends_with("=>") || trimmed.ends_with("then") || trimmed.ends_with("do")
 }
 
@@ -1318,7 +1312,6 @@ fn has_assignment(prefix: &str) -> bool {
 	prefix.match_indices('=').any(|(index, _)| {
 		let before = prefix.get(..index).unwrap_or_default();
 		let after = prefix.get(index..).unwrap_or_default();
-
 		!(after.starts_with("=>")
 			|| after.starts_with("==")
 			|| before.ends_with(['!', '<', '>', '=']))
@@ -1456,7 +1449,6 @@ fn is_function_declaration(line: &LexedLine, style: BlockStyle) -> bool {
 	// from a call. Ruby and Lua do not require one — `def name` is the whole signature — so the
 	// keyword alone is the signal there.
 	let has_signature = line.masked_code.contains('(') || style == BlockStyle::EndKeyword;
-
 	has_keyword(line, FUNCTION_KEYWORDS) && has_signature
 }
 
@@ -1932,7 +1924,6 @@ fn is_alternative_arm(line: &LexedLine) -> bool {
 	const ARM_LABEL: &[&str] = &["case ", "default:", "default =>", "when ", "_ =>"];
 
 	let code = line.masked_code.trim_start();
-
 	ARM_LABEL.iter().any(|label| code.starts_with(label))
 		|| code.contains(" => ")
 		|| code.ends_with("=>")
@@ -2058,7 +2049,6 @@ fn inside_expression(
 	// The line opens more than it closes, so whatever follows is a continuation of it.
 	let opens = line.masked_code.matches('(').count() + line.masked_code.matches('[').count();
 	let closes = line.masked_code.matches(')').count() + line.masked_code.matches(']').count();
-
 	opens > closes
 }
 

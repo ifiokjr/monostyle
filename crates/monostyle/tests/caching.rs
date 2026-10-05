@@ -13,7 +13,6 @@ use monostyle_lexer::lex;
 fn source(contents: &str) -> (tempfile::TempDir, std::path::PathBuf) {
 	let directory = tempfile::tempdir().expect("a temporary directory");
 	let path = directory.path().join("sample.rs");
-
 	std::fs::write(&path, contents).expect("write");
 
 	(directory, path)
@@ -166,7 +165,6 @@ fn a_corrupt_entry_is_discarded_rather_than_reported() {
 fn discovery_finds_a_target_directory_upward() {
 	let directory = tempfile::tempdir().expect("a temporary directory");
 	let nested = directory.path().join("a/b/c");
-
 	std::fs::create_dir_all(&nested).expect("mkdir");
 	std::fs::create_dir_all(directory.path().join("target")).expect("mkdir");
 

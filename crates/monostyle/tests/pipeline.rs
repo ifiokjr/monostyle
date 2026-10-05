@@ -98,7 +98,6 @@ fn analyzing_with_an_explicit_language_does_not_consult_the_path() {
 #[test]
 fn collection_skips_unreadable_and_unrecognized_files() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
-
 	std::fs::write(temp.path().join("main.rs"), "fn a() {}\n").expect("write");
 	std::fs::write(temp.path().join("data.bin"), [0u8, 159, 146, 150]).expect("write");
 
@@ -111,7 +110,6 @@ fn collection_skips_unreadable_and_unrecognized_files() {
 #[test]
 fn collection_honours_the_ignore_patterns() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
-
 	std::fs::write(temp.path().join("main.rs"), "fn a() {}\n").expect("write");
 	std::fs::write(temp.path().join("skip.rs"), "fn b() {}\n").expect("write");
 
@@ -136,7 +134,6 @@ fn a_cached_run_produces_the_same_report_as_an_uncached_one() {
 	// that round trip would change a score between the first and second run of the same command.
 	let temp = tempfile::tempdir().expect("a temporary directory");
 	let source = "fn a() {\n    work();\n    if x {\n        work();\n    }\n}\n";
-
 	std::fs::write(temp.path().join("sample.rs"), source).expect("write");
 
 	// A `target` directory makes the cache discoverable.
@@ -231,7 +228,6 @@ fn a_cached_run_reports_unit_scores_too() {
 #[test]
 fn disabling_the_cache_skips_discovery() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
-
 	std::fs::write(temp.path().join("sample.rs"), "fn a() {}\n").expect("write");
 	std::fs::create_dir_all(temp.path().join("target")).expect("mkdir");
 
@@ -449,7 +445,6 @@ fn a_dart_workspace_is_detected() {
 #[test]
 fn a_malformed_cargo_manifest_is_skipped() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
-
 	std::fs::write(temp.path().join("Cargo.toml"), "this is not toml [[[").expect("write");
 
 	assert!(detect_packages(temp.path()).is_empty());
@@ -502,7 +497,6 @@ fn a_report_with_tokenizer_warnings_prints_them() {
 #[test]
 fn a_report_with_no_packages_omits_the_package_table() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
-
 	std::fs::write(temp.path().join("sample.rs"), "fn a() {}\n").expect("write");
 
 	let options = uncached();
@@ -577,7 +571,6 @@ fn a_unit_table_limits_its_rows() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
 
 	let functions = lines_of((0..20).map(|index| format!("fn f{index}() {{ work(); }}\n")));
-
 	std::fs::write(temp.path().join("sample.rs"), functions).expect("write");
 
 	let options = uncached();

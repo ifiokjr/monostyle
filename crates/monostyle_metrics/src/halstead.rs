@@ -183,7 +183,6 @@ pub fn maintainability_index(
 
 	let raw = 171.0 - 5.2 * volume.ln() - 0.23 * cyclomatic - 16.2 * lines.ln();
 	let value = (raw / 171.0 * 100.0).clamp(0.0, 100.0);
-
 	MaintainabilityIndex { value }
 }
 

@@ -465,7 +465,6 @@ impl AnalysisOptions {
 #[must_use]
 pub fn analyze_source(path: &Path, source: &str, options: &AnalysisOptions) -> Option<FileReport> {
 	let language = language_for_path(path)?;
-
 	Some(analyze_with_language(path, source, language, options))
 }
 
@@ -479,7 +478,6 @@ pub fn analyze_with_language(
 ) -> FileReport {
 	let lexed = lex(source, language);
 	let findings = findings_for(&lexed, path, options);
-
 	build_report(path, &lexed, findings, options)
 }
 
@@ -520,7 +518,6 @@ fn analyze_lines(
 	};
 
 	let findings = findings_for(&lexed, path, options);
-
 	build_report(path, &lexed, findings, options)
 }
 
@@ -651,7 +648,6 @@ fn unit_lines<'file>(
 ) -> &'file [monostyle_lexer::LexedLine] {
 	let start = unit.start_line.saturating_sub(1).min(file.lines.len());
 	let end = unit.end_line.min(file.lines.len());
-
 	file.lines.get(start..end).unwrap_or_default()
 }
 
@@ -900,7 +896,6 @@ pub fn collect_paths(
 	use ignore::WalkBuilder;
 
 	let mut builder = WalkBuilder::new(root);
-
 	builder.hidden(false);
 	builder.git_ignore(respect_ignore);
 	builder.git_global(respect_ignore);
@@ -912,7 +907,6 @@ pub fn collect_paths(
 	// descends into them, but the filter rejects each entry before it is read, which is enough to
 	// keep a repository with a large dependency cache fast without a second glob engine.
 	let walker = builder.build();
-
 	walker
 		.filter_map(Result::ok)
 		.filter(|entry| entry.file_type().is_some_and(|kind| kind.is_file()))
@@ -930,7 +924,6 @@ pub fn collect_paths(
 fn has_ignored_component(path: &Path) -> bool {
 	path.components().any(|component| {
 		let name = component.as_os_str().to_string_lossy();
-
 		monostyle_core::ignore::is_ignored_directory(&name)
 	})
 }

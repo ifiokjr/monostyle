@@ -11,7 +11,6 @@ use monostyle_metrics::find_units;
 /// Returns the names of the units detected in `source`.
 fn names(source: &str, language: Language) -> Vec<String> {
 	let lexed = lex(source, language);
-
 	find_units(&lexed)
 		.into_iter()
 		.map(|unit| unit.name)
@@ -21,7 +20,6 @@ fn names(source: &str, language: Language) -> Vec<String> {
 /// Returns the first unit detected in `source`.
 fn first_unit(source: &str, language: Language) -> monostyle_metrics::CodeUnit {
 	let lexed = lex(source, language);
-
 	find_units(&lexed)
 		.into_iter()
 		.next()
