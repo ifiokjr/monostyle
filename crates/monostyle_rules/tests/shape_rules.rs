@@ -365,6 +365,42 @@ fn tangled(x: i32) -> i32 {
 }
 
 #[test]
+fn a_jsdoc_block_documenting_a_complex_unit_is_accepted() {
+	// JSDoc's `/** */` is documentation the same way Rust's `///` is: the block
+	// comment carries the style through every line it spans, so a documented
+	// TypeScript function is not keyword-judged as a casual inline comment.
+	let source = r#"/**
+ * Why this exists: the upstream client fails transiently, and one retry
+ * policy here beats scattering error handling across every call site.
+ */
+function tangled(x: number): number {
+    if (x > 0) {
+        if (x > 1) {
+            if (x > 2) {
+                if (x > 3) {
+                    return x;
+                }
+            }
+        } else if (x < 0) {
+            if (x < -1) {
+                return -x;
+            }
+        }
+    }
+    return x;
+}
+"""#;
+
+	let lexed = lex(source, Language::TypeScript);
+	let findings = comments::comment_required_on_complex_units(&lexed, &RulesConfig::default());
+
+	assert!(
+		findings.is_empty(),
+		"a JSDoc-documented function has its documentation"
+	);
+}
+
+#[test]
 fn a_complex_unit_with_an_explanation_is_accepted() {
 	let source = "\
 /// Why this exists: the upstream client fails transiently, and one retry policy

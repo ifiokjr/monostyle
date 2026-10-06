@@ -281,6 +281,8 @@ struct BlockComment {
 	depth: usize,
 	/// The line it opened on.
 	opened_at: usize,
+	/// True when the block opens as documentation, such as `JSDoc`'s `/**`.
+	documentation: bool,
 }
 
 /// An open heredoc waiting for its terminator line.
@@ -685,6 +687,7 @@ impl Scanner {
 				end,
 				depth: 1,
 				opened_at: line.number,
+				documentation: self.profile.is_documentation_comment(&rest),
 			});
 
 			let length = open.chars().count();
@@ -754,11 +757,12 @@ impl Scanner {
 	}
 
 	/// Handles a character inside a string literal.
-	/// Handles a character inside a string literal.
 	///
 	/// The checks are ordered by specificity: a delimiter-like escape must beat the closer, or
 	/// Nix's `''$` closes the literal early; an escape must beat interpolation, or a `\$` opens
-	/// one; and interpolation must beat ordinary content.
+	/// one; and interpolation must beat ordinary content. Each check is a named helper that
+	/// consumes what it matched and reports how many characters it took, so this ladder reads
+	/// as the ordering rule itself.
 	fn step_literal(&mut self, characters: &[char], index: usize, line: &mut LineBuilder) -> usize {
 		let character = characters[index];
 		let Some(literal) = self.literals.last().cloned() else {
@@ -767,63 +771,70 @@ impl Scanner {
 
 		let rest = peek(characters, index);
 
-		if let Some(extra) = literal
-			.extra_escapes
-			.iter()
-			.find(|extra| rest.starts_with(**extra))
-		{
-			let length = extra.chars().count();
-			consume_masked(characters, index, length, line);
+		if let Some(consumed) = extra_escape_length(&literal, &rest) {
+			consume_masked(characters, index, consumed, line);
 
-			return index + length;
+			return index + consumed;
 		}
 
 		if rest.starts_with(&literal.end) {
-			let length = literal.end.chars().count();
-			consume_masked(characters, index, length, line);
-			self.literals.pop();
-			self.close_region(ProtectedKind::Literal, self.current_byte + length);
-
-			return index + length;
+			return self.close_literal(characters, index, line, &literal);
 		}
 
 		if literal.escapes && character == '\\' {
-			// A backslash immediately before a newline is a line continuation, not an escape of
-			// the newline. Consuming both would swallow the line break and merge the continuation
-			// into the declaration line, which is how an embedded Python snippet ended up being
-			// measured as indented Rust code.
-			if characters.get(index + 1) == Some(&'\n') {
-				line.push_masked(character);
-
-				return index + 1;
-			}
-
-			consume_masked(characters, index, 2, line);
-
-			return index + 2;
+			return index + escape_length(characters, index, line, character);
 		}
 
-		if let Some(style) = literal.interpolation {
-			// Interpolation only opens when it also closes ahead of here. Requiring a closer is
-			// what stops a lone brace in ordinary prose from swallowing the rest of the file.
-			if let Some(length) = interpolation_opener(&rest, style)
-				.filter(|length| interpolation_has_close(characters, index + length, style))
-			{
-				consume_masked(characters, index, length, line);
-				self.interpolation = Some(OpenInterpolation {
-					depth: 1,
-					style,
-					literal_depth: self.literals.len(),
-				});
+		if let Some((consumed, style)) =
+			Self::interpolation_open_length(&literal, &rest, characters, index)
+		{
+			consume_masked(characters, index, consumed, line);
+			self.interpolation = Some(OpenInterpolation {
+				depth: 1,
+				style,
+				literal_depth: self.literals.len(),
+			});
 
-				return index + length;
-			}
+			return index + consumed;
 		}
 
 		line.push_literal(character);
 		line.literal_only = true;
 
 		index + 1
+	}
+
+	/// Consumes the closer of the innermost literal and closes its protected region.
+	fn close_literal(
+		&mut self,
+		characters: &[char],
+		index: usize,
+		line: &mut LineBuilder,
+		literal: &Literal,
+	) -> usize {
+		let length = literal.end.chars().count();
+		consume_masked(characters, index, length, line);
+		self.literals.pop();
+		self.close_region(ProtectedKind::Literal, self.current_byte + length);
+
+		index + length
+	}
+
+	/// How many characters an extra escape at this position consumes, if one starts here.
+	/// How many characters an interpolation opener at this position consumes, and its style.
+	fn interpolation_open_length(
+		literal: &Literal,
+		rest: &str,
+		characters: &[char],
+		index: usize,
+	) -> Option<(usize, InterpolationStyle)> {
+		// Interpolation only opens when it also closes ahead of here. Requiring a closer is
+		// what stops a lone brace in ordinary prose from swallowing the rest of the file.
+		literal.interpolation.and_then(|style| {
+			interpolation_opener(rest, style)
+				.filter(|length| interpolation_has_close(characters, index + length, style))
+				.map(|length| (length, style))
+		})
 	}
 
 	/// Handles a character inside an interpolation.
@@ -929,6 +940,7 @@ impl Scanner {
 			return index + length;
 		}
 
+		line.is_doc_comment = comment.documentation;
 		line.push_comment(characters[index]);
 		line.literal_only = true;
 
@@ -1736,6 +1748,42 @@ fn consume_masked(characters: &[char], index: usize, length: usize, line: &mut L
 			line.push_masked(*character);
 		}
 	}
+}
+
+/// How many characters an extra escape starting at `rest` consumes, if one does.
+///
+/// Extra escapes are the delimiter-like sequences a language adds inside literals, such as
+/// Nix's `''$` or SQL's doubled quotes, and they outrank the closer: checking the closer
+/// first would let `''$` close the literal early.
+fn extra_escape_length(literal: &Literal, rest: &str) -> Option<usize> {
+	literal
+		.extra_escapes
+		.iter()
+		.find(|extra| rest.starts_with(**extra))
+		.map(|extra| extra.chars().count())
+}
+
+/// How many characters a backslash escape at `index` consumes.
+///
+/// A backslash immediately before a newline is a line continuation, not an escape of the
+/// newline. Consuming both would swallow the line break and merge the continuation into the
+/// declaration line, which is how an embedded Python snippet ended up being measured as
+/// indented Rust code.
+fn escape_length(
+	characters: &[char],
+	index: usize,
+	line: &mut LineBuilder,
+	character: char,
+) -> usize {
+	if characters.get(index + 1) == Some(&'\n') {
+		line.push_masked(character);
+
+		return 1;
+	}
+
+	consume_masked(characters, index, 2, line);
+
+	2
 }
 
 /// Records `length` characters starting at `index` as comment text.
