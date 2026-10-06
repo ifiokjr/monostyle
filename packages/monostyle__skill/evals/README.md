@@ -6,6 +6,8 @@ These evals pin the skill's **paragraph-grouping** guidance — blank lines sepa
 - `sub-concepts-in-a-long-run` — a long run with three concepts inside it (timeouts, retries, telemetry) must break at those boundaries, not at the statement limit.
 - `build-then-populate` — constructing an object and its immediate setup calls are one paragraph.
 - `arrange-act-assert` — a test's phases are the paragraphs; a fixture's preparation lines stay together.
+- `long-run-no-boundary` — a twenty-statement run whose seams hide at first glance: the break lands at the concept seams (which are finer than the statement limit suggests), never inside one.
+- `reader-load-nesting` — a decision encoded as a five-level if/else tree where no blank placement helps: the answer is a shape change (early returns), so this case allows statements to move and grades the shape.
 - `skill-examples` — `SKILL.md`'s own Before/After pair keeps showing the mid-concept break and its fix, and the After example is clean under the real binary when it stands alone.
 
 ## Running

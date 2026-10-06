@@ -122,6 +122,31 @@ CASE_CHECKS: dict[str, dict] = {
 			r'write_settings\(r#"\n\t\t\[settings\]\n\t\turl = "https://example\.invalid"\n\t"#\);\n\n\tlet ctx',
 		],
 	},
+	"long-run-no-boundary": {
+		"ext": "ts",
+		"rule": "readability/group-separation",
+		"must_contain": [
+			r'"\$";\n\n\tconst items',
+			r"\}\n\n\tlet subtotal = 0;",
+			r"const total = taxable \+ vat;\n\n\tconst width = 32;",
+			r"const rows: string\[\] = \[\];\n\n\tfor",
+		],
+		"must_not_contain": [
+			r"const taxable = subtotal - discount;\n\n\tconst vat",
+		],
+	},
+	"reader-load-nesting": {
+		"ext": "ts",
+		"rule": "readability/deep-nesting",
+		"layout_only": False,
+		"must_contain": [
+			r"if \(role === \"admin\" && actor === owner\)",
+			r"return \"none\";\n\}",
+		],
+		"must_not_contain": [
+			r"\}\n\t\t\t\tif \(",
+		],
+	},
 }
 
 
@@ -131,7 +156,7 @@ def grade_case(name: str, answer: Path, binary: str) -> list[str]:
 	if name in CASE_CHECKS:
 		spec = CASE_CHECKS[name]
 		input_path = CASES / name / f"input.{spec['ext']}"
-		if stripped(input_path.read_text()) != stripped(answer.read_text()):
+		if spec.get("layout_only", True) and stripped(input_path.read_text()) != stripped(answer.read_text()):
 			problems.append("statements changed: only blank-line placement may differ")
 		problems += check(answer, spec["must_contain"], spec["must_not_contain"])
 		problems += [

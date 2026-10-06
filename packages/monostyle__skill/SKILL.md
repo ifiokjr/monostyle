@@ -118,7 +118,7 @@ The same reading applies everywhere:
 - **Phases.** Fetch, then validate, then mutate, then return. A phase change is a boundary; a step inside a phase is not.
 - **Two statements that mention the same name are not automatically one concept.** A binding that is finished with, followed by a new idea that reads it, is a boundary; a binding followed by the lines that complete its own setup is not.
 
-The mechanical rule counts statements; paragraphs are what the count is a proxy for. Code that is paragraphed well never trips the rule, and code that trips it always has a boundary hiding somewhere near the finding.
+The mechanical rule counts statements; paragraphs are what the count is a proxy for. Code that is paragraphed well never trips the rule, and code that trips it always has a boundary hiding somewhere near the finding. The converse does not hold: code can score a clean 100 and still be paragraphed wrong, because no rule measures where a concept starts. When the tool reports nothing, re-read this section against the diff before calling the work done.
 
 ## Two honest caveats
 
