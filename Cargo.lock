@@ -104,9 +104,9 @@ checksum = "a31eee39dddec8330830986fcd7625edb5a24ec90ea038215273bbc3adb08ac6"
 
 [[package]]
 name = "either"
-version = "1.18.0"
+version = "1.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "252afb9ae5eaa683babdc6a068b3f5726eb19e05070c731f9b2a23a7c3e8ed34"
+checksum = "0e9c71c2167ca323c882b99918929403426e2373ea17242ff5653e0d5e1058be"
 
 [[package]]
 name = "errno"
@@ -216,7 +216,7 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
 name = "monostyle"
-version = "0.3.25"
+version = "0.3.26"
 dependencies = [
  "clap",
  "ignore",
@@ -236,7 +236,7 @@ dependencies = [
 
 [[package]]
 name = "monostyle_core"
-version = "0.3.25"
+version = "0.3.26"
 dependencies = [
  "insta",
  "serde",
@@ -245,7 +245,7 @@ dependencies = [
 
 [[package]]
 name = "monostyle_languages"
-version = "0.3.25"
+version = "0.3.26"
 dependencies = [
  "monostyle_core",
  "serde",
@@ -253,7 +253,7 @@ dependencies = [
 
 [[package]]
 name = "monostyle_lexer"
-version = "0.3.25"
+version = "0.3.26"
 dependencies = [
  "insta",
  "monostyle_core",
@@ -263,7 +263,7 @@ dependencies = [
 
 [[package]]
 name = "monostyle_markdown"
-version = "0.3.25"
+version = "0.3.26"
 dependencies = [
  "insta",
  "monostyle_core",
@@ -272,7 +272,7 @@ dependencies = [
 
 [[package]]
 name = "monostyle_metrics"
-version = "0.3.25"
+version = "0.3.26"
 dependencies = [
  "insta",
  "monostyle_core",
@@ -283,7 +283,7 @@ dependencies = [
 
 [[package]]
 name = "monostyle_rules"
-version = "0.3.25"
+version = "0.3.26"
 dependencies = [
  "insta",
  "monostyle_core",

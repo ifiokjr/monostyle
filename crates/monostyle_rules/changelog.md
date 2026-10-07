@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)
+
+### Fixes
+
+- **An else-if is one decision, not three.** The lexer recorded "if", "else if", and "else" as three nesting keywords for a single `} else if x {` line, so cognitive complexity charged one construct three times, once at full nesting depth. A function whose honest score is 12 measured 17. The else-if count is now subtracted from the bare "if" and "else" counts, which charged every else-if-bearing codebase the tool has scored. _Owner:_ Ifiok Jr. · _Introduced in:_ [c732f6e](https://github.com/ifiokjr/monostyle/commit/c732f6e0642bd6c55803f998a76a38378c2e8d68)
+- **JSDoc blocks are documentation, not prose.** A `/** */` block comment is documentation the same way Rust's `///` is, but only line comments carried the style, so every line of a JSDoc block was keyword-judged as a casual inline comment. The style now travels with the block. `step_literal` also reads as the ordering rule it documents: each check is a named helper that consumes what it matched, which took its cognitive complexity from 21 to under the limit. _Owner:_ Ifiok Jr. · _Introduced in:_ [1115b96](https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231)
+
 ## [0.3.25](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.25) (2026-10-05)
 
 ### Changed
