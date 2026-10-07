@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)
+
+### Features
+
+- **Two more cases for the evals.** A twenty-statement run whose seams hide at first glance joins the suite, and a five-level if/else tree where no blank placement helps: the second allows the shape change that actually reads better. The skill also states the converse the runs surfaced: a clean score does not mean the paragraphs are right, because no rule measures where a concept starts. _Owner:_ Ifiok Jr. · _Introduced in:_ [1115b96](https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231)
+
 ## [0.3.25](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.25) (2026-10-05)
 
 ### Features

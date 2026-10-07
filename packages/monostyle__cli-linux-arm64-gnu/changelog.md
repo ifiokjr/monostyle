@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)
+
+### Changed
+
+- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-gnu` was updated to 0.3.26 as part of group `release`.**
+
 ## [0.3.25](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.25) (2026-10-05)
 
 ### Changed

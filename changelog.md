@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)
+
+Grouped release for `release`.
+
+### Features
+
+- **An else-if is one decision, not three.** The lexer recorded "if", "else if", and "else" as three nesting keywords for a single `} else if x {` line, so cognitive complexity charged one construct three times, once at full nesting depth. A function whose honest score is 12 measured 17. The else-if count is now subtracted from the bare "if" and "else" counts, which charged every else-if-bearing codebase the tool has scored. _Packages:_ 🟠 _monostyle_lexer_, 🟢 _monostyle_metrics_, 🟢 _monostyle_rules_ _Owner:_ Ifiok Jr. · _Introduced in:_ [c732f6e](https://github.com/ifiokjr/monostyle/commit/c732f6e0642bd6c55803f998a76a38378c2e8d68)
+- **Two more cases for the evals.** A twenty-statement run whose seams hide at first glance joins the suite, and a five-level if/else tree where no blank placement helps: the second allows the shape change that actually reads better. The skill also states the converse the runs surfaced: a clean score does not mean the paragraphs are right, because no rule measures where a concept starts. _Packages:_ 🟠 _@monostyle-rs/skill_ _Owner:_ Ifiok Jr. · _Introduced in:_ [1115b96](https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231)
+
+### Fixes
+
+- **JSDoc blocks are documentation, not prose.** A `/** */` block comment is documentation the same way Rust's `///` is, but only line comments carried the style, so every line of a JSDoc block was keyword-judged as a casual inline comment. The style now travels with the block. `step_literal` also reads as the ordering rule it documents: each check is a named helper that consumes what it matched, which took its cognitive complexity from 21 to under the limit. _Packages:_ 🟢 _monostyle_lexer_, 🟢 _monostyle_rules_ _Owner:_ Ifiok Jr. · _Introduced in:_ [1115b96](https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231)
+
 ## [0.3.25](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.25) (2026-10-05)
 
 Grouped release for `release`.

@@ -1,0 +1,1083 @@
+{
+	"schema_version": "0.9",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-10-07T06:55:44Z",
+	"command": "release",
+	"version": "0.3.26",
+	"versions": {
+		"release": "0.3.26"
+	},
+	"release_targets": [
+		{
+			"id": "release",
+			"kind": "group",
+			"version": "0.3.26",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.3.26",
+			"rendered_title": "v0.3.26 (2026-10-07)",
+			"rendered_changelog_title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+			"members": [
+				"monostyle",
+				"monostyle_core",
+				"monostyle_languages",
+				"monostyle_lexer",
+				"monostyle_markdown",
+				"monostyle_metrics",
+				"monostyle_rules",
+				"@monostyle-rs/cli",
+				"@monostyle-rs/cli-darwin-arm64",
+				"@monostyle-rs/cli-darwin-x64",
+				"@monostyle-rs/cli-linux-arm64-gnu",
+				"@monostyle-rs/cli-linux-arm64-musl",
+				"@monostyle-rs/cli-linux-x64-gnu",
+				"@monostyle-rs/cli-linux-x64-musl",
+				"@monostyle-rs/cli-win32-arm64-msvc",
+				"@monostyle-rs/cli-win32-x64-msvc",
+				"@monostyle-rs/skill"
+			]
+		}
+	],
+	"released_packages": [
+		"@monostyle-rs/cli",
+		"@monostyle-rs/cli-darwin-arm64",
+		"@monostyle-rs/cli-darwin-x64",
+		"@monostyle-rs/cli-linux-arm64-gnu",
+		"@monostyle-rs/cli-linux-arm64-musl",
+		"@monostyle-rs/cli-linux-x64-gnu",
+		"@monostyle-rs/cli-linux-x64-musl",
+		"@monostyle-rs/cli-win32-arm64-msvc",
+		"@monostyle-rs/cli-win32-x64-msvc",
+		"@monostyle-rs/skill",
+		"monostyle",
+		"monostyle_core",
+		"monostyle_languages",
+		"monostyle_lexer",
+		"monostyle_markdown",
+		"monostyle_metrics",
+		"monostyle_rules"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monostyle/Cargo.toml",
+		"crates/monostyle/changelog.md",
+		"crates/monostyle_core/Cargo.toml",
+		"crates/monostyle_core/changelog.md",
+		"crates/monostyle_languages/Cargo.toml",
+		"crates/monostyle_languages/changelog.md",
+		"crates/monostyle_lexer/Cargo.toml",
+		"crates/monostyle_lexer/changelog.md",
+		"crates/monostyle_markdown/Cargo.toml",
+		"crates/monostyle_markdown/changelog.md",
+		"crates/monostyle_metrics/Cargo.toml",
+		"crates/monostyle_metrics/changelog.md",
+		"crates/monostyle_rules/Cargo.toml",
+		"crates/monostyle_rules/changelog.md",
+		"packages/monostyle__cli/changelog.md",
+		"packages/monostyle__cli/package.json",
+		"packages/monostyle__cli-darwin-arm64/changelog.md",
+		"packages/monostyle__cli-darwin-arm64/package.json",
+		"packages/monostyle__cli-darwin-x64/changelog.md",
+		"packages/monostyle__cli-darwin-x64/package.json",
+		"packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-arm64-gnu/package.json",
+		"packages/monostyle__cli-linux-arm64-musl/changelog.md",
+		"packages/monostyle__cli-linux-arm64-musl/package.json",
+		"packages/monostyle__cli-linux-x64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-x64-gnu/package.json",
+		"packages/monostyle__cli-linux-x64-musl/changelog.md",
+		"packages/monostyle__cli-linux-x64-musl/package.json",
+		"packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-arm64-msvc/package.json",
+		"packages/monostyle__cli-win32-x64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-x64-msvc/package.json",
+		"packages/monostyle__skill/changelog.md",
+		"packages/monostyle__skill/package.json"
+	],
+	"package_publications": [
+		{
+			"package": "@monostyle-rs/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_languages",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_lexer",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_markdown",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_metrics",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_rules",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.26",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monostyle/changelog.md",
+		"crates/monostyle_core/changelog.md",
+		"crates/monostyle_languages/changelog.md",
+		"crates/monostyle_lexer/changelog.md",
+		"crates/monostyle_markdown/changelog.md",
+		"crates/monostyle_metrics/changelog.md",
+		"crates/monostyle_rules/changelog.md",
+		"packages/monostyle__cli/changelog.md",
+		"packages/monostyle__cli-darwin-arm64/changelog.md",
+		"packages/monostyle__cli-darwin-x64/changelog.md",
+		"packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-arm64-musl/changelog.md",
+		"packages/monostyle__cli-linux-x64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-x64-musl/changelog.md",
+		"packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-x64-msvc/changelog.md",
+		"packages/monostyle__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/else-if-counted-once.md",
+		".changeset/evals-for-hidden-seams.md",
+		".changeset/jsdoc-is-documentation.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/else-if-counted-once.md",
+			"summary": "An else-if is one decision, not three",
+			"details": "The lexer recorded \"if\", \"else if\", and \"else\" as three nesting keywords for a single `} else if x {` line, so cognitive complexity charged one construct three times, once at full nesting depth. A function whose honest score is 12 measured 17. The else-if count is now subtracted from the bare \"if\" and \"else\" counts, which charged every else-if-bearing codebase the tool has scored.",
+			"targets": [
+				{
+					"id": "monostyle_lexer",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monostyle_metrics",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monostyle_rules",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": null,
+						"display_name": "Ifiok Jr.",
+						"url": null,
+						"source": "commit_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c732f6e0642bd6c55803f998a76a38378c2e8d68",
+						"short_sha": "c732f6e",
+						"url": "https://github.com/ifiokjr/monostyle/commit/c732f6e0642bd6c55803f998a76a38378c2e8d68",
+						"authored_at": "2026-10-07T07:26:50+01:00",
+						"committed_at": "2026-10-07T07:26:50+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "ifiokotung@gmail.com"
+					},
+					"review_request": null
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": null,
+						"display_name": "Ifiok Jr.",
+						"url": null,
+						"source": "commit_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c732f6e0642bd6c55803f998a76a38378c2e8d68",
+						"short_sha": "c732f6e",
+						"url": "https://github.com/ifiokjr/monostyle/commit/c732f6e0642bd6c55803f998a76a38378c2e8d68",
+						"authored_at": "2026-10-07T07:26:50+01:00",
+						"committed_at": "2026-10-07T07:26:50+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "ifiokotung@gmail.com"
+					},
+					"review_request": null
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/evals-for-hidden-seams.md",
+			"summary": "Two more cases for the evals",
+			"details": "A twenty-statement run whose seams hide at first glance joins the suite, and a five-level if/else tree where no blank placement helps: the second allows the shape change that actually reads better. The skill also states the converse the runs surfaced: a clean score does not mean the paragraphs are right, because no rule measures where a concept starts.",
+			"targets": [
+				{
+					"id": "@monostyle-rs/skill",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": null,
+						"display_name": "Ifiok Jr.",
+						"url": null,
+						"source": "commit_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "1115b9682395cdef1437bc871b51162ae6db0231",
+						"short_sha": "1115b96",
+						"url": "https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231",
+						"authored_at": "2026-10-06T19:17:39+01:00",
+						"committed_at": "2026-10-06T19:18:29+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "ifiokotung@gmail.com"
+					},
+					"review_request": null
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": null,
+						"display_name": "Ifiok Jr.",
+						"url": null,
+						"source": "commit_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "1115b9682395cdef1437bc871b51162ae6db0231",
+						"short_sha": "1115b96",
+						"url": "https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231",
+						"authored_at": "2026-10-06T19:17:39+01:00",
+						"committed_at": "2026-10-06T19:18:29+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "ifiokotung@gmail.com"
+					},
+					"review_request": null
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/jsdoc-is-documentation.md",
+			"summary": "JSDoc blocks are documentation, not prose",
+			"details": "A `/** */` block comment is documentation the same way Rust's `///` is, but only line comments carried the style, so every line of a JSDoc block was keyword-judged as a casual inline comment. The style now travels with the block. `step_literal` also reads as the ordering rule it documents: each check is a named helper that consumes what it matched, which took its cognitive complexity from 21 to under the limit.",
+			"targets": [
+				{
+					"id": "monostyle_lexer",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monostyle_rules",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": null,
+						"display_name": "Ifiok Jr.",
+						"url": null,
+						"source": "commit_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "1115b9682395cdef1437bc871b51162ae6db0231",
+						"short_sha": "1115b96",
+						"url": "https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231",
+						"authored_at": "2026-10-06T19:17:39+01:00",
+						"committed_at": "2026-10-06T19:18:29+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "ifiokotung@gmail.com"
+					},
+					"review_request": null
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": null,
+						"display_name": "Ifiok Jr.",
+						"url": null,
+						"source": "commit_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "1115b9682395cdef1437bc871b51162ae6db0231",
+						"short_sha": "1115b96",
+						"url": "https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231",
+						"authored_at": "2026-10-06T19:17:39+01:00",
+						"committed_at": "2026-10-06T19:18:29+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "ifiokotung@gmail.com"
+					},
+					"review_request": null
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "release",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [
+					"Grouped release for `release`."
+				],
+				"sections": [
+					{
+						"title": "Features",
+						"collapsed": false,
+						"entries": [
+							"- **An else-if is one decision, not three.** The lexer recorded \"if\", \"else if\", and \"else\" as three nesting keywords for a single `} else if x {` line, so cognitive complexity charged one construct three times, once at full nesting depth. A function whose honest score is 12 measured 17. The else-if count is now subtracted from the bare \"if\" and \"else\" counts, which charged every else-if-bearing codebase the tool has scored.\n  _Packages:_ 🟠 _monostyle_lexer_, 🟢 _monostyle_metrics_, 🟢 _monostyle_rules_\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [c732f6e](https://github.com/ifiokjr/monostyle/commit/c732f6e0642bd6c55803f998a76a38378c2e8d68)",
+							"- **Two more cases for the evals.** A twenty-statement run whose seams hide at first glance joins the suite, and a five-level if/else tree where no blank placement helps: the second allows the shape change that actually reads better. The skill also states the converse the runs surfaced: a clean score does not mean the paragraphs are right, because no rule measures where a concept starts.\n  _Packages:_ 🟠 _@monostyle-rs/skill_\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [1115b96](https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231)"
+						]
+					},
+					{
+						"title": "Fixes",
+						"collapsed": false,
+						"entries": [
+							"- **JSDoc blocks are documentation, not prose.** A `/** */` block comment is documentation the same way Rust's `///` is, but only line comments carried the style, so every line of a JSDoc block was keyword-judged as a casual inline comment. The style now travels with the block. `step_literal` also reads as the ordering rule it documents: each check is a named helper that consumes what it matched, which took its cognitive complexity from 21 to under the limit.\n  _Packages:_ 🟢 _monostyle_lexer_, 🟢 _monostyle_rules_\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [1115b96](https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\nGrouped release for `release`.\n\n### Features\n\n- **An else-if is one decision, not three.** The lexer recorded \"if\", \"else if\", and \"else\" as three nesting keywords for a single `} else if x {` line, so cognitive complexity charged one construct three times, once at full nesting depth. A function whose honest score is 12 measured 17. The else-if count is now subtracted from the bare \"if\" and \"else\" counts, which charged every else-if-bearing codebase the tool has scored.\n  _Packages:_ 🟠 _monostyle_lexer_, 🟢 _monostyle_metrics_, 🟢 _monostyle_rules_\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [c732f6e](https://github.com/ifiokjr/monostyle/commit/c732f6e0642bd6c55803f998a76a38378c2e8d68)\n- **Two more cases for the evals.** A twenty-statement run whose seams hide at first glance joins the suite, and a five-level if/else tree where no blank placement helps: the second allows the shape change that actually reads better. The skill also states the converse the runs surfaced: a clean score does not mean the paragraphs are right, because no rule measures where a concept starts.\n  _Packages:_ 🟠 _@monostyle-rs/skill_\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [1115b96](https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231)\n\n### Fixes\n\n- **JSDoc blocks are documentation, not prose.** A `/** */` block comment is documentation the same way Rust's `///` is, but only line comments carried the style, so every line of a JSDoc block was keyword-judged as a casual inline comment. The style now travels with the block. `step_literal` also reads as the ordering rule it documents: each check is a named helper that consumes what it matched, which took its cognitive complexity from 21 to under the limit.\n  _Packages:_ 🟢 _monostyle_lexer_, 🟢 _monostyle_rules_\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [1115b96](https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231)"
+		},
+		{
+			"owner_id": "monostyle",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle` was updated to 0.3.26 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle` was updated to 0.3.26 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_core` was updated to 0.3.26 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_core` was updated to 0.3.26 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_languages",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_languages/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_languages` was updated to 0.3.26 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_languages` was updated to 0.3.26 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_lexer",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_lexer/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Features",
+						"collapsed": false,
+						"entries": [
+							"- **An else-if is one decision, not three.** The lexer recorded \"if\", \"else if\", and \"else\" as three nesting keywords for a single `} else if x {` line, so cognitive complexity charged one construct three times, once at full nesting depth. A function whose honest score is 12 measured 17. The else-if count is now subtracted from the bare \"if\" and \"else\" counts, which charged every else-if-bearing codebase the tool has scored.\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [c732f6e](https://github.com/ifiokjr/monostyle/commit/c732f6e0642bd6c55803f998a76a38378c2e8d68)"
+						]
+					},
+					{
+						"title": "Fixes",
+						"collapsed": false,
+						"entries": [
+							"- **JSDoc blocks are documentation, not prose.** A `/** */` block comment is documentation the same way Rust's `///` is, but only line comments carried the style, so every line of a JSDoc block was keyword-judged as a casual inline comment. The style now travels with the block. `step_literal` also reads as the ordering rule it documents: each check is a named helper that consumes what it matched, which took its cognitive complexity from 21 to under the limit.\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [1115b96](https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Features\n\n- **An else-if is one decision, not three.** The lexer recorded \"if\", \"else if\", and \"else\" as three nesting keywords for a single `} else if x {` line, so cognitive complexity charged one construct three times, once at full nesting depth. A function whose honest score is 12 measured 17. The else-if count is now subtracted from the bare \"if\" and \"else\" counts, which charged every else-if-bearing codebase the tool has scored.\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [c732f6e](https://github.com/ifiokjr/monostyle/commit/c732f6e0642bd6c55803f998a76a38378c2e8d68)\n\n### Fixes\n\n- **JSDoc blocks are documentation, not prose.** A `/** */` block comment is documentation the same way Rust's `///` is, but only line comments carried the style, so every line of a JSDoc block was keyword-judged as a casual inline comment. The style now travels with the block. `step_literal` also reads as the ordering rule it documents: each check is a named helper that consumes what it matched, which took its cognitive complexity from 21 to under the limit.\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [1115b96](https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231)"
+		},
+		{
+			"owner_id": "monostyle_markdown",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_markdown/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_markdown` was updated to 0.3.26 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_markdown` was updated to 0.3.26 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_metrics",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_metrics/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Fixes",
+						"collapsed": false,
+						"entries": [
+							"- **An else-if is one decision, not three.** The lexer recorded \"if\", \"else if\", and \"else\" as three nesting keywords for a single `} else if x {` line, so cognitive complexity charged one construct three times, once at full nesting depth. A function whose honest score is 12 measured 17. The else-if count is now subtracted from the bare \"if\" and \"else\" counts, which charged every else-if-bearing codebase the tool has scored.\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [c732f6e](https://github.com/ifiokjr/monostyle/commit/c732f6e0642bd6c55803f998a76a38378c2e8d68)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Fixes\n\n- **An else-if is one decision, not three.** The lexer recorded \"if\", \"else if\", and \"else\" as three nesting keywords for a single `} else if x {` line, so cognitive complexity charged one construct three times, once at full nesting depth. A function whose honest score is 12 measured 17. The else-if count is now subtracted from the bare \"if\" and \"else\" counts, which charged every else-if-bearing codebase the tool has scored.\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [c732f6e](https://github.com/ifiokjr/monostyle/commit/c732f6e0642bd6c55803f998a76a38378c2e8d68)"
+		},
+		{
+			"owner_id": "monostyle_rules",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_rules/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Fixes",
+						"collapsed": false,
+						"entries": [
+							"- **An else-if is one decision, not three.** The lexer recorded \"if\", \"else if\", and \"else\" as three nesting keywords for a single `} else if x {` line, so cognitive complexity charged one construct three times, once at full nesting depth. A function whose honest score is 12 measured 17. The else-if count is now subtracted from the bare \"if\" and \"else\" counts, which charged every else-if-bearing codebase the tool has scored.\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [c732f6e](https://github.com/ifiokjr/monostyle/commit/c732f6e0642bd6c55803f998a76a38378c2e8d68)",
+							"- **JSDoc blocks are documentation, not prose.** A `/** */` block comment is documentation the same way Rust's `///` is, but only line comments carried the style, so every line of a JSDoc block was keyword-judged as a casual inline comment. The style now travels with the block. `step_literal` also reads as the ordering rule it documents: each check is a named helper that consumes what it matched, which took its cognitive complexity from 21 to under the limit.\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [1115b96](https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Fixes\n\n- **An else-if is one decision, not three.** The lexer recorded \"if\", \"else if\", and \"else\" as three nesting keywords for a single `} else if x {` line, so cognitive complexity charged one construct three times, once at full nesting depth. A function whose honest score is 12 measured 17. The else-if count is now subtracted from the bare \"if\" and \"else\" counts, which charged every else-if-bearing codebase the tool has scored.\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [c732f6e](https://github.com/ifiokjr/monostyle/commit/c732f6e0642bd6c55803f998a76a38378c2e8d68)\n- **JSDoc blocks are documentation, not prose.** A `/** */` block comment is documentation the same way Rust's `///` is, but only line comments carried the style, so every line of a JSDoc block was keyword-judged as a casual inline comment. The style now travels with the block. `step_literal` also reads as the ordering rule it documents: each check is a named helper that consumes what it matched, which took its cognitive complexity from 21 to under the limit.\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [1115b96](https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231)"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli` was updated to 0.3.26 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli` was updated to 0.3.26 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-arm64` was updated to 0.3.26 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-arm64` was updated to 0.3.26 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-x64` was updated to 0.3.26 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-x64` was updated to 0.3.26 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-gnu` was updated to 0.3.26 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-gnu` was updated to 0.3.26 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-musl` was updated to 0.3.26 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-musl` was updated to 0.3.26 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-gnu` was updated to 0.3.26 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-gnu` was updated to 0.3.26 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-musl` was updated to 0.3.26 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-musl` was updated to 0.3.26 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-arm64-msvc` was updated to 0.3.26 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-arm64-msvc` was updated to 0.3.26 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-x64-msvc` was updated to 0.3.26 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-x64-msvc` was updated to 0.3.26 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Features",
+						"collapsed": false,
+						"entries": [
+							"- **Two more cases for the evals.** A twenty-statement run whose seams hide at first glance joins the suite, and a five-level if/else tree where no blank placement helps: the second allows the shape change that actually reads better. The skill also states the converse the runs surfaced: a clean score does not mean the paragraphs are right, because no rule measures where a concept starts.\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [1115b96](https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231)"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)\n\n### Features\n\n- **Two more cases for the evals.** A twenty-statement run whose seams hide at first glance joins the suite, and a five-level if/else tree where no blank placement helps: the second allows the shape change that actually reads better. The skill also states the converse the runs surfaced: a clean score does not mean the paragraphs are right, because no rule measures where a concept starts.\n  _Owner:_ Ifiok Jr. · _Introduced in:_ [1115b96](https://github.com/ifiokjr/monostyle/commit/1115b9682395cdef1437bc871b51162ae6db0231)"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "ifiokjr",
+		"repo": "monostyle",
+		"host": null
+	}
+}
