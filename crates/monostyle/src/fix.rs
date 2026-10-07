@@ -62,6 +62,23 @@ pub fn apply_fixes(source: &str, fixes: &[Fix]) -> (String, usize) {
 	let mut ordered: Vec<&Fix> = fixes.iter().filter(|fix| !fix.is_empty()).collect();
 	ordered.sort_by_key(|fix| (fix.span.start_byte, fix.span.end_byte));
 
+	let (accepted, conflicts) = resolve_conflicts(source, ordered);
+
+	// Applying back to front is what keeps the offsets valid: each edit is further from the end than
+	// the next one applied, so no earlier offset has moved yet.
+	let mut result = source.to_string();
+
+	for fix in accepted.iter().rev() {
+		result.replace_range(fix.span.start_byte..fix.span.end_byte, &fix.replacement);
+	}
+
+	(result, conflicts)
+}
+
+/// Picks the fixes that may be applied together, reporting how many were dropped.
+///
+/// The winner of a conflict is the first fix in file order, decided here before anything is applied.
+fn resolve_conflicts<'a>(source: &str, ordered: Vec<&'a Fix>) -> (Vec<&'a Fix>, usize) {
 	let mut accepted: Vec<&Fix> = Vec::new();
 	let mut conflicts = 0;
 	let mut last_end = 0;
@@ -100,15 +117,7 @@ pub fn apply_fixes(source: &str, fixes: &[Fix]) -> (String, usize) {
 		accepted.push(fix);
 	}
 
-	// Applying back to front is what keeps the offsets valid: each edit is further from the end than
-	// the next one applied, so no earlier offset has moved yet.
-	let mut result = source.to_string();
-
-	for fix in accepted.iter().rev() {
-		result.replace_range(fix.span.start_byte..fix.span.end_byte, &fix.replacement);
-	}
-
-	(result, conflicts)
+	(accepted, conflicts)
 }
 
 /// Whether `fix` would edit bytes strictly inside a protected region.
@@ -137,65 +146,23 @@ pub fn enters_protected(fix: &Fix, ranges: &[ProtectedRange]) -> bool {
 /// would produce.
 pub fn fix_file(path: &Path, fixes: &[Fix], dry_run: bool) -> std::io::Result<AppliedFixes> {
 	let source = std::fs::read_to_string(path)?;
+	let scan = scan_of(path, &source);
 
 	// A scan that needed recovery means the lexer guessed where the constructs end. Its protected
 	// ranges may be wrong in exactly the way that would let a fix corrupt a literal, so the file
 	// is left for a human.
-	let scan = crate::analysis::language_for_path(path).map(|language| lex(&source, language));
-	let scan_clean = scan.as_ref().is_none_or(LexedFile::is_clean);
-
-	let outcome = |applied: usize,
-	               conflicts: usize,
-	               rejected: usize,
-	               written: bool,
-	               reverted: bool,
-	               skipped_untrusted: bool| {
-		AppliedFixes {
-			path: path.to_path_buf(),
-			applied,
-			conflicts,
-			rejected,
-			written,
-			reverted,
-			skipped_untrusted,
-		}
-	};
-
-	if !scan_clean {
-		return Ok(outcome(0, 0, 0, false, false, true));
+	if !scan.as_ref().is_none_or(LexedFile::is_clean) {
+		return Ok(outcome(path, 0, 0, 0, false, false, true));
 	}
 
 	let ranges = scan
 		.as_ref()
 		.map(|lexed| lexed.protected.clone())
 		.unwrap_or_default();
-	let rejected = fixes
-		.iter()
-		.filter(|fix| enters_protected(fix, &ranges))
-		.count();
-	let fixable: Vec<Fix> = fixes
-		.iter()
-		.filter(|fix| !fix.is_empty() && !enters_protected(fix, &ranges))
-		.cloned()
-		.collect();
-
+	let (rejected, fixable) = separate_protected(fixes, &ranges);
 	let (rewritten, conflicts) = apply_fixes(&source, &fixable);
 	let applied = fixable.len().saturating_sub(conflicts);
-
-	// The structural check runs over the whole fixed text, so a mismatch is a property of the file
-	// rather than of one edit: everything is thrown away, not just the suspicious edit.
-	let reverted =
-		whitespace_only(&fixable) && !structure_preserved(&source, &rewritten, scan.as_ref());
-
-	// Writing an unchanged file would touch its modification time, which defeats a build system
-	// watching for changes. A pure-CRLF file has no bare line feeds of its own, so any the fixes
-	// introduced are re-terminated rather than mixed into the file's line endings.
-	let pure_crlf = is_pure_crlf(&source);
-	let rewritten = if pure_crlf {
-		normalize_to_crlf(&rewritten)
-	} else {
-		rewritten
-	};
+	let (rewritten, reverted) = checked_rewrite(&source, rewritten, &fixable, scan.as_ref());
 	let changed = rewritten != source && !reverted;
 
 	if !dry_run && changed {
@@ -203,6 +170,7 @@ pub fn fix_file(path: &Path, fixes: &[Fix], dry_run: bool) -> std::io::Result<Ap
 	}
 
 	Ok(outcome(
+		path,
 		applied,
 		conflicts,
 		rejected,
@@ -210,6 +178,71 @@ pub fn fix_file(path: &Path, fixes: &[Fix], dry_run: bool) -> std::io::Result<Ap
 		reverted,
 		false,
 	))
+}
+
+/// Scans `source` under the language `path` implies, if it implies one.
+fn scan_of(path: &Path, source: &str) -> Option<LexedFile> {
+	crate::analysis::language_for_path(path).map(|language| lex(source, language))
+}
+
+/// Builds the record of what one fix run did to `path`.
+fn outcome(
+	path: &Path,
+	applied: usize,
+	conflicts: usize,
+	rejected: usize,
+	written: bool,
+	reverted: bool,
+	skipped_untrusted: bool,
+) -> AppliedFixes {
+	AppliedFixes {
+		path: path.to_path_buf(),
+		applied,
+		conflicts,
+		rejected,
+		written,
+		reverted,
+		skipped_untrusted,
+	}
+}
+
+/// Splits `fixes` into those a protected region does not cover, and a count of the rest.
+fn separate_protected(fixes: &[Fix], ranges: &[ProtectedRange]) -> (usize, Vec<Fix>) {
+	let rejected = fixes
+		.iter()
+		.filter(|fix| enters_protected(fix, ranges))
+		.count();
+	let fixable: Vec<Fix> = fixes
+		.iter()
+		.filter(|fix| !fix.is_empty() && !enters_protected(fix, ranges))
+		.cloned()
+		.collect();
+
+	(rejected, fixable)
+}
+
+/// Returns the text a rewrite would leave behind, and whether it was thrown away.
+///
+/// The structural check runs over the whole fixed text, so a mismatch is a property of the file
+/// rather than of one edit: everything is thrown away, not just the suspicious edit.
+///
+/// A pure-CRLF file has no bare line feeds of its own, so any the fixes introduced are re-terminated
+/// rather than mixed into the file's line endings; writing an unchanged file would touch its
+/// modification time, which defeats a build system watching for changes.
+fn checked_rewrite(
+	source: &str,
+	rewritten: String,
+	fixable: &[Fix],
+	scan: Option<&LexedFile>,
+) -> (String, bool) {
+	let reverted = whitespace_only(fixable) && !structure_preserved(source, &rewritten, scan);
+	let rewritten = if is_pure_crlf(source) {
+		normalize_to_crlf(&rewritten)
+	} else {
+		rewritten
+	};
+
+	(rewritten, reverted)
 }
 
 /// Whether every fix's replacement is whitespace, which is what the layout rules produce.

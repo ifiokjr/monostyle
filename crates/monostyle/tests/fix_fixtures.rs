@@ -160,48 +160,7 @@ fn every_language_is_recognized() {
 fn fixtures_fix_to_their_snapshots_and_are_idempotent() {
 	let failures: Vec<String> = discover(Path::new(CORPUS))
 		.into_iter()
-		.filter_map(|fixture| {
-			let language = fixture.language.expect("languages are checked separately");
-			let input = std::fs::read_to_string(&fixture.input).expect("input should read");
-			let expected =
-				std::fs::read_to_string(&fixture.expected).expect("expected should read");
-
-			if !lex(&input, language) {
-				return Some(format!("{}: input does not lex cleanly", fixture.name));
-			}
-
-			let work = temp_copy(&fixture.name, &fixture.input, language);
-			let (once, outcome) = fixed_text(&work, &input, language);
-
-			let mut problem = None;
-
-			if outcome.reverted {
-				problem = Some(format!(
-					"{}: rewrite reverted by the structural check",
-					fixture.name
-				));
-			} else if once != expected {
-				problem = Some(format!(
-					"{}: fixed text differs from the snapshot\n--- expected ---\n{}\n--- actual ---\n{}",
-					fixture.name, expected, once
-				));
-			}
-
-			let (twice, _) = fixed_text(&work, &once, language);
-
-			if twice != once {
-				problem = Some(format!(
-					"{}: the second pass is not a no-op\n--- after first ---\n{}\n--- after second ---\n{}",
-					fixture.name, once, twice
-				));
-			}
-
-			if !lex(&once, language) {
-				problem = Some(format!("{}: fixed text does not lex cleanly", fixture.name));
-			}
-
-			problem
-		})
+		.filter_map(|fixture| verify_fixture(&fixture))
 		.collect();
 
 	assert!(
@@ -210,6 +169,66 @@ fn fixtures_fix_to_their_snapshots_and_are_idempotent() {
 		failures.len(),
 		failures.join("\n\n")
 	);
+}
+
+/// Checks one fixture end to end, returning the last problem it hit, if any.
+///
+/// The phases mirror the corpus's contract: the input must lex, the first pass must reproduce the
+/// snapshot, the second pass must be a no-op, and the fixed text must lex again.
+fn verify_fixture(fixture: &Fixture) -> Option<String> {
+	let language = fixture.language.expect("languages are checked separately");
+	let input = std::fs::read_to_string(&fixture.input).expect("input should read");
+	let expected = std::fs::read_to_string(&fixture.expected).expect("expected should read");
+
+	if !lex(&input, language) {
+		return Some(format!("{}: input does not lex cleanly", fixture.name));
+	}
+
+	let work = temp_copy(&fixture.name, &fixture.input, language);
+	let (once, outcome) = fixed_text(&work, &input, language);
+	let mut problem = first_pass_problem(&fixture.name, &once, &expected, &outcome);
+	let (twice, _) = fixed_text(&work, &once, language);
+
+	if let Some(later) = second_pass_problem(&fixture.name, &once, &twice, language) {
+		problem = Some(later);
+	}
+
+	problem
+}
+
+/// The problem with a fixture's first pass, if its result is not the snapshot.
+fn first_pass_problem(
+	name: &str,
+	once: &str,
+	expected: &str,
+	outcome: &monostyle::fix::AppliedFixes,
+) -> Option<String> {
+	if outcome.reverted {
+		return Some(format!("{name}: rewrite reverted by the structural check"));
+	}
+
+	if once != expected {
+		return Some(format!(
+			"{name}: fixed text differs from the snapshot\n--- expected ---\n{expected}\n--- actual ---\n{once}"
+		));
+	}
+
+	None
+}
+
+/// The problem with a fixture's second pass, if it is not a clean no-op.
+fn second_pass_problem(name: &str, once: &str, twice: &str, language: Language) -> Option<String> {
+	if twice != once {
+		return Some(format!(
+			"{name}: the second pass is not a no-op\n--- after first ---\n{once}\n--- after second ---\n{twice}"
+		));
+	}
+
+	if !lex(once, language) {
+		return Some(format!("{name}: fixed text does not lex cleanly"));
+	}
+
+	None
 }
 
 /// Lexes `source` and reports whether the scan completed without recovery.

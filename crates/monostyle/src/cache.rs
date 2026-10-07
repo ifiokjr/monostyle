@@ -131,6 +131,16 @@ pub struct CachedFile {
 	pub lines: Vec<CachedLine>,
 }
 
+/// What the in-memory map says about one path.
+enum MemoryVerdict {
+	/// The map holds an entry that still describes the file.
+	Hit(Vec<LexedLine>),
+	/// The map holds an entry that no longer describes the file.
+	Miss,
+	/// The map holds nothing for the file, so the disk has to be read.
+	Unknown,
+}
+
 /// A handle to the on-disk cache.
 pub struct Cache {
 	/// Where entries are stored.
@@ -205,28 +215,58 @@ impl Cache {
 		};
 
 		// The in-memory map is consulted first so a second lookup in one run costs nothing.
-		if let Ok(memory) = self.memory.lock()
-			&& let Some(entry) = memory.get(path)
-		{
-			return match entry {
-				Some(entry) if entry.is_valid(language, modified, metadata.len()) => {
-					self.record_hit();
-
-					Some(entry.to_lines())
-				}
-
-				_ => {
-					self.record_miss();
-
-					None
-				}
-			};
+		match self.memory_hit(path, language, modified, metadata.len()) {
+			MemoryVerdict::Hit(lines) => return Some(lines),
+			MemoryVerdict::Miss => return None,
+			MemoryVerdict::Unknown => {}
 		}
 
+		self.disk_hit(path, language, modified, metadata.len())
+	}
+
+	/// Answers from the in-memory map when it already holds an entry for `path`.
+	///
+	/// A poisoned lock reads as [`MemoryVerdict::Unknown`], so a stuck mutex degrades to disk reads
+	/// rather than to wrong answers.
+	fn memory_hit(
+		&self,
+		path: &Path,
+		language: Language,
+		modified: u128,
+		size: u64,
+	) -> MemoryVerdict {
+		let memory = self.memory.lock().ok();
+		let Some(entry) = memory.as_deref().and_then(|memory| memory.get(path)) else {
+			return MemoryVerdict::Unknown;
+		};
+
+		match entry {
+			Some(entry) if entry.is_valid(language, modified, size) => {
+				self.record_hit();
+
+				MemoryVerdict::Hit(entry.to_lines())
+			}
+
+			_ => {
+				self.record_miss();
+
+				MemoryVerdict::Miss
+			}
+		}
+	}
+
+	/// Answers from disk, remembering what it read for the rest of the run.
+	fn disk_hit(
+		&self,
+		path: &Path,
+		language: Language,
+		modified: u128,
+		size: u64,
+	) -> Option<Vec<LexedLine>> {
 		let entry = self.read_entry(path);
 		let valid = entry
 			.as_ref()
-			.is_some_and(|entry| entry.is_valid(language, modified, metadata.len()));
+			.is_some_and(|entry| entry.is_valid(language, modified, size));
 
 		// The entry is cloned into the in-memory map so the original can still be converted below.
 		// The clone is one per file per run, which is far cheaper than a second disk read.

@@ -63,10 +63,7 @@ pub fn render_project(report: &ProjectReport, explain: bool, show_units: bool) -
 /// which rules account for the shortfall.
 fn render_floors(output: &mut String, report: &ProjectReport) {
 	if report.floor_violations.is_empty() {
-		if report.has_any_floor() {
-			let _ = writeln!(output, "{}", style::green("Every path meets its floor."));
-			let _ = writeln!(output);
-		}
+		render_floors_met(output, report);
 
 		return;
 	}
@@ -83,26 +80,39 @@ fn render_floors(output: &mut String, report: &ProjectReport) {
 	let _ = writeln!(output);
 
 	for violation in &report.floor_violations {
-		let _ = writeln!(output, "  {}", style::cyan(&display_path(&violation.path)));
-		let _ = writeln!(output, "    {}", style::red(&violation.summary()));
-
-		// A section's stated reason travels with the number, so a reader knows why this path has its own bar.
-		if let Some(reason) = &violation.reason {
-			let _ = writeln!(output, "    {}", style::dim(reason));
-		}
-
-		if violation.top_offenders.is_empty() {
-			continue;
-		}
-
-		let _ = writeln!(output, "    {}:", style::dim("costing the most points"));
-
-		for (rule, penalty) in &violation.top_offenders {
-			let _ = writeln!(output, "      {:>6.1}  {}", penalty, style::magenta(rule));
-		}
+		render_floor_violation(output, violation);
 	}
 
 	let _ = writeln!(output);
+}
+
+/// Notes that every configured floor was met, when any floor was configured at all.
+fn render_floors_met(output: &mut String, report: &ProjectReport) {
+	if report.has_any_floor() {
+		let _ = writeln!(output, "{}", style::green("Every path meets its floor."));
+		let _ = writeln!(output);
+	}
+}
+
+/// Writes one path's floor violation, with why the path has its bar and what is costing it.
+fn render_floor_violation(output: &mut String, violation: &crate::analysis::FloorViolation) {
+	let _ = writeln!(output, "  {}", style::cyan(&display_path(&violation.path)));
+	let _ = writeln!(output, "    {}", style::red(&violation.summary()));
+
+	// A section's stated reason travels with the number, so a reader knows why this path has its own bar.
+	if let Some(reason) = &violation.reason {
+		let _ = writeln!(output, "    {}", style::dim(reason));
+	}
+
+	if violation.top_offenders.is_empty() {
+		return;
+	}
+
+	let _ = writeln!(output, "    {}:", style::dim("costing the most points"));
+
+	for (rule, penalty) in &violation.top_offenders {
+		let _ = writeln!(output, "      {:>6.1}  {}", penalty, style::magenta(rule));
+	}
 }
 
 /// Writes the headline scores.
@@ -399,25 +409,7 @@ fn render_findings(output: &mut String, report: &ProjectReport) {
 	let _ = writeln!(output);
 
 	for (path, finding) in findings.iter().take(LIMIT) {
-		let _ = writeln!(
-			output,
-			"  {} {} {}",
-			style::cyan(&format!(
-				"{}:{}",
-				display_path(path),
-				finding.span.start_line
-			)),
-			style::magenta(&finding.rule),
-			style::dim(&format!("[{}]", finding.severity.label()))
-		);
-		let _ = writeln!(output, "    {}", wrap(&finding.message, 74, "    "));
-		let _ = writeln!(
-			output,
-			"    {} {}",
-			style::dim("->"),
-			style::dim(&wrap(&finding.suggestion, 74, "    "))
-		);
-		let _ = writeln!(output);
+		render_finding(output, path, finding);
 	}
 
 	if findings.len() > LIMIT {
@@ -428,6 +420,29 @@ fn render_findings(output: &mut String, report: &ProjectReport) {
 		);
 		let _ = writeln!(output);
 	}
+}
+
+/// Writes one finding: where it is, what broke, and what to do about it.
+fn render_finding(output: &mut String, path: &Path, finding: &Finding) {
+	let _ = writeln!(
+		output,
+		"  {} {} {}",
+		style::cyan(&format!(
+			"{}:{}",
+			display_path(path),
+			finding.span.start_line
+		)),
+		style::magenta(&finding.rule),
+		style::dim(&format!("[{}]", finding.severity.label()))
+	);
+	let _ = writeln!(output, "    {}", wrap(&finding.message, 74, "    "));
+	let _ = writeln!(
+		output,
+		"    {} {}",
+		style::dim("->"),
+		style::dim(&wrap(&finding.suggestion, 74, "    "))
+	);
+	let _ = writeln!(output);
 }
 
 /// Writes a warning for files where tokenization was uncertain.
@@ -602,33 +617,7 @@ pub fn render_project_github(report: &ProjectReport) -> String {
 	let mut held_back = 0;
 
 	for level in ["error", "warning", "notice"] {
-		let mut emitted = 0;
-
-		for file in &report.files {
-			let path = display_path(&file.path);
-
-			for finding in &file.findings {
-				if annotation_level(finding.severity) != level {
-					continue;
-				}
-
-				if emitted >= ANNOTATIONS_PER_LEVEL {
-					held_back += 1;
-
-					continue;
-				}
-
-				emitted += 1;
-				let message = format!("[{}] {}", finding.rule, finding.message);
-				let escaped = escape_workflow_command(&message);
-				writeln!(
-					commands,
-					"::{level} file={path},line={},endLine={},title={}::{}",
-					finding.span.start_line, finding.span.end_line, finding.rule, escaped,
-				)
-				.expect("a String write cannot fail");
-			}
-		}
+		held_back += write_level(&mut commands, report, level, ANNOTATIONS_PER_LEVEL);
 	}
 
 	if held_back > 0 {
@@ -641,6 +630,43 @@ pub fn render_project_github(report: &ProjectReport) -> String {
 	}
 
 	commands
+}
+
+/// Writes the annotations of one level, returning how many findings were held back.
+///
+/// GitHub renders a fixed number of annotations per level, so findings past that budget are counted
+/// here rather than written: they are what the closing notice reports.
+fn write_level(commands: &mut String, report: &ProjectReport, level: &str, budget: usize) -> usize {
+	let mut emitted = 0;
+	let mut held_back = 0;
+
+	for file in &report.files {
+		let path = display_path(&file.path);
+
+		for finding in &file.findings {
+			if annotation_level(finding.severity) != level {
+				continue;
+			}
+
+			if emitted >= budget {
+				held_back += 1;
+
+				continue;
+			}
+
+			emitted += 1;
+			let message = format!("[{}] {}", finding.rule, finding.message);
+			let escaped = escape_workflow_command(&message);
+			writeln!(
+				commands,
+				"::{level} file={path},line={},endLine={},title={}::{}",
+				finding.span.start_line, finding.span.end_line, finding.rule, escaped,
+			)
+			.expect("a String write cannot fail");
+		}
+	}
+
+	held_back
 }
 
 /// Maps a severity to the GitHub annotation level a reviewer sees it at.

@@ -193,33 +193,44 @@ fn rank_impact(
 		}
 
 		total += penalty;
-
-		let location = offender(path, finding);
-
-		match impacts
-			.iter_mut()
-			.find(|impact| impact.rule == finding.rule)
-		{
-			Some(impact) => impact.absorb(penalty, finding, location),
-			None => impacts.push(RuleImpact::new(finding, penalty, location)),
-		}
+		absorb_finding(&mut impacts, path, finding, penalty);
 	}
 
-	for impact in &mut impacts {
+	assign_shares(&mut impacts, total);
+	impacts.sort_by(most_costly_first);
+	impacts
+}
+
+/// Folds one finding into the impact list, creating its rule's entry on first sight.
+fn absorb_finding(impacts: &mut Vec<RuleImpact>, path: &Path, finding: &Finding, penalty: f64) {
+	let location = offender(path, finding);
+
+	match impacts
+		.iter_mut()
+		.find(|impact| impact.rule == finding.rule)
+	{
+		Some(impact) => impact.absorb(penalty, finding, location),
+		None => impacts.push(RuleImpact::new(finding, penalty, location)),
+	}
+}
+
+/// Gives each impact its share of the penalty `total` covers.
+fn assign_shares(impacts: &mut [RuleImpact], total: f64) {
+	for impact in impacts.iter_mut() {
 		impact.share = if total > 0.0 {
 			impact.penalty / total
 		} else {
 			0.0
 		};
 	}
+}
 
-	impacts.sort_by(|left, right| {
-		right
-			.penalty
-			.partial_cmp(&left.penalty)
-			.unwrap_or(std::cmp::Ordering::Equal)
-	});
-	impacts
+/// Orders impacts by penalty, most costly first.
+fn most_costly_first(left: &RuleImpact, right: &RuleImpact) -> std::cmp::Ordering {
+	right
+		.penalty
+		.partial_cmp(&left.penalty)
+		.unwrap_or(std::cmp::Ordering::Equal)
 }
 
 /// Builds the location a finding sits at.

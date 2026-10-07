@@ -425,23 +425,12 @@ fn fix_one_file(path: &Path, args: &FixArgs, options: &AnalysisOptions) -> Optio
 	// fixes derived from that scan may address the wrong bytes. Leaving the file alone and saying
 	// so beats silently editing a file the tool does not understand.
 	if !report.unterminated.is_empty() {
-		eprintln!(
-			"monostyle: skipped {} because its scan hit an unterminated construct; fixes would not be safe",
-			path.display()
-		);
+		report_untrusted(path);
 
 		return None;
 	}
 
-	// Only fixes from the requested rules are applied, so a caller can address one class of problem at a
-	// time.
-	let applied: Vec<monostyle_core::Finding> = report
-		.findings
-		.iter()
-		.filter(|finding| finding.fix.is_some())
-		.filter(|finding| args.rules.is_empty() || args.rules.contains(&finding.rule))
-		.cloned()
-		.collect();
+	let applied = fixable_findings(&report, args);
 
 	if applied.is_empty() {
 		return None;
@@ -464,10 +453,7 @@ fn fix_one_file(path: &Path, args: &FixArgs, options: &AnalysisOptions) -> Optio
 	}
 
 	if outcome.skipped_untrusted {
-		eprintln!(
-			"monostyle: skipped {} because its scan hit an unterminated construct; fixes would not be safe",
-			path.display()
-		);
+		report_untrusted(path);
 
 		return None;
 	}
@@ -476,18 +462,43 @@ fn fix_one_file(path: &Path, args: &FixArgs, options: &AnalysisOptions) -> Optio
 		return None;
 	}
 
-	let remaining = report
+	Some(FixOutcome {
+		remaining: unfixed_findings(&report),
+		outcome,
+		applied,
+	})
+}
+
+/// Reports that a file was skipped because its scan could not be trusted.
+fn report_untrusted(path: &Path) {
+	eprintln!(
+		"monostyle: skipped {} because its scan hit an unterminated construct; fixes would not be safe",
+		path.display()
+	);
+}
+
+/// The findings a `fix` invocation would act on: those with an edit, from a requested rule.
+///
+/// Only fixes from the requested rules are applied, so a caller can address one class of problem at a
+/// time.
+fn fixable_findings(report: &analysis::FileReport, args: &FixArgs) -> Vec<monostyle_core::Finding> {
+	report
+		.findings
+		.iter()
+		.filter(|finding| finding.fix.is_some())
+		.filter(|finding| args.rules.is_empty() || args.rules.contains(&finding.rule))
+		.cloned()
+		.collect()
+}
+
+/// The findings no fix exists for, which are the reader's work rather than the tool's.
+fn unfixed_findings(report: &analysis::FileReport) -> Vec<monostyle_core::Finding> {
+	report
 		.findings
 		.iter()
 		.filter(|finding| finding.fix.is_none() && finding.penalty() > 0.0)
 		.cloned()
-		.collect();
-
-	Some(FixOutcome {
-		outcome,
-		applied,
-		remaining,
-	})
+		.collect()
 }
 
 /// Reports one file's fix outcome.
@@ -588,7 +599,7 @@ fn report_fix_totals(outcomes: &[FixOutcome], args: &FixArgs) {
 	if conflicts > 0 {
 		eprintln!(
 			"monostyle: {conflicts} fix{} skipped because they overlapped another edit",
-			if conflicts == 1 { "" } else { "es" }
+			plural_es(conflicts)
 		);
 	}
 
@@ -600,9 +611,14 @@ fn report_fix_totals(outcomes: &[FixOutcome], args: &FixArgs) {
 	if rejected > 0 {
 		eprintln!(
 			"monostyle: {rejected} fix{} refused because they would edit inside a string literal or comment",
-			if rejected == 1 { "" } else { "es" }
+			plural_es(rejected)
 		);
 	}
+}
+
+/// Returns an `es` for a count other than one, for words that pluralize that way.
+fn plural_es(count: usize) -> &'static str {
+	if count == 1 { "" } else { "es" }
 }
 
 /// Returns an `s` for a count other than one.

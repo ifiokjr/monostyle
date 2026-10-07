@@ -274,37 +274,39 @@ fn expand_member(root: &Path, member: &str) -> Vec<PathBuf> {
 
 	let prefix = root.join(segments.get(..index).unwrap_or_default().join("/"));
 	let depth_is_recursive = segments.get(index) == Some(&"**");
-
-	let Ok(entries) = std::fs::read_dir(&prefix) else {
-		return Vec::new();
-	};
-
-	let mut directories: Vec<PathBuf> = entries
-		.filter_map(Result::ok)
-		.filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
-		.map(|entry| entry.path())
-		.collect();
+	let mut directories = child_directories(&prefix);
 
 	// `**` also matches nested directories, so the walk descends; a single `*` does not.
 	if depth_is_recursive {
-		let mut nested = Vec::new();
-
-		for directory in &directories {
-			if let Ok(entries) = std::fs::read_dir(directory) {
-				nested.extend(
-					entries
-						.filter_map(Result::ok)
-						.filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
-						.map(|entry| entry.path()),
-				);
-			}
-		}
-
-		directories.extend(nested);
+		directories.extend(nested_directories(&directories));
 	}
 
 	directories.sort();
 	directories
+}
+
+/// Lists the subdirectories of `directory`, in no particular order.
+///
+/// An unreadable directory lists nothing, because a workspace member this tool cannot read is one it
+/// cannot attribute files to anyway.
+fn child_directories(directory: &Path) -> Vec<PathBuf> {
+	let Ok(entries) = std::fs::read_dir(directory) else {
+		return Vec::new();
+	};
+
+	entries
+		.filter_map(Result::ok)
+		.filter(|entry| entry.file_type().is_ok_and(|kind| kind.is_dir()))
+		.map(|entry| entry.path())
+		.collect()
+}
+
+/// Lists the directories one level below each of `directories`, for a `**` pattern.
+fn nested_directories(directories: &[PathBuf]) -> Vec<PathBuf> {
+	directories
+		.iter()
+		.flat_map(|directory| child_directories(directory))
+		.collect()
 }
 
 /// Reads a Cargo workspace's member list.
@@ -391,40 +393,69 @@ fn glob_list_under(contents: &str, key: &str) -> Vec<String> {
 	let mut in_list = false;
 
 	for line in contents.lines() {
-		let trimmed = line.trim();
-
-		if trimmed.starts_with('#') {
-			continue;
-		}
-
-		if trimmed.starts_with(key) {
-			in_list = true;
-			continue;
-		}
-
-		if !in_list || trimmed.is_empty() {
-			continue;
-		}
-
-		// A line that is not indented starts a new top-level key, which ends the list.
-		let indented = line.starts_with(' ') || line.starts_with('\t');
-
-		if !indented {
-			break;
-		}
-
-		let Some(entry) = trimmed.strip_prefix("- ") else {
-			continue;
-		};
-
-		let value = entry.trim().trim_matches(['"', '\'']);
-
-		if !value.is_empty() {
-			members.push(value.to_string());
+		match classify_list_line(line, key, in_list) {
+			ListLine::StartsList => in_list = true,
+			ListLine::Member(member) => members.push(member),
+			ListLine::EndsList => break,
+			ListLine::Ignored => {}
 		}
 	}
 
 	members
+}
+
+/// What one line of a small YAML document contributes to the list under `key`.
+enum ListLine {
+	/// The line names the key that owns the list.
+	StartsList,
+	/// The line names one member of the list.
+	Member(String),
+	/// A new top-level key began, which ends the list.
+	EndsList,
+	/// The line says nothing either way.
+	Ignored,
+}
+
+/// Classifies one line against the dash-prefixed list under `key`.
+fn classify_list_line(line: &str, key: &str, in_list: bool) -> ListLine {
+	let trimmed = line.trim();
+
+	if trimmed.starts_with('#') {
+		return ListLine::Ignored;
+	}
+
+	if trimmed.starts_with(key) {
+		return ListLine::StartsList;
+	}
+
+	if !in_list || trimmed.is_empty() {
+		return ListLine::Ignored;
+	}
+
+	// A line that is not indented starts a new top-level key, which ends the list.
+	if !is_indented(line) {
+		return ListLine::EndsList;
+	}
+
+	match list_entry(trimmed) {
+		Some(member) => ListLine::Member(member.to_string()),
+		None => ListLine::Ignored,
+	}
+}
+
+/// Whether a line is indented under the key that owns it.
+fn is_indented(line: &str) -> bool {
+	line.starts_with(' ') || line.starts_with('\t')
+}
+
+/// The member one dash-prefixed list entry names, unquoted.
+///
+/// An entry without a value names nothing, and an empty value is not a member.
+fn list_entry(trimmed: &str) -> Option<&str> {
+	let entry = trimmed.strip_prefix("- ")?;
+	let value = entry.trim().trim_matches(['"', '\'']);
+
+	(!value.is_empty()).then_some(value)
 }
 
 /// Reads a package name from an npm manifest.
