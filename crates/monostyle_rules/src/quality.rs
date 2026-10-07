@@ -42,17 +42,7 @@ pub fn magic_numbers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 			continue;
 		}
 
-		// A literal in a constant declaration is already named by the declaration it sits in,
-		// and a discriminant, type parameter, or data-table row names itself by position.
-		if is_constant_declaration(line) || is_self_naming_literal(line) {
-			continue;
-		}
-
-		// An assertion's literal is the value it claims: `expect(disc(ix), 12)` and
-		// `assert_eq!(len, 3)` state what the code must produce, and naming the
-		// number would hide the claim the test makes. A collection whose members
-		// are all literals is data the same way a data-table row is.
-		if is_assertion(line) || holds_only_data_collections(line) {
+		if literal_names_itself(line) || literal_is_test_data(line) {
 			continue;
 		}
 
@@ -62,6 +52,23 @@ pub fn magic_numbers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	}
 
 	findings
+}
+
+/// Whether every literal on this line is named by the shape around it.
+///
+/// A literal in a constant declaration is named by the declaration it sits in, and a
+/// discriminant, type parameter, or data-table row names itself by position.
+fn literal_names_itself(line: &LexedLine) -> bool {
+	is_constant_declaration(line) || is_self_naming_literal(line)
+}
+
+/// Whether this line's literals are the data of a test rather than choices to name.
+///
+/// An assertion's literal is the value it claims: `expect(disc(ix), 12)` and `assert_eq!(len, 3)`
+/// state what the code must produce, and naming the number would hide the claim the test makes.
+/// A collection whose members are all literals is data the same way a data-table row is.
+fn literal_is_test_data(line: &LexedLine) -> bool {
+	is_assertion(line) || holds_only_data_collections(line)
 }
 
 /// Returns the numeric literals on a line that carry meaning without a name.
@@ -328,67 +335,22 @@ pub fn commented_out_code(file: &LexedFile, config: &RulesConfig) -> Vec<Finding
 	}
 
 	let mut findings = Vec::new();
-	let mut run_start: Option<usize> = None;
-	let mut run_length = 0;
-	let mut code_like = 0;
+	let mut run = CommentRun::default();
 
 	for line in &file.lines {
-		if line.kind == LineKind::Comment {
-			// A documentation line ends any run in progress rather than joining it: documentation
-			// belongs to the item below it, so the comments above and below are unrelated.
-			if line.comment_intent == Some(CommentIntent::Documentation) {
-				report_run(
-					&file.lines,
-					run_start,
-					run_length,
-					code_like,
-					RUN_LIMIT,
-					&mut findings,
-				);
-
-				run_start = None;
-				run_length = 0;
-				code_like = 0;
-
-				continue;
-			}
-
-			run_start.get_or_insert(line.number);
-			run_length += 1;
-
-			if looks_like_code(line) {
-				code_like += 1;
-			}
-
-			continue;
-		}
-
-		// A non-comment line ends the block. A blank line ends it too, because a commented-out block
-		// is contiguous and a paragraph break means the comments either side are unrelated.
-		if line.is_blank() || line.is_code() {
-			report_run(
-				&file.lines,
-				run_start,
-				run_length,
-				code_like,
-				RUN_LIMIT,
-				&mut findings,
-			);
-
-			run_start = None;
-			run_length = 0;
-			code_like = 0;
+		match comment_run_step(line) {
+			RunStep::Extend => run.extend(line),
+			// A documentation line ends any run in progress rather than joining it:
+			// documentation belongs to the item below it, so the comments above and below are
+			// unrelated. A non-comment or blank line ends the block too, because a
+			// commented-out block is contiguous and a paragraph break means the comments either
+			// side are unrelated.
+			RunStep::Close => run.close(&file.lines, RUN_LIMIT, &mut findings),
+			RunStep::Ignore => {}
 		}
 	}
 
-	report_run(
-		&file.lines,
-		run_start,
-		run_length,
-		code_like,
-		RUN_LIMIT,
-		&mut findings,
-	);
+	run.close(&file.lines, RUN_LIMIT, &mut findings);
 	findings
 }
 
@@ -479,23 +441,30 @@ fn numeric_literals(text: &str) -> Vec<NumericLiteral> {
 			.collect();
 		let normalized = literal.replace('_', "");
 
-		// A version string or hash looks numeric but is not a quantity; requiring a parse keeps them
-		// out of the results.
-		if let Ok(value) = normalized.parse::<f64>() {
-			// Skip anything with too many digits to be a meaningful constant, such as a timestamp or
-			// an embedded identifier.
-			if normalized.chars().filter(char::is_ascii_digit).count() > 9 {
-				continue;
-			}
-
-			literals.push(NumericLiteral {
-				text: literal,
-				value,
-			});
+		if let Some(literal) = parsed_literal(&literal, &normalized) {
+			literals.push(literal);
 		}
 	}
 
 	literals
+}
+
+/// The literal as a quantity, unless it is a version string, hash, or digit flood.
+///
+/// A version string or hash looks numeric but is not a quantity, so requiring a parse keeps them
+/// out. Anything with more than nine digits is a timestamp or an embedded identifier rather than
+/// a meaningful constant.
+fn parsed_literal(text: &str, normalized: &str) -> Option<NumericLiteral> {
+	let value = normalized.parse::<f64>().ok()?;
+
+	if normalized.chars().filter(char::is_ascii_digit).count() > 9 {
+		return None;
+	}
+
+	Some(NumericLiteral {
+		text: text.to_string(),
+		value,
+	})
 }
 
 /// Whether a value is conventional enough that a bare literal is fine.
@@ -893,6 +862,63 @@ fn is_conventional_name(name: &str) -> bool {
 	];
 
 	CONVENTIONAL.contains(&name) || BUILTIN.contains(&name)
+}
+
+/// What one line does to the run of code-like comments in progress.
+enum RunStep {
+	/// The line joins the run.
+	Extend,
+	/// The line ends the run.
+	Close,
+	/// The line leaves the run untouched, which only literal content does.
+	Ignore,
+}
+
+/// Classifies one line's effect on the comment run.
+fn comment_run_step(line: &LexedLine) -> RunStep {
+	if line.kind == LineKind::Comment && line.comment_intent != Some(CommentIntent::Documentation) {
+		return RunStep::Extend;
+	}
+
+	if line.kind == LineKind::Comment || line.is_blank() || line.is_code() {
+		return RunStep::Close;
+	}
+
+	RunStep::Ignore
+}
+
+/// A run of consecutive comment lines that may turn out to be commented-out code.
+#[derive(Default)]
+struct CommentRun {
+	start: Option<usize>,
+	length: usize,
+	code_like: usize,
+}
+
+impl CommentRun {
+	/// Counts one more comment line, remembering where the run began.
+	fn extend(&mut self, line: &LexedLine) {
+		self.start.get_or_insert(line.number);
+		self.length += 1;
+
+		if looks_like_code(line) {
+			self.code_like += 1;
+		}
+	}
+
+	/// Reports the run if it has earned one, then clears it.
+	fn close(&mut self, lines: &[LexedLine], limit: usize, findings: &mut Vec<Finding>) {
+		report_run(
+			lines,
+			self.start,
+			self.length,
+			self.code_like,
+			limit,
+			findings,
+		);
+
+		*self = Self::default();
+	}
 }
 
 /// Whether a comment line looks like code rather than prose.

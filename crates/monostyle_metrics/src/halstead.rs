@@ -105,6 +105,28 @@ pub fn halstead(file: &LexedFile) -> Halstead {
 
 /// Computes Halstead's measures over a slice of lines.
 #[must_use]
+/// The Halstead volume, which is zero for a vocabulary too small to have structure.
+fn volume_of(length: usize, vocabulary: usize) -> f64 {
+	if vocabulary > 1 {
+		length as f64 * (vocabulary as f64).log2()
+	} else {
+		0.0
+	}
+}
+
+/// The Halstead difficulty, which is zero when no operands exist to relate.
+fn difficulty_of(
+	distinct_operators: usize,
+	total_operands: usize,
+	distinct_operands: usize,
+) -> f64 {
+	if distinct_operands > 0 {
+		distinct_operators as f64 / 2.0 * total_operands as f64 / distinct_operands as f64
+	} else {
+		0.0
+	}
+}
+
 pub fn halstead_of_lines(lines: &[LexedLine], _language: Language) -> Halstead {
 	let operators = Operators::SHARED;
 	// Sets rather than vectors: membership is tested once per token, so a linear scan makes the
@@ -139,16 +161,8 @@ pub fn halstead_of_lines(lines: &[LexedLine], _language: Language) -> Halstead {
 	let distinct_operands = distinct_operands.len();
 	let vocabulary = distinct_operators + distinct_operands;
 	let length = total_operators + total_operands;
-	let volume = if vocabulary > 1 {
-		length as f64 * (vocabulary as f64).log2()
-	} else {
-		0.0
-	};
-	let difficulty = if distinct_operands > 0 {
-		distinct_operators as f64 / 2.0 * total_operands as f64 / distinct_operands as f64
-	} else {
-		0.0
-	};
+	let volume = volume_of(length, vocabulary);
+	let difficulty = difficulty_of(distinct_operators, total_operands, distinct_operands);
 
 	Halstead {
 		distinct_operators,

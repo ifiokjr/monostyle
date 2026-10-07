@@ -93,24 +93,7 @@ pub fn long_parameter_list(file: &LexedFile, config: &RulesConfig) -> Vec<Findin
 	let mut findings = Vec::new();
 
 	for line in &file.lines {
-		if !line.is_code() {
-			continue;
-		}
-
-		// An attribute is a declaration rather than a call: `#[derive(Debug, Clone, Copy)]` lists traits,
-		// and reporting it asked for a derive list to be split across lines. The same applies to a decorator
-		// and to a Java annotation, which is why the check is on the leading marker.
-		if is_annotation(line) {
-			continue;
-		}
-
-		// A list that continues onto later lines has already been given its space.
-		if line.parameter_span > 1 {
-			continue;
-		}
-
-		// A declaration whose body opens here had its argument list laid out deliberately.
-		if line.masked_code.trim_end().ends_with('{') {
+		if !line.is_code() || !is_measured_call(line) {
 			continue;
 		}
 
@@ -154,6 +137,17 @@ pub fn long_parameter_list(file: &LexedFile, config: &RulesConfig) -> Vec<Findin
 	}
 
 	findings
+}
+
+/// Whether this line's argument list is one the rule measures.
+///
+/// An attribute is a declaration rather than a call: `#[derive(Debug, Clone, Copy)]` lists traits,
+/// and reporting it asked for a derive list to be split across lines; the same applies to a
+/// decorator and to a Java annotation, which is why the check is on the leading marker. A list
+/// that continues onto later lines has already been given its space, and a declaration whose body
+/// opens here had its argument list laid out deliberately.
+fn is_measured_call(line: &LexedLine) -> bool {
+	!is_annotation(line) && line.parameter_span <= 1 && !line.masked_code.trim_end().ends_with('{')
 }
 
 /// Returns the argument count and width of the widest parenthesis group on a line.

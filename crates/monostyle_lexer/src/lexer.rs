@@ -536,22 +536,7 @@ impl Scanner {
 			// A line break ends the current line. The two forms differ only in how many bytes they consume,
 			// so the handling is shared rather than repeated for each.
 			if let Some(consumed) = self.line_break_length(character, &characters, index) {
-				// A CR consumed by the CRLF form is a terminator byte rather than content, so the range ends
-				// before it while the offsets that follow still count it.
-				let end = if self.crlf_pending {
-					self.current_byte.saturating_sub(1)
-				} else {
-					self.current_byte
-				};
-
-				let number = line.number;
-
-				self.crlf_pending = false;
-				line.set_bytes(self.line_start_byte, end);
-
-				let finished = std::mem::replace(&mut line, LineBuilder::new(number + 1));
-				self.close_line(finished);
-
+				self.finish_line_at_break(&mut line);
 				index += consumed;
 				self.current_byte += consumed;
 				self.line_start_byte = self.current_byte;
@@ -587,6 +572,26 @@ impl Scanner {
 			self.heredoc.as_ref(),
 		);
 		std::mem::take(&mut self.lines)
+	}
+
+	/// Closes `line` at a line break and leaves `line` holding the next line's builder.
+	///
+	/// A CR consumed by the CRLF form is a terminator byte rather than content, so the range ends
+	/// before it while the offsets that follow still count it.
+	fn finish_line_at_break(&mut self, line: &mut LineBuilder) {
+		let end = if self.crlf_pending {
+			self.current_byte.saturating_sub(1)
+		} else {
+			self.current_byte
+		};
+
+		let number = line.number;
+
+		self.crlf_pending = false;
+		line.set_bytes(self.line_start_byte, end);
+
+		let finished = std::mem::replace(line, LineBuilder::new(number + 1));
+		self.close_line(finished);
 	}
 
 	/// Closes the last line, unless a trailing newline already terminated it.
@@ -682,16 +687,8 @@ impl Scanner {
 		let character = characters[index];
 
 		if let Some((open, end)) = self.profile.block_comment_at(&rest) {
-			self.open_region(ProtectedKind::Comment);
-			self.block_comment = Some(BlockComment {
-				end,
-				depth: 1,
-				opened_at: line.number,
-				documentation: self.profile.is_documentation_comment(&rest),
-			});
-
 			let length = open.chars().count();
-			consume_comment(characters, index, length, line);
+			self.open_block_comment(&rest, end, line, characters, index, length);
 
 			return index + length;
 		}
@@ -735,6 +732,27 @@ impl Scanner {
 		}
 
 		index + 1
+	}
+
+	/// Opens a block comment and consumes its opener, recording whether it is documentation.
+	fn open_block_comment(
+		&mut self,
+		rest: &str,
+		end: &'static str,
+		line: &mut LineBuilder,
+		characters: &[char],
+		index: usize,
+		length: usize,
+	) {
+		self.open_region(ProtectedKind::Comment);
+		self.block_comment = Some(BlockComment {
+			end,
+			depth: 1,
+			opened_at: line.number,
+			documentation: self.profile.is_documentation_comment(rest),
+		});
+
+		consume_comment(characters, index, length, line);
 	}
 
 	/// Opens a line comment and consumes its token.
@@ -1077,21 +1095,11 @@ impl Scanner {
 			.collect();
 
 		// A hashed raw string: prefix, then hashes, then a quote.
-		if self.profile.hashed_raw_strings && self.profile.raw_string_prefix == Some(*character) {
-			let hashes = after_prefix.iter().take_while(|c| **c == '#').count();
-
-			if after_prefix.get(hashes) == Some(&'"') {
-				return Some(LiteralStart {
-					rule: self.profile.string_at("\"")?,
-					// The prefix, the hashes, and the opening quote are all consumed.
-					opener_length: 1 + hashes + 1,
-					hashes,
-					// A raw string spans lines whether or not it carries hashes.
-					multiline: true,
-					raw: true,
-					end_override: None,
-				});
-			}
+		if self.profile.hashed_raw_strings
+			&& self.profile.raw_string_prefix == Some(*character)
+			&& let Some(start) = self.hashed_raw_start(&after_prefix)
+		{
+			return Some(start);
 		}
 
 		// A C++ raw string: `R"(`, or `R"delim(` with a custom delimiter.
@@ -1149,11 +1157,7 @@ impl Scanner {
 		// A single-line literal with no closer and no continuation is a mis-read rather than an
 		// unterminated literal — an apostrophe in a comment, most often — so it is emitted as code
 		// and never opened.
-		if !rule.multiline
-			&& hashes == 0
-			&& !literal_has_close(body, rule, hashes, raw, &end)
-			&& !continues
-		{
+		if Self::misread_short_literal(rule, hashes, raw, body, &end, continues) {
 			line.push_code(rest.chars().next().unwrap_or('"'));
 
 			return index + 1;
@@ -1170,11 +1174,10 @@ impl Scanner {
 			// A raw prefix disables the escapes the plain rule would honor.
 			escapes: rule.escapes && !raw,
 			multiline: multiline || continues,
-			interpolation: if rule.interpolates {
-				self.interpolation_style()
-			} else {
-				None
-			},
+			interpolation: rule
+				.interpolates
+				.then(|| self.interpolation_style())
+				.flatten(),
 			extra_escapes: rule.extra_escapes,
 			opened_at: line.number,
 		});
@@ -1190,6 +1193,66 @@ impl Scanner {
 		index + opener_length
 	}
 
+	/// Whether a would-be single-line literal is a mis-read rather than a literal.
+	///
+	/// An apostrophe in a comment is the common case: no multiline syntax, no raw hashes, no
+	/// closer ahead, and no line continuation. Any one of those makes it a real literal.
+	fn misread_short_literal(
+		rule: &StringRule,
+		hashes: usize,
+		raw: bool,
+		body: &str,
+		end: &str,
+		continues: bool,
+	) -> bool {
+		!rule.multiline
+			&& hashes == 0
+			&& !literal_has_close(body, rule, hashes, raw, end)
+			&& !continues
+	}
+
+	/// Strips `modifier` when `present`, using the method every call site repeats.
+	fn strip_modifier(after: &str, present: bool, modifier: char) -> &str {
+		if present {
+			after.strip_prefix(modifier).unwrap_or(after)
+		} else {
+			after
+		}
+	}
+
+	/// The delimiter a heredoc opener names, quoted or bare.
+	fn heredoc_delimiter(after: &str) -> String {
+		match after.chars().next() {
+			Some(quote @ ('"' | '\'')) => after[1..].chars().take_while(|c| *c != quote).collect(),
+			_ => {
+				after
+					.chars()
+					.take_while(|c| c.is_alphanumeric() || *c == '_')
+					.collect()
+			}
+		}
+	}
+
+	/// The hashed raw string starting after this prefix character, if a quote follows its hashes.
+	fn hashed_raw_start(&self, after_prefix: &[char]) -> Option<LiteralStart> {
+		let hashes = after_prefix.iter().take_while(|c| **c == '#').count();
+
+		if after_prefix.get(hashes) != Some(&'"') {
+			return None;
+		}
+
+		Some(LiteralStart {
+			rule: self.profile.string_at("\"")?,
+			// The prefix, the hashes, and the opening quote are all consumed.
+			opener_length: 1 + hashes + 1,
+			hashes,
+			// A raw string spans lines whether or not it carries hashes.
+			multiline: true,
+			raw: true,
+			end_override: None,
+		})
+	}
+
 	/// Opens a heredoc if `rest` begins one.
 	fn try_open_heredoc(&mut self, rest: &str, line: &mut LineBuilder) -> bool {
 		let Some(syntax) = self.profile.heredoc else {
@@ -1202,28 +1265,10 @@ impl Scanner {
 
 		let after = &rest[syntax.marker.len()..];
 		let (dash_present, tilde_present) = (after.starts_with('-'), after.starts_with('~'));
-		let after = if syntax.allows_dash && dash_present {
-			after.strip_prefix('-').unwrap_or(after)
-		} else {
-			after
-		};
-		let after = if syntax.allows_tilde && tilde_present {
-			after.strip_prefix('~').unwrap_or(after)
-		} else {
-			after
-		};
-
+		let after = Self::strip_modifier(after, syntax.allows_dash && dash_present, '-');
+		let after = Self::strip_modifier(after, syntax.allows_tilde && tilde_present, '~');
 		let after = after.trim_start();
-
-		let delimiter: String = match after.chars().next() {
-			Some(quote @ ('"' | '\'')) => after[1..].chars().take_while(|c| *c != quote).collect(),
-			_ => {
-				after
-					.chars()
-					.take_while(|c| c.is_alphanumeric() || *c == '_')
-					.collect()
-			}
-		};
+		let delimiter = Self::heredoc_delimiter(after);
 
 		if delimiter.is_empty() {
 			return false;
@@ -1376,34 +1421,8 @@ fn classify_comment_blocks(lines: &mut [LexedLine]) {
 		// than of the prose, so a `//` line following a `///` block is a different comment: the author
 		// switched from documenting the item below to hiding something. Grouping them made the whole run
 		// inherit the `///` verdict, which hid commented-out code sitting beneath a doc comment.
-		let indent = lines.get(index).map_or(0, |line| line.indent);
-		let opens_with_doc_marker = lines.get(index).is_some_and(LexedLine::has_doc_marker);
-		let mut end = index + 1;
-
-		while let Some(candidate) = lines.get(end) {
-			let continues = (candidate.is_comment() || candidate.is_trailing_comment_only())
-				&& candidate.indent == indent
-				&& candidate.has_doc_marker() == opens_with_doc_marker;
-
-			if !continues {
-				break;
-			}
-
-			end += 1;
-		}
-
-		let is_doc = lines.get(index).and_then(|line| line.comment_intent)
-			== Some(CommentIntent::Documentation);
-
-		let body = lines
-			.get(index..end)
-			.unwrap_or_default()
-			.iter()
-			.map(LexedLine::comment_body)
-			.collect::<Vec<_>>()
-			.join("\n");
-
-		let block_intent = classify(&body, is_doc);
+		let end = comment_block_end(lines, index);
+		let block_intent = comment_block_intent(lines, index, end);
 
 		for line in lines.get_mut(index..end).unwrap_or_default() {
 			line.comment_intent = Some(block_intent);
@@ -1411,6 +1430,49 @@ fn classify_comment_blocks(lines: &mut [LexedLine]) {
 
 		index = end;
 	}
+}
+
+/// The index one past the last line of the comment block that starts at `index`.
+///
+/// The run extends while lines stay comment-ish and keep the same indentation, so a blank line or a
+/// dedent correctly ends the block. A change of marker style also ends it. Documentation syntax is
+/// a property of the marker rather than of the prose, so a `//` line following a `///` block is a
+/// different comment: the author switched from documenting the item below to hiding something.
+/// Grouping them made the whole run inherit the `///` verdict, which hid commented-out code
+/// sitting beneath a doc comment.
+fn comment_block_end(lines: &[LexedLine], index: usize) -> usize {
+	let indent = lines.get(index).map_or(0, |line| line.indent);
+	let opens_with_doc_marker = lines.get(index).is_some_and(LexedLine::has_doc_marker);
+	let mut end = index + 1;
+
+	while let Some(candidate) = lines.get(end) {
+		let continues = (candidate.is_comment() || candidate.is_trailing_comment_only())
+			&& candidate.indent == indent
+			&& candidate.has_doc_marker() == opens_with_doc_marker;
+
+		if !continues {
+			break;
+		}
+
+		end += 1;
+	}
+
+	end
+}
+
+/// The intent the block spanning `index..end` carries as a whole.
+fn comment_block_intent(lines: &[LexedLine], index: usize, end: usize) -> CommentIntent {
+	let is_doc =
+		lines.get(index).and_then(|line| line.comment_intent) == Some(CommentIntent::Documentation);
+	let body = lines
+		.get(index..end)
+		.unwrap_or_default()
+		.iter()
+		.map(LexedLine::comment_body)
+		.collect::<Vec<_>>()
+		.join("\n");
+
+	classify(&body, is_doc)
 }
 
 /// Marks leading string literals as documentation.
@@ -1422,29 +1484,30 @@ fn mark_doc_strings(lines: &mut [LexedLine]) {
 	let mut expect_docstring = true;
 
 	for line in lines.iter_mut() {
-		if line.is_blank() {
+		if line.is_blank() || line.is_literal() {
+			// A literal line is a candidate only while a docstring is expected, and a blank one
+			// changes nothing; neither updates the expectation.
+			if line.is_literal() && expect_docstring {
+				line.comment_intent = Some(CommentIntent::Documentation);
+			}
+
 			continue;
 		}
 
-		// A literal line is a candidate only while a docstring is expected.
-		if line.is_literal() && expect_docstring {
-			line.comment_intent = Some(CommentIntent::Documentation);
-
-			continue;
-		}
-
-		if line.is_literal() {
-			continue;
-		}
-
-		// A declaration reopens the expectation: the next literal inside it is its docstring.
-		let starts_scope = line.masked_code.trim_end().ends_with(':');
-		expect_docstring = starts_scope;
-
-		if line.is_code() && !starts_scope {
-			expect_docstring = false;
-		}
+		expect_docstring = reopens_docstring_expectation(line);
 	}
+}
+
+/// Whether a non-literal line leaves the next literal eligible as a docstring.
+///
+/// A declaration reopens the expectation, because the next literal inside it is its docstring;
+/// any other code closes it.
+fn reopens_docstring_expectation(line: &LexedLine) -> bool {
+	if !line.is_code() {
+		return true;
+	}
+
+	line.masked_code.trim_end().ends_with(':')
 }
 
 /// Records every construct that is still open at end of file.
@@ -1896,8 +1959,10 @@ fn apply_code_signals(line: &mut LexedLine, profile: &LanguageProfile) {
 		}
 	}
 
+	let else_ifs = count_decision(&masked, &joined, "else if");
+
 	for keyword in profile.nesting_keywords {
-		for _ in 0..count_decision(&masked, &joined, keyword) {
+		for _ in 0..nesting_keyword_count(&masked, &joined, keyword, else_ifs) {
 			line.nesting.push((*keyword).to_string());
 		}
 	}
@@ -1952,6 +2017,22 @@ fn tokenize_words(code: &str) -> Vec<String> {
 	}
 
 	words
+}
+
+/// How many times `keyword` opens nesting on this line, corrected for `else if`.
+///
+/// `else if` is one construct that three keywords describe, so a line reading `} else if x {`
+/// must not record "if", "else if", and "else" as three nested decisions. The else-if count is
+/// subtracted from the bare "if" and "else" counts, which otherwise include it as standalone
+/// words, so each construct is charged exactly once.
+fn nesting_keyword_count(masked: &str, joined: &str, keyword: &str, else_ifs: usize) -> usize {
+	let count = count_decision(masked, joined, keyword);
+
+	if (keyword == "if" || keyword == "else") && else_ifs > 0 {
+		count.saturating_sub(else_ifs)
+	} else {
+		count
+	}
 }
 
 /// Counts occurrences of a keyword in a joined word stream.
@@ -2064,21 +2145,7 @@ pub fn resolve_parameter_spans(lines: &mut [LexedLine], profile: &LanguageProfil
 			continue;
 		}
 
-		let mut depth = opens as isize - closes as isize;
-		let mut span = 1;
-		let mut cursor = index;
-
-		while cursor + 1 < lines.len() {
-			cursor += 1;
-			span += 1;
-
-			let (opens, closes) = depths.get(cursor).copied().unwrap_or((0, 0));
-			depth += opens as isize - closes as isize;
-
-			if depth <= 0 {
-				break;
-			}
-		}
+		let span = parameter_list_span(&depths, index, opens as isize - closes as isize);
 
 		if let Some(line) = lines.get_mut(index) {
 			line.parameter_span = span;
@@ -2086,4 +2153,24 @@ pub fn resolve_parameter_spans(lines: &mut [LexedLine], profile: &LanguageProfil
 
 		index += 1;
 	}
+}
+
+/// How many lines the parameter list that opens at `index` spans, including its opener.
+fn parameter_list_span(depths: &[(usize, usize)], index: usize, mut depth: isize) -> usize {
+	let mut span = 1;
+	let mut cursor = index;
+
+	while cursor + 1 < depths.len() {
+		cursor += 1;
+		span += 1;
+
+		let (opens, closes) = depths.get(cursor).copied().unwrap_or((0, 0));
+		depth += opens as isize - closes as isize;
+
+		if depth <= 0 {
+			break;
+		}
+	}
+
+	span
 }

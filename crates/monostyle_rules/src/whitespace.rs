@@ -307,14 +307,8 @@ fn continues_a_directive(lines: &[LexedLine], index: usize) -> bool {
 	// above look like: semicolon-terminated imports (`use a;` in Rust, `import
 	// 'a.dart';` in Dart) each end their own statement, so the walk below would
 	// stop at the previous one and never find the chain's start.
-	if let Some(line) = lines.get(index) {
-		let code = line.masked_code.trim_start();
-		if DIRECTIVES
-			.iter()
-			.any(|directive| code.starts_with(directive))
-		{
-			return true;
-		}
+	if lines.get(index).is_some_and(is_directive_line) {
+		return true;
 	}
 
 	for candidate in lines.iter().take(index).rev().take(CHAIN_LIMIT) {
@@ -324,15 +318,21 @@ fn continues_a_directive(lines: &[LexedLine], index: usize) -> bool {
 			return false;
 		}
 
-		if DIRECTIVES
-			.iter()
-			.any(|directive| code.starts_with(directive))
-		{
+		if is_directive_line(candidate) {
 			return true;
 		}
 	}
 
 	false
+}
+
+/// Whether the line opens with a directive keyword such as `use` or `import`.
+fn is_directive_line(line: &LexedLine) -> bool {
+	let code = line.masked_code.trim_start();
+
+	DIRECTIVES
+		.iter()
+		.any(|directive| code.starts_with(directive))
 }
 
 /// Returns true when the lines above `index` already separate this statement.
@@ -1604,34 +1604,31 @@ impl CommentBlock {
 		let mut cursor = start;
 		let mut gap = None;
 
-		loop {
-			let line = file.lines.get(cursor)?;
-
-			if line.is_comment() {
-				// A comment after the gap is not part of this block: it describes the code
-				// below itself, and absorbing it here would put it inside the fix's span.
-				if gap.is_some() {
-					return Some(Self {
-						start,
-						gap,
-						gap_end: cursor,
-						attached: cursor,
-					});
-				}
-
+		while let Some(line) = file.lines.get(cursor) {
+			if line.is_comment() && gap.is_none() {
 				cursor += 1;
-			} else if line.is_blank() {
+
+				continue;
+			}
+
+			if line.is_blank() {
 				gap.get_or_insert(cursor);
 				cursor += 1;
-			} else {
-				return Some(Self {
-					start,
-					gap,
-					gap_end: cursor,
-					attached: cursor,
-				});
+
+				continue;
 			}
+
+			// A comment after the gap is not part of this block: it describes the code
+			// below itself, and absorbing it here would put it inside the fix's span.
+			return Some(Self {
+				start,
+				gap,
+				gap_end: cursor,
+				attached: cursor,
+			});
 		}
+
+		None
 	}
 
 	/// The finding for a block separated from its code, if the separation counts.
@@ -1998,21 +1995,17 @@ fn decision_belongs_to_a_binding(lines: &[LexedLine], index: usize) -> bool {
 ///
 /// `final x =`, `cond ??`, and `return ` all open a value; a statement that already ended in
 /// `;`, `}`, or `{` does not.
+/// The tokens a line can end with that leave a binding open for the line below.
+const BINDING_OPENERS: &[&str] = &[
+	"=", "=>", "return", "return (", "??", "&&", "||", "+", ",", "(",
+];
+
 fn opens_a_binding(above: &str) -> bool {
 	if above.ends_with(';') || above.ends_with('}') || above.ends_with('{') {
 		return false;
 	}
 
-	above.ends_with('=')
-		|| above.ends_with("=>")
-		|| above.ends_with("return")
-		|| above.ends_with("return (")
-		|| above.ends_with("??")
-		|| above.ends_with("&&")
-		|| above.ends_with("||")
-		|| above.ends_with('+')
-		|| above.ends_with(',')
-		|| above.ends_with('(')
+	BINDING_OPENERS.iter().any(|token| above.ends_with(token))
 }
 
 fn inside_expression(
