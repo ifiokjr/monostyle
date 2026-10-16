@@ -35,7 +35,7 @@ jobs:
     # the grant sits on this job alone rather than on the workflow.
     permissions:
       contents: read
-      pull-requests: write
+      pull-requests: write # posting the benchmark comparison comment and nothing else
     steps:
       # Values the shell steps read are passed through the environment rather than interpolated
       # into `run:` blocks, so no pull-request-controlled string can reach a shell as code.
@@ -60,10 +60,14 @@ jobs:
           git fetch origin main
           echo "sha=$(git merge-base HEAD origin/main)" >> "$GITHUB_OUTPUT"
 
+      # The pinned nightly is installed with the runner's own rustup rather than the toolchain
+      # action the other workflows use, so this new workflow does not add another instance of the
+      # superfluous-action finding the repository already carries eight of.
       - name: install rust toolchain
-        uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
-        with:
-          toolchain: nightly-2026-09-07
+        run: |
+          set -euo pipefail
+          rustup toolchain install nightly-2026-09-07 --profile minimal
+          rustup override set nightly-2026-09-07
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
