@@ -1870,9 +1870,38 @@ const PEEK: usize = 6;
 /// Scanning must not allocate per character. Every step used to collect the whole remaining file
 /// into a `String` purely to test a two-character delimiter, which made the scanner quadratic in
 /// file size — a seven-thousand-line file did not finish within a minute. A bounded window answers
-/// the same questions in constant work per character.
-fn peek(characters: &[char], index: usize) -> String {
-	characters.iter().skip(index).take(PEEK).collect()
+/// the same questions in constant work per character, and encoding it into a stack buffer rather
+/// than a fresh `String` keeps the answer allocation-free: one malloc per character was the
+/// scanner's dominant cost after the window itself was bounded.
+struct Peek {
+	/// UTF-8 encodings of up to [`PEEK`] characters.
+	buffer: [u8; PEEK * 4],
+	/// How many bytes of `buffer` are in use.
+	length: usize,
+}
+
+impl std::ops::Deref for Peek {
+	type Target = str;
+
+	fn deref(&self) -> &str {
+		// The buffer holds only complete `char` encodings, so it is valid UTF-8 by construction
+		// and the fallback cannot be reached.
+		std::str::from_utf8(&self.buffer[..self.length]).unwrap_or("")
+	}
+}
+
+fn peek(characters: &[char], index: usize) -> Peek {
+	let mut window = Peek {
+		buffer: [0; PEEK * 4],
+		length: 0,
+	};
+
+	for character in characters[index..].iter().take(PEEK) {
+		let encoded = character.encode_utf8(&mut window.buffer[window.length..]);
+		window.length += encoded.len();
+	}
+
+	window
 }
 
 /// The longest span of a line any check needs to inspect.
@@ -1908,9 +1937,8 @@ fn terminates_with_suffix(candidate: &str, delimiter: &str) -> bool {
 /// Used where a check must reason about the rest of the line rather than the rest of the file, such
 /// as finding a regex literal's closing slash.
 fn peek_line(characters: &[char], index: usize, limit: usize) -> String {
-	characters
+	characters[index..]
 		.iter()
-		.skip(index)
 		.take_while(|character| **character != '\n')
 		.take(limit)
 		.collect()

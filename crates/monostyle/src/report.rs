@@ -657,10 +657,16 @@ fn write_level(commands: &mut String, report: &ProjectReport, level: &str, budge
 			emitted += 1;
 			let message = format!("[{}] {}", finding.rule, finding.message);
 			let escaped = escape_workflow_command(&message);
+			// The path and the rule ride in the command's property list, where a comma would end a
+			// property and an equal sign would start one. A file named `a,b=c.rs` would otherwise
+			// inject properties into the annotation rather than name a file. They are escaped with
+			// the same scheme as the message, which covers everything structural except the comma.
+			let path = escape_workflow_command(&path).replace(',', "%2C");
+			let title = escape_workflow_command(&finding.rule).replace(',', "%2C");
 			writeln!(
 				commands,
-				"::{level} file={path},line={},endLine={},title={}::{}",
-				finding.span.start_line, finding.span.end_line, finding.rule, escaped,
+				"::{level} file={path},line={},endLine={},title={title}::{}",
+				finding.span.start_line, finding.span.end_line, escaped,
 			)
 			.expect("a String write cannot fail");
 		}

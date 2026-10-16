@@ -249,3 +249,71 @@ fn a_crlf_file_keeps_its_line_endings_through_the_safety_net() {
 		"every line ending stays CRLF, including the collapsed run"
 	);
 }
+
+#[cfg(unix)]
+#[test]
+fn a_written_fix_preserves_the_files_permissions() {
+	// The write is a rename over the original, which would otherwise leave the file with the
+	// temporary file's default mode. A script the fixer tidied must stay executable.
+	use std::os::unix::fs::PermissionsExt as _;
+
+	let source = "fn work() {\n    let a = 1;\n\n\n\n    let b = 2;\n}\n";
+	let path = temp_file("permissions", "rs", source);
+
+	std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755))
+		.expect("mode should be settable");
+
+	let lexed = monostyle_lexer::lex(source, monostyle_core::Language::Rust);
+	let fixes: Vec<Fix> = monostyle_rules::whitespace::excessive_blank_lines(
+		&lexed,
+		&monostyle_rules::RulesConfig::default(),
+	)
+	.into_iter()
+	.filter_map(|finding| finding.fix)
+	.collect();
+
+	let outcome = fix_file(&path, &fixes, false).expect("the fix should run");
+
+	assert!(outcome.written, "the stacked run should be collapsed");
+
+	let mode = std::fs::metadata(&path)
+		.expect("the file should stat")
+		.permissions()
+		.mode();
+
+	assert_eq!(
+		mode & 0o777,
+		0o755,
+		"the fixed file keeps its executable mode"
+	);
+}
+
+#[test]
+fn a_written_fix_leaves_no_temporary_file_behind() {
+	let source = "fn work() {\n    let a = 1;\n\n\n\n    let b = 2;\n}\n";
+	let path = temp_file("atomic", "rs", source);
+
+	let lexed = monostyle_lexer::lex(source, monostyle_core::Language::Rust);
+	let fixes: Vec<Fix> = monostyle_rules::whitespace::excessive_blank_lines(
+		&lexed,
+		&monostyle_rules::RulesConfig::default(),
+	)
+	.into_iter()
+	.filter_map(|finding| finding.fix)
+	.collect();
+
+	fix_file(&path, &fixes, false).expect("the fix should run");
+
+	let siblings = std::fs::read_dir(path.parent().expect("a parent"))
+		.expect("the directory should list")
+		.filter_map(Result::ok)
+		.filter(|entry| {
+			let file_name = entry.file_name();
+			let name = file_name.to_string_lossy();
+
+			name.contains("atomic.rs") && name.contains("monostyle-tmp")
+		})
+		.count();
+
+	assert_eq!(siblings, 0, "the temporary file should be renamed away");
+}

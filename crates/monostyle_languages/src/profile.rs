@@ -233,36 +233,28 @@ pub struct LanguageProfile {
 impl LanguageProfile {
 	/// Returns the block-comment pair that `text` starts with, if any.
 	///
-	/// Longer delimiters are matched first so that Lua's `--[[` beats `--`.
+	/// The longest delimiter wins, so Lua's `--[[` beats `--`. This runs once per character in
+	/// code position, so it selects the winner without allocating.
 	#[must_use]
 	pub fn block_comment_at(&self, text: &str) -> Option<(&'static str, &'static str)> {
-		let mut matches: Vec<(&'static str, &'static str)> = self
-			.block_comments
+		self.block_comments
 			.iter()
 			.copied()
 			.filter(|(open, _)| text.starts_with(open))
-			.collect();
-
-		matches.sort_by_key(|(open, _)| std::cmp::Reverse(open.len()));
-
-		matches.into_iter().next()
+			.max_by_key(|(open, _)| open.len())
 	}
 
 	/// Returns the line-comment token that `text` starts with, if any.
 	///
-	/// Longer tokens are matched first so that `///` is recognized before `//`.
+	/// The longest token wins, so `///` is recognized before `//`, allocation-free for the same
+	/// reason as [`Self::block_comment_at`].
 	#[must_use]
 	pub fn line_comment_at(&self, text: &str) -> Option<&'static str> {
-		let mut matches: Vec<&'static str> = self
-			.line_comments
+		self.line_comments
 			.iter()
 			.copied()
 			.filter(|token| text.starts_with(token))
-			.collect();
-
-		matches.sort_by_key(|token| std::cmp::Reverse(token.len()));
-
-		matches.into_iter().next()
+			.max_by_key(|token| token.len())
 	}
 
 	/// Whether this language documents items with string literals rather than comments.

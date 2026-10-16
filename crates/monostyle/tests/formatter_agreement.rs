@@ -44,13 +44,7 @@ fn fixed_bytes(source: &Path) -> Vec<u8> {
 	let target = temp.path().join(source.file_name().expect("a file name"));
 	std::fs::write(&target, &original).expect("write the copy");
 
-	let report = analyze_paths(
-		std::slice::from_ref(&target),
-		&AnalysisOptions {
-			cache: false,
-			..AnalysisOptions::default()
-		},
-	);
+	let report = analyze_paths(std::slice::from_ref(&target), &AnalysisOptions::default());
 
 	for file in &report.files {
 		let fixes: Vec<Fix> = file

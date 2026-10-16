@@ -24,11 +24,7 @@ fn fixture(relative: &str) -> PathBuf {
 /// Analyzes a fixture directory.
 fn analyze(relative: &str) -> monostyle::analysis::ProjectReport {
 	let root = fixture(relative);
-	let options = AnalysisOptions {
-		cache: false,
-
-		..AnalysisOptions::default()
-	};
+	let options = AnalysisOptions::default();
 	let paths = collect_paths(&root, true, &options.rules.ignore);
 	analyze_paths(&paths, &options)
 }
@@ -190,11 +186,7 @@ fn rendering_never_produces_a_ragged_score_line() {
 #[test]
 fn an_empty_report_renders_without_panicking() {
 	// A directory with no analyzable files reaches the renderer, so it must produce something.
-	let options = AnalysisOptions {
-		cache: false,
-
-		..AnalysisOptions::default()
-	};
+	let options = AnalysisOptions::default();
 	let report_value = analyze_paths(&[], &options);
 
 	let rendered = report::render_project(&report_value, true, true);
@@ -418,10 +410,7 @@ fn analyze_source(source: &str) -> monostyle::analysis::ProjectReport {
 	let temp = tempfile::tempdir().expect("a temporary directory");
 	std::fs::write(temp.path().join("work.rs"), source).expect("write");
 
-	let options = AnalysisOptions {
-		cache: false,
-		..AnalysisOptions::default()
-	};
+	let options = AnalysisOptions::default();
 	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
 	analyze_paths(&paths, &options)
 }

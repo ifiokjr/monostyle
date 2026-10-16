@@ -374,7 +374,7 @@ fn report_floor_failures(report: &analysis::ProjectReport, args: &CheckArgs) {
 	}
 }
 
-/// One file's fix outcome, with the findings that explain it./// One file's fix outcome, with the findings that explain it.
+/// One file's fix outcome, with the findings that explain it.
 struct FixOutcome {
 	/// What the fixer did to the file.
 	outcome: fix::AppliedFixes,
@@ -441,7 +441,7 @@ fn fix_one_file(path: &Path, args: &FixArgs, options: &AnalysisOptions) -> Optio
 		.filter_map(|finding| finding.fix.clone())
 		.collect();
 
-	let outcome = fix::fix_file(path, &fixes, args.dry_run).ok()?;
+	let outcome = fix::fix_source(path, &source, &fixes, args.dry_run).ok()?;
 
 	if outcome.reverted {
 		eprintln!(

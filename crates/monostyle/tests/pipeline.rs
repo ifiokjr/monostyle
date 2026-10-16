@@ -1,7 +1,7 @@
 //! Tests for the analysis pipeline's less-travelled paths.
 //!
-//! These cover what the fixture-driven suites do not reach: the cache-hit path through analysis, files
-//! that cannot be read, workspace formats other than Cargo, and the report's conditional sections.
+//! These cover what the fixture-driven suites do not reach: files that cannot be read, workspace
+//! formats other than Cargo, and the report's conditional sections.
 
 use monostyle::analysis::AnalysisOptions;
 use monostyle::analysis::analyze_paths;
@@ -26,13 +26,9 @@ fn lines_of(items: impl IntoIterator<Item = String>) -> String {
 	})
 }
 
-/// Returns analysis options with the cache off.
-fn uncached() -> AnalysisOptions {
-	AnalysisOptions {
-		cache: false,
-
-		..AnalysisOptions::default()
-	}
+/// Returns analysis options with the defaults a caller would get from the CLI.
+fn options() -> AnalysisOptions {
+	AnalysisOptions::default()
 }
 
 // ---------------------------------------------------------------------------
@@ -62,7 +58,7 @@ fn an_unknown_extension_resolves_nothing() {
 
 #[test]
 fn analyzing_source_with_an_unknown_extension_produces_nothing() {
-	let report = analyze_source(std::path::Path::new("notes.txt"), "hello", &uncached());
+	let report = analyze_source(std::path::Path::new("notes.txt"), "hello", &options());
 
 	assert!(
 		report.is_none(),
@@ -72,7 +68,7 @@ fn analyzing_source_with_an_unknown_extension_produces_nothing() {
 
 #[test]
 fn analyzing_source_in_a_known_language_produces_a_report() {
-	let report = analyze_source(std::path::Path::new("main.rs"), "fn a() {}\n", &uncached())
+	let report = analyze_source(std::path::Path::new("main.rs"), "fn a() {}\n", &options())
 		.expect("a report");
 
 	assert_eq!(report.language, Language::Rust);
@@ -86,7 +82,7 @@ fn analyzing_with_an_explicit_language_does_not_consult_the_path() {
 		std::path::Path::new("misleading.txt"),
 		"fn a() {}\n",
 		Language::Rust,
-		&uncached(),
+		&options(),
 	);
 
 	assert_eq!(report.language, Language::Rust);
@@ -123,129 +119,6 @@ fn collection_honours_the_ignore_patterns() {
 
 	assert_eq!(paths.len(), 1);
 	assert!(paths[0].ends_with("main.rs"));
-}
-
-// ---------------------------------------------------------------------------
-// The cache-hit path
-// ---------------------------------------------------------------------------
-#[test]
-fn a_cached_run_produces_the_same_report_as_an_uncached_one() {
-	// The cache-hit path builds a report from lines that were serialized and restored, so a field lost in
-	// that round trip would change a score between the first and second run of the same command.
-	let temp = tempfile::tempdir().expect("a temporary directory");
-	let source = "fn a() {\n    work();\n    if x {\n        work();\n    }\n}\n";
-	std::fs::write(temp.path().join("sample.rs"), source).expect("write");
-
-	// A `target` directory makes the cache discoverable.
-	std::fs::create_dir_all(temp.path().join("target")).expect("mkdir");
-
-	let options = AnalysisOptions {
-		cache: true,
-
-		..AnalysisOptions::default()
-	};
-	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
-
-	let first = analyze_paths(&paths, &options);
-	let second = analyze_paths(&paths, &options);
-
-	assert_eq!(first.readability.value, second.readability.value);
-	assert_eq!(first.complexity.value, second.complexity.value);
-	assert_eq!(
-		first.files[0].findings.len(),
-		second.files[0].findings.len()
-	);
-	assert_eq!(first.code_lines, second.code_lines);
-}
-
-#[test]
-fn a_cached_run_finds_the_same_rules() {
-	let temp = tempfile::tempdir().expect("a temporary directory");
-
-	std::fs::write(
-		temp.path().join("sample.rs"),
-		"fn a() {\n    work();\n    if x {\n        work();\n    }\n    let y = z * 86400;\n}\n",
-	)
-	.expect("write");
-
-	std::fs::create_dir_all(temp.path().join("target")).expect("mkdir");
-
-	let options = AnalysisOptions {
-		cache: true,
-
-		..AnalysisOptions::default()
-	};
-	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
-
-	let rules_of = |report: &monostyle::analysis::ProjectReport| {
-		let mut names: Vec<String> = report
-			.files
-			.iter()
-			.flat_map(|file| file.findings.iter().map(|finding| finding.rule.clone()))
-			.collect();
-
-		names.sort_unstable();
-		names
-	};
-
-	let first = rules_of(&analyze_paths(&paths, &options));
-	let second = rules_of(&analyze_paths(&paths, &options));
-
-	assert_eq!(first, second, "a cache hit changed which rules fired");
-	assert!(!first.is_empty(), "the fixture should produce findings");
-}
-
-#[test]
-fn a_cached_run_reports_unit_scores_too() {
-	// Unit scores come from the memoized metrics, which the cache-hit path recomputes from restored lines.
-	let temp = tempfile::tempdir().expect("a temporary directory");
-
-	std::fs::write(
-		temp.path().join("sample.rs"),
-		"fn a() {\n    work();\n}\n\nfn b() {\n    work();\n}\n",
-	)
-	.expect("write");
-
-	std::fs::create_dir_all(temp.path().join("target")).expect("mkdir");
-
-	let options = AnalysisOptions {
-		cache: true,
-
-		..AnalysisOptions::default()
-	};
-	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
-
-	let first = analyze_paths(&paths, &options);
-	let second = analyze_paths(&paths, &options);
-
-	assert_eq!(first.files[0].units.len(), second.files[0].units.len());
-	assert!(!first.files[0].units.is_empty());
-}
-
-// ---------------------------------------------------------------------------
-// Cache disable
-// ---------------------------------------------------------------------------
-#[test]
-fn disabling_the_cache_skips_discovery() {
-	let temp = tempfile::tempdir().expect("a temporary directory");
-	std::fs::write(temp.path().join("sample.rs"), "fn a() {}\n").expect("write");
-	std::fs::create_dir_all(temp.path().join("target")).expect("mkdir");
-
-	let options = AnalysisOptions {
-		cache: false,
-
-		..AnalysisOptions::default()
-	};
-	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
-
-	let _ = analyze_paths(&paths, &options);
-
-	let cache_directory = temp.path().join("target/monostyle");
-
-	assert!(
-		!cache_directory.exists(),
-		"a disabled cache should not create anything"
-	);
 }
 
 // ---------------------------------------------------------------------------
@@ -472,7 +345,7 @@ fn a_report_with_tokenizer_warnings_prints_them() {
 	let report = analyze_source(
 		std::path::Path::new("broken.rs"),
 		"let text = r#\"never closed\nfn a() {}\n",
-		&uncached(),
+		&options(),
 	)
 	.expect("a report");
 
@@ -482,7 +355,7 @@ fn a_report_with_tokenizer_warnings_prints_them() {
 	);
 
 	let rendered = monostyle::report::render_project(
-		&monostyle::analysis::aggregate(vec![report], Vec::new(), &uncached()),
+		&monostyle::analysis::aggregate(vec![report], Vec::new(), &options()),
 		false,
 		false,
 	);
@@ -499,7 +372,7 @@ fn a_report_with_no_packages_omits_the_package_table() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
 	std::fs::write(temp.path().join("sample.rs"), "fn a() {}\n").expect("write");
 
-	let options = uncached();
+	let options = options();
 	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
 	let mut report = analyze_paths(&paths, &options);
 
@@ -531,7 +404,7 @@ fn a_report_with_many_findings_truncates_the_list() {
 	)
 	.expect("write");
 
-	let options = uncached();
+	let options = options();
 	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
 	let report = analyze_paths(&paths, &options);
 
@@ -558,7 +431,7 @@ fn a_report_with_many_rules_truncates_the_impact_table() {
 	)
 	.expect("write");
 
-	let options = uncached();
+	let options = options();
 	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
 	let rendered =
 		monostyle::report::render_project(&analyze_paths(&paths, &options), false, false);
@@ -573,7 +446,7 @@ fn a_unit_table_limits_its_rows() {
 	let functions = lines_of((0..20).map(|index| format!("fn f{index}() {{ work(); }}\n")));
 	std::fs::write(temp.path().join("sample.rs"), functions).expect("write");
 
-	let options = uncached();
+	let options = options();
 	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
 	let rendered = monostyle::report::render_project(&analyze_paths(&paths, &options), false, true);
 

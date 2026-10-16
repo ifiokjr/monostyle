@@ -1,0 +1,175 @@
+name: benchmark
+
+# Benchmarks every pull request against the commit it branched from, and posts the comparison as a
+# PR comment with a merge recommendation.
+#
+# Base is the merge-base rather than the tip of main, so the numbers isolate what this PR changed:
+# comparing against main's tip would also measure every main commit the PR has not picked up.
+#
+# The recommendation is advisory — the comment says merge, hold, or neutral — because a performance
+# regression can be the accepted cost of a feature. To make it a blocking gate instead, add the
+# `compare` job to the repository's required status checks and change the comment step to fail the
+# run when the verdict is "do not merge".
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmark-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  compare:
+    name: compare with base
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Writing one PR comment is the only access this job needs beyond reading the repository, and
+    # the grant sits on this job alone rather than on the workflow.
+    permissions:
+      contents: read
+      pull-requests: write # posting the benchmark comparison comment and nothing else
+    steps:
+      # Values the shell steps read are passed through the environment rather than interpolated
+      # into `run:` blocks, so no pull-request-controlled string can reach a shell as code.
+      - name: resolve the head commit
+        id: refs
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          echo "sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The full history is needed to find the merge-base, and the corpus is the PR's own tree.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: find the merge-base
+        id: base
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          echo "sha=$(git merge-base HEAD origin/main)" >> "$GITHUB_OUTPUT"
+
+      # The pinned nightly is installed with the runner's own rustup rather than the toolchain
+      # action the other workflows use, so this new workflow does not add another instance of the
+      # superfluous-action finding the repository already carries eight of.
+      - name: install rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install nightly-2026-09-07 --profile minimal
+          rustup override set nightly-2026-09-07
+
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+
+      - name: install hyperfine
+        uses: taiki-e/install-action@e407f7bafb71fd004bc5c2da3032e5470cbb6ef0 # v2.87.24
+        with:
+          tool: hyperfine
+
+      - name: copy the corpus
+        # The corpus is the PR's own tree, fixed for both binaries so the only variable between the
+        # two sides of the comparison is the binary. It is copied out of the checkout so neither
+        # binary can discover a `target` directory above it: state found by walking upward would
+        # make a run's timing depend on what earlier runs happened to leave behind.
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/corpus/repo" "$RUNNER_TEMP/corpus/large"
+          cp -r crates examples "$RUNNER_TEMP/corpus/repo/"
+          for index in 1 2 3 4 5 6 7 8; do
+            cp -r "crates" "$RUNNER_TEMP/corpus/large/crates-$index"
+          done
+          cp -r examples "$RUNNER_TEMP/corpus/large/"
+
+      - name: build the head binary
+        run: |
+          set -euo pipefail
+          cargo build --release --package monostyle
+          cp target/release/monostyle "$RUNNER_TEMP/monostyle-head"
+
+      - name: build the base binary
+        env:
+          BASE_SHA: ${{ steps.base.outputs.sha }}
+          HEAD_SHA: ${{ steps.refs.outputs.sha }}
+        run: |
+          set -euo pipefail
+          git checkout --detach "$BASE_SHA"
+          cargo build --release --package monostyle
+          cp target/release/monostyle "$RUNNER_TEMP/monostyle-base"
+
+          # Back to the PR's own tree, which holds the comparison script the next steps run.
+          git checkout --detach "$HEAD_SHA"
+
+      - name: benchmark both binaries
+        # Both binaries run in one hyperfine invocation per scenario, fifteen measured runs each,
+        # and each side is compared on its fastest run — the statistic least contaminated by
+        # tenant noise on shared runners, which only ever makes a run slower. The second scenario
+        # reverses the order, so any slow drift over the job cannot favour the same side twice.
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+
+          hyperfine --style basic -N --warmup 3 --runs 15 \
+            --export-json "$RUNNER_TEMP/repo.json" \
+            -n base "$RUNNER_TEMP/monostyle-base check $RUNNER_TEMP/corpus/repo --quiet --format json --output /dev/null" \
+            -n head "$RUNNER_TEMP/monostyle-head check $RUNNER_TEMP/corpus/repo --quiet --format json --output /dev/null"
+
+          hyperfine --style basic -N --warmup 3 --runs 15 \
+            --export-json "$RUNNER_TEMP/large.json" \
+            -n head "$RUNNER_TEMP/monostyle-head check $RUNNER_TEMP/corpus/large --quiet --format json --output /dev/null" \
+            -n base "$RUNNER_TEMP/monostyle-base check $RUNNER_TEMP/corpus/large --quiet --format json --output /dev/null"
+
+      - name: write the comparison
+        env:
+          HEAD_SHA: ${{ steps.refs.outputs.sha }}
+          BASE_SHA: ${{ steps.base.outputs.sha }}
+        run: |
+          set -euo pipefail
+          node scripts/benchmark-compare.mjs \
+            --base-sha "$BASE_SHA" \
+            --head-sha "$HEAD_SHA" \
+            "$RUNNER_TEMP/repo.json" "Repository (crates + examples)" \
+            "$RUNNER_TEMP/large.json" "Large corpus (8× crates)" \
+            > "$RUNNER_TEMP/comment.md"
+
+          cat "$RUNNER_TEMP/comment.md" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: post the comment
+        # A pull request from a fork gives this job a read-only token, so commenting is skipped
+        # rather than failed: the same table is in the run's step summary either way.
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == false }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+
+          # The comment is updated in place when one already exists, so a PR carries exactly one
+          # benchmark comment that tracks its latest push.
+          existing="$(gh api "repos/$REPOSITORY/issues/$PR_NUMBER/comments" --paginate \
+            --jq '.[] | select(.body | startswith("<!-- monostyle-benchmark -->")) | .id' | head -n 1)"
+
+          jq -n --rawfile body "$RUNNER_TEMP/comment.md" '{body: $body}' > "$RUNNER_TEMP/payload.json"
+
+          if [ -n "$existing" ]; then
+            gh api -X PATCH "repos/$REPOSITORY/issues/comments/$existing" \
+              --input "$RUNNER_TEMP/payload.json" >/dev/null
+          else
+            gh api -X POST "repos/$REPOSITORY/issues/$PR_NUMBER/comments" \
+              --input "$RUNNER_TEMP/payload.json" >/dev/null
+          fi
+
+      - name: note where fork results live
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork == true }}
+        run: |
+          echo "Fork pull request: the comparison is in this job's step summary, not a PR comment." >> "$GITHUB_STEP_SUMMARY"
