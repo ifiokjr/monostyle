@@ -29,11 +29,7 @@ fn fixture(relative: &str) -> PathBuf {
 /// Analyzes a fixture directory with the default options.
 fn analyze(relative: &str) -> ProjectReport {
 	let root = fixture(relative);
-	let options = AnalysisOptions {
-		cache: false,
-
-		..AnalysisOptions::default()
-	};
+	let options = AnalysisOptions::default();
 	let paths = collect_paths(&root, true, &options.rules.ignore);
 
 	assert!(
@@ -51,11 +47,7 @@ fn analyze(relative: &str) -> ProjectReport {
 /// a helper that insists on finding something would make that test impossible to write.
 fn analyze_allow_empty(relative: &str) -> ProjectReport {
 	let root = fixture(relative);
-	let options = AnalysisOptions {
-		cache: false,
-
-		..AnalysisOptions::default()
-	};
+	let options = AnalysisOptions::default();
 	let paths = collect_paths(&root, true, &options.rules.ignore);
 	analyze_paths(&paths, &options)
 }
@@ -192,7 +184,6 @@ fn generated_files_are_excluded_by_default() {
 fn generated_files_can_be_included() {
 	let root = fixture("generated");
 	let options = AnalysisOptions {
-		cache: false,
 		rules: monostyle_rules::RulesConfig {
 			ignore: IgnoreConfig {
 				generated: false,
@@ -559,11 +550,7 @@ fn repeated_analysis_of_many_files_is_identical() {
 	let temp = tempfile::tempdir().expect("a temporary directory");
 	std::fs::write(temp.path().join("many.rs"), &source).expect("write");
 
-	let options = AnalysisOptions {
-		cache: false,
-
-		..AnalysisOptions::default()
-	};
+	let options = AnalysisOptions::default();
 	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
 
 	let first = analyze_paths(&paths, &options);
@@ -611,11 +598,7 @@ fn every_unit_is_measured_with_its_own_lines() {
 
 	std::fs::write(temp.path().join("many.rs"), &source).expect("write");
 
-	let options = AnalysisOptions {
-		cache: false,
-
-		..AnalysisOptions::default()
-	};
+	let options = AnalysisOptions::default();
 	let paths = collect_paths(temp.path(), true, &options.rules.ignore);
 	let report = analyze_paths(&paths, &options);
 

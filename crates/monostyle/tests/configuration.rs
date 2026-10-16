@@ -184,13 +184,6 @@ fn neither_tolerance_flag_leaves_the_defaults_alone() {
 }
 
 #[test]
-fn the_default_options_enable_the_cache() {
-	// The cache was silently disabled once because a derived `Default` made every boolean false. This
-	// pins the intent so it cannot regress the same way.
-	assert!(AnalysisOptions::default().cache);
-}
-
-#[test]
 fn the_severe_line_width_tracks_the_configured_limit() {
 	let options = options("[rules]\nmax-line-width = 200\n");
 

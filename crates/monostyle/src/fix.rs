@@ -146,7 +146,23 @@ pub fn enters_protected(fix: &Fix, ranges: &[ProtectedRange]) -> bool {
 /// would produce.
 pub fn fix_file(path: &Path, fixes: &[Fix], dry_run: bool) -> std::io::Result<AppliedFixes> {
 	let source = std::fs::read_to_string(path)?;
-	let scan = scan_of(path, &source);
+	fix_source(path, &source, fixes, dry_run)
+}
+
+/// Applies `fixes` to already-read `source` and writes the result to `path`.
+///
+/// Split from [`fix_file`] so a caller that has already read the file — the `fix` command, whose
+/// analysis of that text produced the fixes — passes one buffer instead of reading the file twice.
+/// Sharing the buffer also guarantees the byte spans in `fixes` describe exactly the text they are
+/// applied to: with two reads, a save between them would apply one run's offsets to another run's
+/// bytes.
+pub fn fix_source(
+	path: &Path,
+	source: &str,
+	fixes: &[Fix],
+	dry_run: bool,
+) -> std::io::Result<AppliedFixes> {
+	let scan = scan_of(path, source);
 
 	// A scan that needed recovery means the lexer guessed where the constructs end. Its protected
 	// ranges may be wrong in exactly the way that would let a fix corrupt a literal, so the file
@@ -160,13 +176,13 @@ pub fn fix_file(path: &Path, fixes: &[Fix], dry_run: bool) -> std::io::Result<Ap
 		.map(|lexed| lexed.protected.clone())
 		.unwrap_or_default();
 	let (rejected, fixable) = separate_protected(fixes, &ranges);
-	let (rewritten, conflicts) = apply_fixes(&source, &fixable);
+	let (rewritten, conflicts) = apply_fixes(source, &fixable);
 	let applied = fixable.len().saturating_sub(conflicts);
-	let (rewritten, reverted) = checked_rewrite(&source, rewritten, &fixable, scan.as_ref());
+	let (rewritten, reverted) = checked_rewrite(source, rewritten, &fixable, scan.as_ref());
 	let changed = rewritten != source && !reverted;
 
 	if !dry_run && changed {
-		std::fs::write(path, &rewritten)?;
+		write_atomic(path, &rewritten)?;
 	}
 
 	Ok(outcome(
@@ -178,6 +194,41 @@ pub fn fix_file(path: &Path, fixes: &[Fix], dry_run: bool) -> std::io::Result<Ap
 		reverted,
 		false,
 	))
+}
+
+/// Writes `text` to `path` so a reader never sees a half-written file.
+///
+/// A direct write truncates the file first, so a crash or a full disk part-way through leaves the
+/// source cut off mid-file — for a tool that rewrites the reader's own code, the worst available
+/// failure. The replacement is written beside the target and renamed over it, which the filesystem
+/// makes atomic. The original's permissions are copied onto the replacement first, so fixing a
+/// script leaves it executable, and a failure anywhere removes the temporary file rather than
+/// littering the tree.
+fn write_atomic(path: &Path, text: &str) -> std::io::Result<()> {
+	let directory = path.parent().unwrap_or_else(|| Path::new("."));
+	let name = path.file_name().map_or_else(
+		|| "monostyle".to_string(),
+		|name| name.to_string_lossy().into_owned(),
+	);
+	let temporary = directory.join(format!(".{name}.{}.monostyle-tmp", std::process::id()));
+
+	let attempt = || {
+		std::fs::write(&temporary, text)?;
+
+		if let Ok(metadata) = std::fs::metadata(path) {
+			std::fs::set_permissions(&temporary, metadata.permissions())?;
+		}
+
+		std::fs::rename(&temporary, path)
+	};
+
+	let result = attempt();
+
+	if result.is_err() {
+		let _ = std::fs::remove_file(&temporary);
+	}
+
+	result
 }
 
 /// Scans `source` under the language `path` implies, if it implies one.

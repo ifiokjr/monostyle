@@ -258,7 +258,7 @@ generated = true
 | monochange | 318   | 193,900       | 0.42s |
 | pina       | 2,198 | 232,417       | 1.08s |
 
-See [docs/performance.md](./docs/performance.md) for what made it fast and what the cache does.
+See [docs/performance.md](./docs/performance.md) for what made it fast and why the disk cache was removed.
 
 ## Design
 

@@ -381,17 +381,15 @@ impl ProjectReport {
 }
 
 /// Analysis settings shared across a run.
-#[derive(Debug, Clone)]
+///
+/// Every field's default is its type's default, which is why `Default` is derived: the one field
+/// that ever needed a hand-written default (the cache switch) is gone.
+#[derive(Debug, Clone, Default)]
 pub struct AnalysisOptions {
 	/// Rule thresholds, including which paths to skip.
 	pub rules: RulesConfig,
 	/// Scoring curve settings.
 	pub scoring: ScoringConfig,
-	/// Whether to reuse a lexed result from a previous run.
-	///
-	/// On by default. The cache is keyed by modification time and size, so a hit only occurs when the
-	/// file is genuinely unchanged.
-	pub cache: bool,
 	/// Score floors that apply across the repository.
 	///
 	/// Checked after scoring, so a run reports which paths fell short and by how much rather than only
@@ -402,23 +400,6 @@ pub struct AnalysisOptions {
 	/// The most specific section that matches a path wins, so a project can hold its core to one standard
 	/// and its tests to another without disabling a rule for everything.
 	pub sections: Vec<crate::section::Section>,
-}
-
-impl Default for AnalysisOptions {
-	fn default() -> Self {
-		Self {
-			rules: RulesConfig::default(),
-
-			scoring: ScoringConfig::default(),
-			// Written out rather than derived, because a derived `Default` would make every boolean
-			// false. That silently disabled the cache: the field existed, the code consulted it, and
-			// the whole feature was dead because the default was the opposite of the intent.
-			cache: true,
-
-			fail_under: crate::section::ScoreFloor::default(),
-			sections: Vec::new(),
-		}
-	}
 }
 
 impl AnalysisOptions {
@@ -487,38 +468,6 @@ pub fn analyze_with_language(
 /// from the rest of the repository without the rule being disabled everywhere.
 fn findings_for(lexed: &LexedFile, path: &Path, options: &AnalysisOptions) -> Vec<Finding> {
 	monostyle_rules::run_rules(lexed, &options.rules_for(path))
-}
-
-/// Builds a report from lines restored from the cache.
-///
-/// The lines are the expensive half of an analysis and are already valid, so only the rules rerun.
-/// Every other input — the thresholds, the scoring curve, and the language — is applied here, which
-/// is why a configuration change does not invalidate the cache.
-fn analyze_lines(
-	path: &Path,
-	lines: &[monostyle_lexer::LexedLine],
-	language: Language,
-	options: &AnalysisOptions,
-) -> FileReport {
-	let lexed = LexedFile {
-		language,
-		profile: monostyle_languages::profile_for(language),
-		lines: lines.to_vec(),
-		// Indentation style is a property of the lines, so it is recomputed rather than cached.
-		uses_tabs: lines.iter().any(|line| line.indent_text.contains('\t')),
-		mixed_indentation: lines.iter().any(|line| line.indent_text.contains('\t'))
-			&& lines
-				.iter()
-				.any(|line| line.indent_text.starts_with("    ")),
-		// The unterminated list is a scan-time diagnostic, and a cached scan has no such list to
-		// report. A file with an unterminated construct misses its first run and is re-scanned.
-		unterminated: Vec::new(),
-		// Protected ranges are a fix-time concern, and the fix path always lexes freshly.
-		protected: Vec::new(),
-	};
-
-	let findings = findings_for(&lexed, path, options);
-	build_report(path, &lexed, findings, options)
 }
 
 /// Builds a report from an already-lexed file.
@@ -937,22 +886,9 @@ fn has_ignored_component(path: &Path) -> bool {
 pub fn analyze_paths(paths: &[PathBuf], options: &AnalysisOptions) -> ProjectReport {
 	use rayon::prelude::*;
 
-	// The cache lives under the analyzed tree's build target. Discovery walks upward from the deepest
-	// directory shared by the files, which is the right starting point for both a whole repository and
-	// a single crate within one: the walk continues past the shared directory until it finds a target
-	// or runs out of parents.
-	let cache = if options.cache {
-		paths
-			.first()
-			.and_then(|path| path.parent())
-			.and_then(crate::cache::Cache::discover)
-	} else {
-		None
-	};
-
 	let results: Vec<(Option<FileReport>, Option<PathBuf>)> = paths
 		.par_iter()
-		.map(|path| analyze_one(path, cache.as_ref(), options))
+		.map(|path| analyze_one(path, options))
 		.collect();
 
 	let mut files = Vec::new();
@@ -974,14 +910,7 @@ pub fn analyze_paths(paths: &[PathBuf], options: &AnalysisOptions) -> ProjectRep
 }
 
 /// Analyzes one path, or reports why it was skipped.
-///
-/// The `cache` argument is optional because the caller may have been unable to discover a cache
-/// directory; without one the scanner runs and its output is simply not stored.
-fn analyze_one(
-	path: &Path,
-	cache: Option<&crate::cache::Cache>,
-	options: &AnalysisOptions,
-) -> (Option<FileReport>, Option<PathBuf>) {
+fn analyze_one(path: &Path, options: &AnalysisOptions) -> (Option<FileReport>, Option<PathBuf>) {
 	// A section marked `ignore` excludes its path entirely, which is what a vendored directory or
 	// a set of deliberately bad fixtures warrants. Distinct from a floor of zero: an ignored path
 	// produces no findings and contributes nothing to any score.
@@ -998,27 +927,6 @@ fn analyze_one(
 		// run, because one binary blob in a tree should not stop the analysis.
 		return (None, Some(path.to_path_buf()));
 	};
-
-	// A cache hit skips the scanner, which is the expensive half of an analysis. The rules
-	// still run, because thresholds and configuration change far more often than source does.
-	if let Some(cache) = cache {
-		if let Some(lines) = cache.get(path, language) {
-			return (Some(analyze_lines(path, &lines, language, options)), None);
-		}
-
-		let lexed = lex(&source, language);
-		cache.put(path, language, &lexed.lines);
-
-		return (
-			Some(build_report(
-				path,
-				&lexed,
-				findings_for(&lexed, path, options),
-				options,
-			)),
-			None,
-		);
-	}
 
 	(
 		Some(analyze_with_language(path, &source, language, options)),
