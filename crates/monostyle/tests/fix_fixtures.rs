@@ -281,6 +281,8 @@ fn extension_of(language: Language) -> String {
 		Language::Java => "java",
 		Language::Tsx => "tsx",
 		Language::Markdown => "md",
+		Language::Yaml => "yaml",
+		Language::Properties => "properties",
 	}
 	.to_string()
 }

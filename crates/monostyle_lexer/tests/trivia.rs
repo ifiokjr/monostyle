@@ -887,3 +887,82 @@ void main() {
 		}
 	}
 }
+
+// ---------------------------------------------------------------------------
+// YAML and properties
+// ---------------------------------------------------------------------------
+#[test]
+fn yaml_hash_inside_a_quoted_scalar_is_not_a_comment() {
+	// A `#` inside a quoted YAML value is data; reading it as a comment would
+	// mask the rest of the line and hide the anchor that follows.
+	let source = "url: \"http://example.com/#anchor\"\nname: canvist\n";
+
+	let lexed = lex(source, Language::Yaml);
+
+	assert!(
+		lexed.is_clean(),
+		"scan needed recovery: {:?}",
+		lexed.unterminated
+	);
+	assert_eq!(lexed.lines.len(), 2);
+	assert_eq!(lexed.lines[0].kind, LineKind::Code);
+	assert_eq!(lexed.lines[1].kind, LineKind::Code);
+}
+
+#[test]
+fn yaml_comment_after_a_value_runs_to_end_of_line() {
+	let source = "key: value # if for while\nnext: 1\n";
+
+	let lexed = lex(source, Language::Yaml);
+
+	let first = lexed.lines.first().expect("a line");
+	assert!(
+		!first.masked_code.contains("while"),
+		"comment contents leaked into the masked view: {}",
+		first.masked_code
+	);
+	assert_eq!(decisions(source, Language::Yaml), 0);
+}
+
+#[test]
+fn yaml_indentation_reads_as_nesting_depth() {
+	// Indentation-based structure: deeper indentation must not be read as
+	// brace-style nesting, and colons are data, not block openers.
+	let source = "root:\n  child:\n    leaf: 1\n";
+
+	let lexed = lex(source, Language::Yaml);
+
+	assert!(lexed.is_clean());
+	assert_eq!(lexed.lines.len(), 3);
+	assert_eq!(decisions(source, Language::Yaml), 0);
+}
+
+#[test]
+fn properties_bang_opens_a_comment() {
+	let source = "! if for while\nkey=value\n";
+
+	let lexed = lex(source, Language::Properties);
+
+	let first = lexed.lines.first().expect("a line");
+	assert_eq!(first.kind, LineKind::Comment);
+	assert!(
+		!first.masked_code.contains("while"),
+		"comment contents leaked into the masked view: {}",
+		first.masked_code
+	);
+}
+
+#[test]
+fn properties_hash_inside_a_quoted_value_is_not_a_comment() {
+	let source = "note=\"a # keeps its value\"\ncount=1\n";
+
+	let lexed = lex(source, Language::Properties);
+
+	assert!(
+		lexed.is_clean(),
+		"scan needed recovery: {:?}",
+		lexed.unterminated
+	);
+	assert_eq!(lexed.lines.len(), 2);
+	assert_eq!(lexed.lines[0].kind, LineKind::Code);
+}

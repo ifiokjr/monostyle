@@ -513,6 +513,8 @@ pub fn profile_for(language: Language) -> LanguageProfile {
 		Language::CSharp => csharp(language),
 		Language::Kotlin => kotlin(language),
 		Language::Markdown => markdown(language),
+		Language::Yaml => yaml(language),
+		Language::Properties => properties(language),
 		Language::C => c_family(language),
 		Language::Cpp => {
 			LanguageProfile {
@@ -810,6 +812,61 @@ fn markdown(language: Language) -> LanguageProfile {
 		null_coalescing: NONE,
 		end_keywords: NONE,
 		parameter_list_start: None,
+		..c_family(language)
+	}
+}
+
+/// YAML is indentation-delimited: structure comes from the column a line starts
+/// at, so the readability rules treat deeper indentation the way they treat
+/// deeper nesting in a brace language. A `#` outside quotes starts a comment,
+/// and both quote styles are literals — the single-quoted form escapes by
+/// doubling the quote rather than with backslashes.
+const YAML_LINE_COMMENTS: &[&str] = &["#"];
+
+const YAML_STRINGS: &[StringRule] = &[StringRule::escaped("\"", "\""), StringRule::raw("'", "'")];
+
+fn yaml(language: Language) -> LanguageProfile {
+	LanguageProfile {
+		line_comments: YAML_LINE_COMMENTS,
+		block_comments: NO_BLOCK_COMMENTS,
+		strings: YAML_STRINGS,
+		string_prefixes: NO_CHARS,
+		decision_keywords: NONE,
+		nesting_keywords: NONE,
+		logical_operators: NONE,
+		jump_keywords: NONE,
+		ternary_operator: None,
+		null_coalescing: NONE,
+		end_keywords: NONE,
+		parameter_list_start: None,
+		block_style: BlockStyle::Indentation,
+		..c_family(language)
+	}
+}
+
+/// Properties files are flat `key=value` pairs with `#` and `!` comments and no
+/// block structure at all; continuation lines end with a backslash. Double
+/// quotes are treated as string delimiters so quoted values stay masked, which
+/// keeps a `#` inside a quoted value from reading as a comment.
+const PROPERTIES_LINE_COMMENTS: &[&str] = &["#", "!"];
+
+const PROPERTIES_STRINGS: &[StringRule] = &[StringRule::escaped("\"", "\"")];
+
+fn properties(language: Language) -> LanguageProfile {
+	LanguageProfile {
+		line_comments: PROPERTIES_LINE_COMMENTS,
+		block_comments: NO_BLOCK_COMMENTS,
+		strings: PROPERTIES_STRINGS,
+		string_prefixes: NO_CHARS,
+		decision_keywords: NONE,
+		nesting_keywords: NONE,
+		logical_operators: NONE,
+		jump_keywords: NONE,
+		ternary_operator: None,
+		null_coalescing: NONE,
+		end_keywords: NONE,
+		parameter_list_start: None,
+		block_style: BlockStyle::Indentation,
 		..c_family(language)
 	}
 }

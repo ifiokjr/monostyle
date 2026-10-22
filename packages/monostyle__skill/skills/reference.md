@@ -145,7 +145,7 @@ Run `monostyle config` to print every key with its current value.
 
 ## Supported languages
 
-Rust, C, C++, C#, Java, JavaScript, Kotlin, Mozjs, Python, TypeScript, TSX, Dart, Go, Swift, Ruby, PHP, Scala, Shell, Lua, Elixir, Haskell, Nix, and Markdown.
+Rust, C, C++, C#, Java, JavaScript, Kotlin, Mozjs, Python, TypeScript, TSX, Dart, Go, Swift, Ruby, PHP, Scala, Shell, Lua, Elixir, Haskell, Nix, YAML, properties, and Markdown.
 
 Languages are described by data profiles rather than parsers, so a language is added by editing `crates/monostyle_languages/src/catalog.rs` rather than by writing analysis code.
 

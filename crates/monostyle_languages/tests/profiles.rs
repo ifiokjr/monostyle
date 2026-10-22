@@ -25,7 +25,7 @@ fn every_source_language_declares_decision_keywords() {
 	// A language with no decision keywords reports zero complexity for every function, which is worse
 	// than reporting nothing because the number looks authoritative.
 	for language in Language::ALL {
-		if language == Language::Markdown {
+		if !language.has_control_flow() {
 			continue;
 		}
 
@@ -591,4 +591,57 @@ fn an_unrecognized_tag_resolves_to_nothing() {
 			"`{tag}` should not resolve"
 		);
 	}
+}
+
+#[test]
+fn data_formats_declare_indentation_blocks_and_no_control_flow() {
+	let yaml = profile_for(Language::Yaml);
+	assert_eq!(yaml.block_style, BlockStyle::Indentation);
+	assert_eq!(yaml.line_comments, ["#"]);
+	assert!(yaml.strings.iter().any(|rule| rule.open == "\""));
+	assert!(yaml.strings.iter().any(|rule| rule.open == "'"));
+	assert_eq!(yaml.decision_keywords, [] as [&str; 0]);
+	assert!(yaml.interpolation.is_none());
+
+	let properties = profile_for(Language::Properties);
+	assert_eq!(properties.block_style, BlockStyle::Indentation);
+	assert!(properties.line_comments.contains(&"#"));
+	assert!(properties.line_comments.contains(&"!"));
+	assert!(properties.strings.iter().any(|rule| rule.open == "\""));
+	assert_eq!(properties.decision_keywords, [] as [&str; 0]);
+
+	assert!(!Language::Yaml.has_control_flow());
+	assert!(!Language::Properties.has_control_flow());
+	assert!(!Language::Markdown.has_control_flow());
+	assert!(Language::Ruby.has_control_flow());
+}
+
+#[test]
+fn native_extensions_and_fence_tags_resolve() {
+	assert_eq!(Language::from_extension("yaml"), Some(Language::Yaml));
+	assert_eq!(Language::from_extension("yml"), Some(Language::Yaml));
+	assert_eq!(
+		Language::from_extension("properties"),
+		Some(Language::Properties)
+	);
+	assert_eq!(Language::from_extension("podspec"), Some(Language::Ruby));
+	assert_eq!(Language::from_extension("rb"), Some(Language::Ruby));
+
+	assert_eq!(Language::from_name("yaml"), Some(Language::Yaml));
+	assert_eq!(
+		Language::from_name("properties"),
+		Some(Language::Properties)
+	);
+	assert_eq!(Language::from_name("yml"), None);
+
+	assert_eq!(Language::from_fence_tag("yaml"), Some(Language::Yaml));
+	assert_eq!(Language::from_fence_tag("yml"), Some(Language::Yaml));
+	assert_eq!(
+		Language::from_fence_tag("properties"),
+		Some(Language::Properties)
+	);
+	assert_eq!(
+		Language::from_fence_tag("yaml,ignore"),
+		Some(Language::Yaml)
+	);
 }

@@ -63,6 +63,12 @@ pub enum Language {
 	/// Nix.
 	Nix,
 
+	// Data formats read for their readability, not for complexity.
+	/// YAML configuration.
+	Yaml,
+	/// Java properties files, including Gradle's `gradle.properties`.
+	Properties,
+
 	// Non-source documents.
 	/// Markdown, analyzed for the readability of its embedded code fences.
 	Markdown,
@@ -70,7 +76,7 @@ pub enum Language {
 
 impl Language {
 	/// Every language, in report order.
-	pub const ALL: [Self; 23] = [
+	pub const ALL: [Self; 25] = [
 		Self::C,
 		Self::Cpp,
 		Self::CSharp,
@@ -93,6 +99,8 @@ impl Language {
 		Self::Elixir,
 		Self::Haskell,
 		Self::Nix,
+		Self::Yaml,
+		Self::Properties,
 		Self::Markdown,
 	];
 
@@ -122,8 +130,20 @@ impl Language {
 			Self::Elixir => "elixir",
 			Self::Haskell => "haskell",
 			Self::Nix => "nix",
+			Self::Yaml => "yaml",
+			Self::Properties => "properties",
 			Self::Markdown => "markdown",
 		}
+	}
+
+	/// Whether the language has control flow whose complexity can be scored.
+	///
+	/// Data formats (YAML, properties) and prose (Markdown) have no decision
+	/// points, so complexity rules and the profile invariants that assume
+	/// programming syntax skip them.
+	#[must_use]
+	pub const fn has_control_flow(self) -> bool {
+		!matches!(self, Self::Markdown | Self::Yaml | Self::Properties)
 	}
 
 	/// File extensions that map to this language, without a leading dot.
@@ -147,7 +167,7 @@ impl Language {
 			Self::Dart => &["dart"],
 			Self::Go => &["go"],
 			Self::Swift => &["swift"],
-			Self::Ruby => &["rb"],
+			Self::Ruby => &["rb", "podspec"],
 			Self::Php => &["php"],
 			Self::Scala => &["scala", "sc"],
 			Self::Shell => &["sh", "bash", "zsh"],
@@ -155,6 +175,8 @@ impl Language {
 			Self::Elixir => &["ex", "exs"],
 			Self::Haskell => &["hs"],
 			Self::Nix => &["nix"],
+			Self::Yaml => &["yaml", "yml"],
+			Self::Properties => &["properties"],
 			Self::Markdown => &["md", "markdown"],
 		}
 	}
