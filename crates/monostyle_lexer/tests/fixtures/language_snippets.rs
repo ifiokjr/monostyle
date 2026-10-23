@@ -108,4 +108,12 @@ pub const SNIPPETS: &[Snippet] = &[
 		language: Language::Nix,
 		source: "{ a }: if a then 1 else 0\n",
 	},
+	Snippet {
+		language: Language::Yaml,
+		source: "# Comment\nname: \"canvist\"\nplatforms:\n  ios: '17.0'\n",
+	},
+	Snippet {
+		language: Language::Properties,
+		source: "# Comment\n! Another comment\nVERSION_NAME=\"0.1.0\"\n",
+	},
 ];

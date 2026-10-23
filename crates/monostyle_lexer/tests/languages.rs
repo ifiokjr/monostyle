@@ -20,6 +20,10 @@ fn every_language_detects_a_decision_point() {
 	// A profile with no working decision keyword reports a complexity of one for every function, which
 	// looks authoritative and is wrong.
 	for snippet in SNIPPETS {
+		if !snippet.language.has_control_flow() {
+			continue;
+		}
+
 		let lexed = lex(snippet.source, snippet.language);
 
 		assert!(
@@ -66,7 +70,9 @@ fn every_language_recognizes_its_own_comments() {
 			| Language::Ruby
 			| Language::Shell
 			| Language::Nix
-			| Language::Elixir => "# a note\n",
+			| Language::Elixir
+			| Language::Yaml
+			| Language::Properties => "# a note\n",
 			Language::Lua | Language::Haskell => "-- a note\n",
 			_ => "// a note\n",
 		};
@@ -93,7 +99,9 @@ fn every_language_hides_comment_contents_from_the_masked_view() {
 			| Language::Ruby
 			| Language::Shell
 			| Language::Nix
-			| Language::Elixir => "# if for while\n",
+			| Language::Elixir
+			| Language::Yaml
+			| Language::Properties => "# if for while\n",
 			Language::Lua | Language::Haskell => "-- if for while\n",
 			_ => "// if for while\n",
 		};

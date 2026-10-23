@@ -107,7 +107,7 @@ fn unscoreable_fences(file: &LexedFile, annotated: bool) -> Vec<Finding> {
 /// Whether an info string names a real language that monostyle has no analyzer for.
 ///
 /// A fence tag is not a misspelling just because the tool cannot measure the example inside it.
-/// `toml`, `yaml`, `json`, and `text` are the tags a configuration-heavy README uses constantly —
+/// `toml`, `json`, and `text` are the tags a configuration-heavy README uses constantly —
 /// reporting them told every repository documenting its own settings that its fences were wrong,
 /// which is a tool gap dressed up as a finding. Only a tag that names no language at all is
 /// reported now, so `rustt` still surfaces while `toml` does not.
@@ -115,8 +115,6 @@ fn is_known_unanalyzed_language(info_string: &str) -> bool {
 	/// Tags for formats monostyle reads as data rather than code.
 	const UNANALYZED: &[&str] = &[
 		"toml",
-		"yaml",
-		"yml",
 		"json",
 		"jsonc",
 		"json5",

@@ -19,7 +19,13 @@ fn every_language_reports_units_when_it_has_functions() {
 	// Languages whose declaration syntax the structural detector recognizes should produce at least
 	// one unit. Haskell and Nix are exempt because their declarations have no parameter list to
 	// anchor on, and the detector is documented as approximate.
-	let exempt = [Language::Haskell, Language::Nix, Language::Mozjs];
+	let exempt = [
+		Language::Haskell,
+		Language::Nix,
+		Language::Mozjs,
+		Language::Yaml,
+		Language::Properties,
+	];
 
 	for snippet in SNIPPETS {
 		if exempt.contains(&snippet.language) {
