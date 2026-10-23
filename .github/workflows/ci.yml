@@ -36,7 +36,7 @@ jobs:
           toolchain: nightly-2026-09-07
           components: rustfmt, clippy
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: check formatting
         run: cargo fmt --all --check
@@ -63,10 +63,10 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: install nextest
-        uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177 # v2.87.30
         with:
           tool: nextest
 
@@ -91,7 +91,7 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: run the trivia suite
         run: cargo test --package monostyle_lexer --test trivia -- --nocapture
@@ -110,9 +110,9 @@ jobs:
           toolchain: nightly-2026-09-07
           components: llvm-tools-preview
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
-      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+      - uses: taiki-e/install-action@a4d3f3f761dcd95cce1b72cb61cb6d1963438177 # v2.87.30
         with:
           tool: cargo-llvm-cov
 
@@ -147,7 +147,7 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: build monostyle
         run: cargo build --release --package monostyle
@@ -177,7 +177,7 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: build monostyle
         run: cargo build --release --package monostyle
@@ -219,7 +219,7 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: check documentation builds
         run: cargo doc --workspace --all-features --no-deps
@@ -256,7 +256,7 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: verify every crate packages cleanly
         # `--list` rather than a full package. A complete `cargo package` resolves each crate's path
@@ -295,7 +295,7 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: install cargo-deny
         uses: taiki-e/install-action@8ed95cf4ff55afeb4411ad3165fa10f7ca9e7a62 # v2
@@ -306,7 +306,7 @@ jobs:
         run: cargo deny check
 
       - name: scan workflows for security issues
-        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
+        uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
         continue-on-error: true
 
   # The whole point of the tool is that it works on real repositories, so this job runs it against
@@ -339,7 +339,7 @@ jobs:
         with:
           toolchain: nightly-2026-09-07
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: build monostyle
         run: cargo build --release --package monostyle
