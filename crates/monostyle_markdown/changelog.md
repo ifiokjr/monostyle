@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.27](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.27) (2026-10-23)
+
+### Features
+
+- **score YAML and properties files and Ruby podspecs.** YAML (.yaml/.yml) and Java properties (.properties, including gradle.properties) join the scored languages with indentation-based block detection: no decision points, but comments, strings, line length, and blank-line structure are scored. Ruby now resolves .podspec files, and yaml fences in Markdown are scored instead of skipped as unanalyzed. _Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #88](https://github.com/ifiokjr/monostyle/pull/88)
+
 ## [0.3.26](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.26) (2026-10-07)
 
 ### Changed
