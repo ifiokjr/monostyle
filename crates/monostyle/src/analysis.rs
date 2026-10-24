@@ -395,6 +395,11 @@ pub struct AnalysisOptions {
 	/// Checked after scoring, so a run reports which paths fell short and by how much rather than only
 	/// that something did.
 	pub fail_under: crate::section::ScoreFloor,
+	/// The score gate for the project as a whole, from `[project] fail-under` in the configuration.
+	///
+	/// Distinct from `fail_under`, which is a per-file floor: this threshold gates the run's aggregate
+	/// readability and complexity, which is what `--fail-under` enforces on the command line.
+	pub project_fail_under: crate::section::ScoreFloor,
 	/// Per-path sections, each with its own thresholds and floors.
 	///
 	/// The most specific section that matches a path wins, so a project can hold its core to one standard

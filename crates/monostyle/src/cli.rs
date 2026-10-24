@@ -113,8 +113,19 @@ pub struct CheckArgs {
 	pub include_generated: bool,
 
 	/// Exit non-zero when any category scores below this value.
+	///
+	/// The shorthand for `--fail-under-readability` and `--fail-under-complexity` together, and
+	/// the override for the `[project]` gate in the configuration file.
 	#[arg(long, value_name = "SCORE")]
 	pub fail_under: Option<f64>,
+
+	/// Exit non-zero when the readability score is below this value.
+	#[arg(long, value_name = "SCORE", conflicts_with = "fail_under")]
+	pub fail_under_readability: Option<f64>,
+
+	/// Exit non-zero when the complexity score is below this value.
+	#[arg(long, value_name = "SCORE", conflicts_with = "fail_under")]
+	pub fail_under_complexity: Option<f64>,
 
 	/// Suppress all output except errors.
 	#[arg(long, short)]

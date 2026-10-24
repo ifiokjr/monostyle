@@ -301,3 +301,78 @@ fn anchored_ignore_patterns_match_under_an_absolute_root() {
 		"content/** must ignore the file under an absolute root"
 	);
 }
+
+#[test]
+fn a_config_project_gate_exits_without_flags() {
+	// The point of the `[project]` key: the CI bar lives in the file, so a plain
+	// `monostyle check` is held to it with nothing passed on the command line.
+	let project = Project::new("project-gate");
+	project.write("monostyle.toml", "[project]\nfail-under = 100.0\n");
+	project.write("src/lib.rs", BAD_FILE);
+
+	let output = project.run(&["check", "."]);
+	let rendered = text(&output);
+
+	assert_eq!(
+		output.status.code(),
+		Some(1),
+		"a gate above the scores should exit one: {rendered}"
+	);
+	assert!(
+		rendered.contains("below the required threshold"),
+		"the failure names the gate: {rendered}"
+	);
+}
+
+#[test]
+fn a_config_project_gate_passes_when_met() {
+	let project = Project::new("project-gate-pass");
+	project.write("monostyle.toml", "[project]\nfail-under = 50.0\n");
+	project.write("src/lib.rs", "fn total() -> u32 { 1 + 2 }\n");
+
+	let output = project.run(&["check", "."]);
+
+	assert!(output.status.success(), "a gate the scores meet passes");
+}
+
+#[test]
+fn a_project_gate_per_category_names_its_category() {
+	let project = Project::new("project-gate-category");
+	project.write(
+		"monostyle.toml",
+		"[project]\nfail-under = { readability = 100.0, complexity = 50.0 }\n",
+	);
+	project.write("src/lib.rs", BAD_FILE);
+
+	let output = project.run(&["check", "."]);
+	let rendered = text(&output);
+
+	assert!(
+		!output.status.success(),
+		"the gated category should fail the run"
+	);
+	assert!(
+		rendered.contains("readability"),
+		"the failure names the gated category: {rendered}"
+	);
+}
+
+#[test]
+fn per_category_flags_replace_the_configured_gate() {
+	let project = Project::new("flag-over-gate");
+	project.write("monostyle.toml", "[project]\nfail-under = 100.0\n");
+	project.write("src/lib.rs", BAD_FILE);
+
+	let overridden = project.run(&["check", ".", "--fail-under-readability", "0"]);
+	assert!(
+		overridden.status.success(),
+		"the flag replaces the configured gate for the run"
+	);
+
+	let shorthand = project.run(&["check", ".", "--fail-under", "100"]);
+	assert_eq!(
+		shorthand.status.code(),
+		Some(1),
+		"the shorthand still gates both"
+	);
+}
