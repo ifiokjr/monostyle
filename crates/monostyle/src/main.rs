@@ -1,5 +1,6 @@
 //! The monostyle command-line tool.
 
+use std::fmt::Write as _;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -806,22 +807,24 @@ fn render_config_toml(options: &AnalysisOptions) -> String {
 	// The gate is commented out when unset so the output stays pasteable: a `fail-under` with
 	// no values is not expressible in TOML, and an empty table would gate nothing.
 	if options.project_fail_under.is_set() {
-		text.push_str(&format!(
+		let _ = write!(
+			text,
 			"\n[project]\n# The gate for the whole run: `monostyle check` exits non-zero when a\n\
 			# category scores below it. A top-level `fail-under` means something else — a\n\
 			# per-file floor.\nfail-under = {}\n",
 			render_floor(&options.project_fail_under)
-		));
+		);
 	} else {
 		text.push_str("\n# [project]\n# fail-under = 80  # the gate for the whole run; a top-level fail-under is a per-file floor\n");
 	}
 
 	if options.fail_under.is_set() {
-		text.push_str(&format!(
+		let _ = write!(
+			text,
 			"\n[fail-under]\n# A per-file floor, not the project gate: every file must individually score\n\
 			# at or above these values.\n{}\n",
 			floor_table(&options.fail_under)
-		));
+		);
 	}
 
 	text
@@ -858,7 +861,12 @@ fn render_rules(options: &AnalysisOptions) -> String {
 /// when they do not.
 fn render_floor(floor: &monostyle::section::ScoreFloor) -> String {
 	match (floor.readability, floor.complexity) {
-		(Some(readability), Some(complexity)) if readability == complexity => {
+		// The categories collapse when they render as the same number, which is what the bare
+		// spelling round-trips as; the comparison is on the rendered text rather than on the
+		// floats, because the intent is "one setting" rather than "two near-equal ones".
+		(Some(readability), Some(complexity))
+			if format!("{readability}") == format!("{complexity}") =>
+		{
 			format!("{readability}")
 		}
 		(readability, complexity) => {
@@ -882,11 +890,11 @@ fn floor_table(floor: &monostyle::section::ScoreFloor) -> String {
 	let mut text = String::new();
 
 	if let Some(readability) = floor.readability {
-		text.push_str(&format!("readability = {readability}\n"));
+		let _ = writeln!(text, "readability = {readability}");
 	}
 
 	if let Some(complexity) = floor.complexity {
-		text.push_str(&format!("complexity = {complexity}\n"));
+		let _ = writeln!(text, "complexity = {complexity}");
 	}
 
 	text
