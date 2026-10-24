@@ -363,6 +363,11 @@ fn unit_name(code: &str) -> Option<String> {
 		return Some(name);
 	}
 
+	// A restricted visibility such as `pub(crate)` holds the first `(` on the line, so it has to be
+	// removed before the parameter list is searched for — otherwise the restriction is taken for
+	// the parameters and every restricted item is named `pub`.
+	let trimmed = strip_restricted_visibility(trimmed)?;
+
 	let parameters = trimmed.find('(')?;
 	let before = trimmed[..parameters].trim();
 	let name = if before.is_empty() {
@@ -381,6 +386,67 @@ fn unit_name(code: &str) -> Option<String> {
 	// this to the start of the line is what excludes `if x.name(` and `result.then(`.
 	if before.is_empty() {
 		return Some(name);
+	}
+
+	None
+}
+
+/// Removes a leading restricted visibility such as `pub(crate)` or `pub(in crate::module)`.
+///
+/// The restriction's own parentheses are the first `(` on the line, so without this the parameter
+/// list was found inside the qualifier and the unit was named `pub`. Returns `None` for the items
+/// that declare no function-like unit at all — a `use`, `mod`, `struct`, `enum`, `type`, or `const`
+/// after the restriction — which is what keeps a re-export from becoming a one-line unit.
+fn strip_restricted_visibility(code: &str) -> Option<&str> {
+	let Some(rest) = code.strip_prefix("pub") else {
+		return Some(code);
+	};
+
+	// `pub` has to be a whole word: `publish(` is an identifier, not a visibility qualifier.
+	if rest.starts_with(|character: char| character.is_alphanumeric() || character == '_') {
+		return Some(code);
+	}
+
+	// Plain `pub fn ...` — an unrestricted visibility has no parentheses to strip.
+	let Some(open) = rest.trim_start().strip_prefix('(') else {
+		return Some(code);
+	};
+
+	let Some(closing) = matching_paren(open) else {
+		// An unterminated restriction is left in place rather than guessed at.
+		return Some(code);
+	};
+
+	let remainder = open[closing + 1..].trim_start();
+	let keyword = remainder.split_whitespace().next().unwrap_or_default();
+
+	// The items these keywords declare have no function-like body, so counting them only added
+	// one-line units named `pub` to the report.
+	if matches!(
+		keyword,
+		"use" | "mod" | "struct" | "enum" | "type" | "const"
+	) {
+		return None;
+	}
+
+	Some(remainder)
+}
+
+/// Returns the byte offset of the `)` that closes the group opened at the start of `text`.
+fn matching_paren(text: &str) -> Option<usize> {
+	let mut depth = 1;
+
+	for (index, character) in text.char_indices() {
+		match character {
+			'(' => depth += 1,
+			')' => {
+				depth -= 1;
+				if depth == 0 {
+					return Some(index);
+				}
+			}
+			_ => {}
+		}
 	}
 
 	None
