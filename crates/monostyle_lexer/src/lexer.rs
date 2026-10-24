@@ -1070,6 +1070,10 @@ impl Scanner {
 	/// only then the quote, so the ordinary "prefix followed by a delimiter" check cannot see
 	/// it. The hashes are resolved into the closing delimiter by [`resolve_literal_end`].
 	fn literal_at(&self, rest: &str, characters: &[char], index: usize) -> Option<LiteralStart> {
+		if self.profile.language == Language::Rust && starts_rust_lifetime(rest) {
+			return None;
+		}
+
 		if let Some(rule) = self.profile.string_at(rest) {
 			return Some(LiteralStart {
 				rule,
@@ -1390,6 +1394,24 @@ impl Scanner {
 
 		previous.is_none_or(|character| self.profile.regex_allowed_after(character))
 	}
+}
+
+/// Recognizes a lifetime or label without consuming a later apostrophe as its closer.
+fn starts_rust_lifetime(rest: &str) -> bool {
+	let Some(name) = rest.strip_prefix('\'') else {
+		return false;
+	};
+	let mut characters = name.chars();
+	let Some(first) = characters.next() else {
+		return false;
+	};
+
+	if first != '_' && !first.is_alphabetic() {
+		return false;
+	}
+
+	// A closing quote makes a character literal; lifetimes and labels have no closer.
+	characters.find(|character| !character.is_alphanumeric() && *character != '_') != Some('\'')
 }
 
 /// Re-classifies comment intent over whole comment blocks.

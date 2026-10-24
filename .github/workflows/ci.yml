@@ -33,7 +33,7 @@ jobs:
       - name: install rust toolchain
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
           components: rustfmt, clippy
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
@@ -61,7 +61,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
@@ -76,6 +76,38 @@ jobs:
       - name: run documentation tests
         run: cargo test --doc --workspace --all-features
 
+      - name: retain macOS parser diagnostic
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          readonly PARSER_SHA256_BITS="256"
+
+          cargo build --locked --package monostyle --bin monostyle --all-features
+
+          diagnostic_dir="${RUNNER_TEMP}/monostyle-parser"
+          mkdir -p "$diagnostic_dir"
+          cp target/debug/monostyle "$diagnostic_dir/monostyle"
+
+          git rev-parse HEAD > "$diagnostic_dir/source-commit.txt"
+          git rev-parse HEAD^{tree} > "$diagnostic_dir/source-tree.txt"
+          rustc -vV > "$diagnostic_dir/compiler.txt"
+          file -b "$diagnostic_dir/monostyle" > "$diagnostic_dir/architecture.txt"
+
+          (
+            cd "$diagnostic_dir"
+            shasum -a "$PARSER_SHA256_BITS" monostyle > SHA256SUMS
+          )
+
+      - name: upload macOS parser diagnostic
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: monostyle-parser-macos
+          path: ${{ runner.temp }}/monostyle-parser/
+          if-no-files-found: error
+          retention-days: 1
+
   # The scanner's correctness is what every score depends on, so its suite runs on its own and is
   # never allowed to be skipped by a fail-fast on an unrelated job.
   lexer-correctness:
@@ -89,7 +121,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
@@ -107,7 +139,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
           components: llvm-tools-preview
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
@@ -145,7 +177,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
@@ -175,7 +207,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
@@ -217,7 +249,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
@@ -254,7 +286,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
@@ -293,7 +325,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
@@ -337,7 +369,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 

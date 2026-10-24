@@ -1,4 +1,5 @@
 ---
+"monostyle_lexer": patch
 "monostyle_metrics": patch
 "monostyle_rules": patch
 ---
@@ -11,3 +12,6 @@ function names, boundaries, decisions and parameter findings.
 
 Walk braces in reverse character order when locating an enclosing group. Nested
 objects and blocks no longer overflow or lose the required whitespace findings.
+
+Keep Rust lifetime parameters, references and labels visible to unit metrics,
+while preserving character and byte literal masking.
