@@ -75,20 +75,44 @@ pub fn cognitive_complexity_of_lines(lines: &[LexedLine]) -> CognitiveComplexity
 
 		// Depth changes after costing so that a construct is charged for the nesting it sits inside,
 		// not the nesting it creates.
-		if opens_nesting(line) {
-			depth += 1;
-			max_nesting = max_nesting.max(depth);
-		}
-
-		if closes_nesting(line) {
-			depth = depth.saturating_sub(1);
-		}
+		update_depth(line, &mut depth, &mut max_nesting);
 	}
 
 	CognitiveComplexity {
 		total,
 		nesting_penalty,
 		max_nesting,
+	}
+}
+
+/// Applies one line's change to the nesting depth.
+///
+/// A line holding braces changes the depth by the balance of `{` and `}` in its masked code — the
+/// same accounting `find_brace_units` uses for unit boundaries. That is what keeps a block that
+/// opens and closes on one line (`let x = if c { 1 } else { 2 };`) from leaking a level into every
+/// line after it: a line that opens two braces and closes two nets zero, not one.
+///
+/// A line with no braces belongs to a block style that delimits blocks by keyword or indentation,
+/// so the depth follows the opening keywords and the `end`-style terminators instead.
+fn update_depth(line: &LexedLine, depth: &mut usize, max_nesting: &mut usize) {
+	let opens = line.masked_code.matches('{').count();
+	let closes = line.masked_code.matches('}').count();
+
+	if opens > 0 || closes > 0 {
+		let next = depth.saturating_add(opens).saturating_sub(closes);
+		*max_nesting = (*max_nesting).max(next);
+		*depth = next;
+
+		return;
+	}
+
+	if opens_nesting(line) {
+		*depth += 1;
+		*max_nesting = (*max_nesting).max(*depth);
+	}
+
+	if closes_nesting(line) {
+		*depth = depth.saturating_sub(1);
 	}
 }
 
@@ -199,7 +223,11 @@ fn positions_of<'text>(
 	})
 }
 
-/// Returns true when a line opens a nesting level.
+/// Returns true when a line opens a nesting level by keyword.
+///
+/// Only lines without braces reach this: a brace marks the block itself, so those lines are
+/// handled by the brace balance. The endings that remain — `then` and `do` — are how shell and
+/// Ruby signal a block about to open without a keyword the profile lists.
 fn opens_nesting(line: &LexedLine) -> bool {
 	if line.nesting.iter().any(|keyword| {
 		matches!(
@@ -223,10 +251,8 @@ fn opens_nesting(line: &LexedLine) -> bool {
 		return true;
 	}
 
-	// A line that opens a block ends in a brace or a block keyword, which is how brace
-	// languages signal nestable structure without a keyword to match.
 	let trimmed = line.masked_code.trim_end();
-	trimmed.ends_with('{') || trimmed.ends_with("then") || trimmed.ends_with("do")
+	trimmed.ends_with("then") || trimmed.ends_with("do")
 }
 
 /// Returns true when a line closes a nesting level.
