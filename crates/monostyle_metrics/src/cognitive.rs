@@ -281,9 +281,8 @@ fn line_cost(line: &LexedLine, depth: usize) -> LineCost {
 fn nesting_charge(keyword: &str) -> (bool, bool) {
 	match keyword {
 		"else" | "elif" | "elseif" | "else if" | "case" | "when" | "on" => (true, true),
-		"if" | "elif" | "elseif" | "else if" | "unless" | "guard" | "for" | "foreach" | "while"
-		| "until" | "repeat" | "loop" | "do" | "switch" | "match" | "select" | "cond" | "catch"
-		| "except" | "rescue" => (true, false),
+		"if" | "unless" | "guard" | "for" | "foreach" | "while" | "until" | "repeat" | "loop"
+		| "do" | "switch" | "match" | "select" | "cond" | "catch" | "except" | "rescue" => (true, false),
 		_ => (false, true),
 	}
 }
