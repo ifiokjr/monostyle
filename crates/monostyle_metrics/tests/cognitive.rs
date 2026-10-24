@@ -1,6 +1,6 @@
 //! Tests for the cognitive complexity counter.
 //!
-//! The numbers here are pinned against the SonarSource specification the docs cite: only the
+//! The numbers here are pinned against the `SonarSource` specification the docs cite: only the
 //! constructs the specification lists raise the nesting level, the unit's own body is depth
 //! zero, and a line that closes one body and opens another settles before it raises. These
 //! tests exist because the counter used to treat every `{` as a nesting step, which made
