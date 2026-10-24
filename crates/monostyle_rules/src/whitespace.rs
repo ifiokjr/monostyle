@@ -2077,21 +2077,14 @@ fn enclosing_brace_opener(lines: &[LexedLine], index: usize) -> Option<usize> {
 			continue;
 		}
 
-		let mask = &above.masked_code;
-		let opens = mask.matches('{').count();
-		let closes = mask.matches('}').count();
-
-		if closes >= opens {
-			depth += closes - opens;
-			continue;
+		for character in above.masked_code.chars().rev() {
+			match character {
+				'}' => depth += 1,
+				'{' if depth == 0 => return Some(cursor),
+				'{' => depth -= 1,
+				_ => {}
+			}
 		}
-
-		if depth > 0 {
-			depth -= opens - closes;
-			continue;
-		}
-
-		return Some(cursor);
 	}
 
 	None
@@ -2276,3 +2269,7 @@ fn previous_code_line(lines: &[LexedLine], index: usize) -> Option<&LexedLine> {
 		!candidate.is_blank() && !candidate.is_comment() && !candidate.is_literal()
 	})
 }
+
+#[cfg(test)]
+#[path = "whitespace_braces.rs"]
+mod brace_tests;

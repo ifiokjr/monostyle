@@ -9,6 +9,9 @@
 //! every language — but it finds the regions that carry decisions, which is what the
 //! rules need, without a parser per language.
 
+mod rust;
+
+use monostyle_core::Language;
 use monostyle_languages::BlockStyle;
 use monostyle_lexer::LexedFile;
 use monostyle_lexer::LexedLine;
@@ -46,7 +49,7 @@ impl CodeUnit {
 #[must_use]
 pub fn find_units(file: &LexedFile) -> Vec<CodeUnit> {
 	match file.profile.block_style {
-		BlockStyle::Brace => find_brace_units(&file.lines),
+		BlockStyle::Brace => find_brace_units(&file.lines, file.language),
 		BlockStyle::Indentation => find_indentation_units(&file.lines),
 		BlockStyle::EndKeyword => find_end_keyword_units(file),
 	}
@@ -58,7 +61,7 @@ pub fn find_units(file: &LexedFile) -> Vec<CodeUnit> {
 /// Tracking that level — rather than counting braces only — is what makes nested functions,
 /// closures, and blocks inside a function all belong to the enclosing unit instead of each
 /// ending it early.
-fn find_brace_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
+fn find_brace_units(lines: &[LexedLine], language: Language) -> Vec<CodeUnit> {
 	let mut scan = BraceScan::default();
 
 	for line in lines {
@@ -72,7 +75,7 @@ fn find_brace_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
 			continue;
 		}
 
-		scan.visit(line);
+		scan.visit(line, language);
 	}
 
 	scan.finish(lines)
@@ -108,14 +111,19 @@ struct PendingUnit {
 
 impl BraceScan {
 	/// Advances the scan by one line.
-	fn visit(&mut self, line: &LexedLine) {
+	fn visit(&mut self, line: &LexedLine, language: Language) {
 		let code = code_only(&line.masked_code);
 		let opens = code.matches('{').count();
 		let closes = code.matches('}').count();
 		let depth_before = self.depth;
 
 		if self.pending.is_none() {
-			self.pending = unit_name(&code).map(|name| {
+			let name = match language {
+				Language::Rust => rust::function_name(&code),
+				_ => unit_name(&code),
+			};
+
+			self.pending = name.map(|name| {
 				PendingUnit {
 					name,
 					start_line: line.number,
