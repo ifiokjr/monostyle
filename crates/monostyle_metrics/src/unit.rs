@@ -50,7 +50,7 @@ impl CodeUnit {
 pub fn find_units(file: &LexedFile) -> Vec<CodeUnit> {
 	match file.profile.block_style {
 		BlockStyle::Brace => find_brace_units(&file.lines, file.language),
-		BlockStyle::Indentation => find_indentation_units(&file.lines),
+		BlockStyle::Indentation => find_indentation_units(&file.lines, file.language),
 		BlockStyle::EndKeyword => find_end_keyword_units(file),
 	}
 }
@@ -112,7 +112,7 @@ struct PendingUnit {
 impl BraceScan {
 	/// Advances the scan by one line.
 	fn visit(&mut self, line: &LexedLine, language: Language) {
-		let code = code_only(&line.masked_code, language != Language::Rust);
+		let code = code_only(&line.masked_code, language);
 		let opens = code.matches('{').count();
 		let closes = code.matches('}').count();
 		let depth_before = self.depth;
@@ -203,7 +203,7 @@ impl BraceScan {
 ///
 /// A declaration's body is everything indented further than the declaration itself, so the scan for each
 /// unit stops at the first line that returns to the declaration's own level.
-fn find_indentation_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
+fn find_indentation_units(lines: &[LexedLine], language: Language) -> Vec<CodeUnit> {
 	let mut units = Vec::new();
 	let mut index = 0;
 
@@ -214,7 +214,7 @@ fn find_indentation_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
 
 		let name = line
 			.is_code()
-			.then(|| unit_name(&code_only(&line.masked_code, true)))
+			.then(|| unit_name(&code_only(&line.masked_code, language)))
 			.flatten();
 
 		let Some(name) = name else {
@@ -265,7 +265,7 @@ fn completes_immediately(
 	// one followed by more code is a statement separator, not a terminator.
 	let bodyless_declaration = opens == 0
 		&& closes == 0
-		&& code_only(&line.masked_code, language != Language::Rust)
+		&& code_only(&line.masked_code, language)
 			.trim_end()
 			.ends_with(';');
 
@@ -305,7 +305,7 @@ fn find_end_keyword_units(file: &LexedFile) -> Vec<CodeUnit> {
 			continue;
 		}
 
-		let code = code_only(&line.masked_code, true);
+		let code = code_only(&line.masked_code, file.language);
 
 		if let Some(name) = unit_name(&code) {
 			stack.push((name, line.number, stack.len()));
@@ -560,7 +560,12 @@ fn is_declaration_prefix(before: &str) -> bool {
 ///
 /// The input is already masked, so string contents are blank. This removes the comment that may still be
 /// present, for the case where a declaration and a trailing comment share a line.
-fn code_only(text: &str, hash_comments: bool) -> String {
+fn code_only(text: &str, language: Language) -> String {
+	// Rust literals and comments are already masked; remaining apostrophes mark lifetimes.
+	if language == Language::Rust {
+		return text.to_owned();
+	}
+
 	let mut result = String::with_capacity(text.len());
 	let mut characters = text.chars().peekable();
 
@@ -568,7 +573,7 @@ fn code_only(text: &str, hash_comments: bool) -> String {
 		match character {
 			'"' | '\'' | '`' => skip_quoted(&mut characters, character),
 
-			'#' if hash_comments => break,
+			'#' => break,
 
 			'/' if characters.peek() == Some(&'/') => break,
 

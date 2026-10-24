@@ -195,3 +195,34 @@ mod functions {
 		]
 	);
 }
+
+#[test]
+fn lifetime_tokens_do_not_merge_adjacent_function_units() {
+	const FORMAT_START: usize = 3;
+	const FORMAT_END: usize = 5;
+	const EXCHANGE_START: usize = 8;
+	const EXCHANGE_END: usize = 10;
+
+	let source = "struct Example;\nimpl core::fmt::Debug for Example {\n    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {\n        formatter.write_str(\"}\")\n    }\n}\nimpl Example {\n    fn exchange<'a>(&'a self) -> &'a Self {\n        self\n    }\n}\n";
+	let file = lex(source, Language::Rust);
+	let header = file
+		.lines
+		.get(FORMAT_START - 1)
+		.expect("the formatter header exists");
+
+	assert!(header.masked_code.trim_end().ends_with('{'));
+
+	let units = find_units(&file);
+	let actual: Vec<_> = units
+		.iter()
+		.map(|unit| (unit.name.as_str(), unit.start_line, unit.end_line))
+		.collect();
+
+	assert_eq!(
+		actual,
+		[
+			("fmt", FORMAT_START, FORMAT_END),
+			("exchange", EXCHANGE_START, EXCHANGE_END),
+		]
+	);
+}
