@@ -25,10 +25,10 @@ fn lifetime_parameters_references_and_labels_remain_visible() {
 #[test]
 fn character_and_byte_literals_keep_their_contents_masked() {
 	let sources = [
-		r#"let letter = 'a'; let byte = b'b';"#,
-		r#"let quote = '\''; let slash = '\\';"#,
-		r#"let hexadecimal = '\x7f'; let scalar = '\u{7d}';"#,
-		r#"let unicode = 'λ'; let brace = '}'; if ready { next(); }"#,
+		r"let letter = 'a'; let byte = b'b';",
+		r"let quote = '\''; let slash = '\\';",
+		r"let hexadecimal = '\x7f'; let scalar = '\u{7d}';",
+		r"let unicode = 'λ'; let brace = '}'; if ready { next(); }",
 	];
 
 	for source in sources {

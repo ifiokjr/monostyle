@@ -246,60 +246,100 @@ const COMMON_MULTI: &[&str] = &[
 /// and a tokenizer that does not need a parse tree is enough to count them.
 fn tokenize<'text>(text: &'text str, operators: &Operators) -> Vec<Token<'text>> {
 	let mut tokens = Vec::new();
-	let mut index = 0;
+	let mut remaining = text;
 
-	while index < text.len() {
-		let rest = &text[index..];
-
-		if rest.starts_with(char::is_whitespace) {
-			index += rest.chars().next().map_or(1, char::len_utf8);
+	while let Some(character) = remaining.chars().next() {
+		if character.is_whitespace() {
+			remaining = &remaining[character.len_utf8()..];
 			continue;
 		}
 
-		if let Some(operator) = operators
-			.multi
-			.iter()
-			.find(|operator| rest.starts_with(**operator))
-		{
-			tokens.push(Token::Operator(operator));
-			index += operator.len();
-			continue;
-		}
+		let token = next_token(remaining, character, operators);
+		remaining = &remaining[token.text().len()..];
 
-		let character = rest.chars().next().unwrap_or_default();
-
-		if operators.single.contains(&character) {
-			// A dot is part of a member access rather than an operator of its own, and counting it
-			// separately inflates the operator count on any code that calls methods.
-			if character != '.' {
-				tokens.push(Token::Operator(&rest[..character.len_utf8()]));
-			}
-
-			index += character.len_utf8();
-			continue;
-		}
-
-		// A run of identifier or literal characters is one operand.
-		let length = rest
-			.char_indices()
-			.find(|(_offset, character)| {
-				character.is_whitespace() || operators.single.contains(character)
-			})
-			.map_or(rest.len(), |(offset, _)| offset);
-
-		let length = if length == 0 {
-			rest.chars().next().map_or(1, char::len_utf8)
-		} else {
-			length
-		};
-
-		if length > 0 {
-			tokens.push(Token::Operand(&rest[..length]));
-			index += length;
-		} else {
-			index += 1;
+		// Member-access dots do not count separately; multi-character operators still do.
+		if !matches!(&token, Token::Operator(".")) {
+			tokens.push(token);
 		}
 	}
 
 	tokens
+}
+
+/// Classifies a non-whitespace suffix, matching multi-character operators before single ones.
+fn next_token<'text>(text: &'text str, character: char, operators: &Operators) -> Token<'text> {
+	if let Some(operator) = operators
+		.multi
+		.iter()
+		.find(|operator| text.starts_with(**operator))
+	{
+		return Token::Operator(operator);
+	}
+
+	if operators.single.contains(&character) {
+		return Token::Operator(&text[..character.len_utf8()]);
+	}
+
+	let length = text
+		.char_indices()
+		.find(|(_offset, character)| {
+			character.is_whitespace() || operators.single.contains(character)
+		})
+		.map_or(text.len(), |(offset, _)| offset);
+
+	Token::Operand(&text[..length])
+}
+
+impl Token<'_> {
+	/// The original slice consumed by this token.
+	fn text(&self) -> &str {
+		match self {
+			Self::Operator(text) | Self::Operand(text) => text,
+		}
+	}
+}
+
+#[cfg(test)]
+mod tests {
+	use super::Operators;
+	use super::Token;
+	use super::tokenize;
+
+	#[test]
+	fn token_order_preserves_longest_operators_and_unicode_operands() {
+		let tokens = tokenize(
+			"\t\u{2003}λ.member?.call() >>> 1 ... end",
+			&Operators::SHARED,
+		);
+		let actual: Vec<_> = tokens
+			.iter()
+			.map(|token| {
+				match token {
+					Token::Operator(text) => ("operator", *text),
+					Token::Operand(text) => ("operand", *text),
+				}
+			})
+			.collect();
+
+		assert_eq!(
+			actual,
+			[
+				("operand", "λ"),
+				("operand", "member"),
+				("operator", "?."),
+				("operand", "call"),
+				("operator", "("),
+				("operator", ")"),
+				("operator", ">>>"),
+				("operand", "1"),
+				("operator", "..."),
+				("operand", "end"),
+			]
+		);
+	}
+
+	#[test]
+	fn whitespace_and_member_dots_do_not_emit_tokens() {
+		assert!(tokenize("\t\u{2003}\n . ", &Operators::SHARED).is_empty());
+	}
 }

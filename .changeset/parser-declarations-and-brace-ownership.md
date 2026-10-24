@@ -15,3 +15,6 @@ objects and blocks no longer overflow or lose the required whitespace findings.
 
 Keep Rust lifetime parameters, references and labels visible to unit metrics,
 while preserving character and byte literal masking.
+
+Separate Halstead token classification from cursor advancement without changing
+operator or operand streams.
