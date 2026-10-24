@@ -112,7 +112,7 @@ struct PendingUnit {
 impl BraceScan {
 	/// Advances the scan by one line.
 	fn visit(&mut self, line: &LexedLine, language: Language) {
-		let code = code_only(&line.masked_code);
+		let code = code_only(&line.masked_code, language != Language::Rust);
 		let opens = code.matches('{').count();
 		let closes = code.matches('}').count();
 		let depth_before = self.depth;
@@ -135,7 +135,7 @@ impl BraceScan {
 
 		self.depth = self.depth.saturating_add(opens).saturating_sub(closes);
 
-		self.close_if_finished(line, opens, closes, depth_before);
+		self.close_if_finished(line, opens, closes, depth_before, language);
 	}
 
 	/// Closes the open unit when this line completes it.
@@ -149,6 +149,7 @@ impl BraceScan {
 		opens: usize,
 		closes: usize,
 		depth_before: usize,
+		language: Language,
 	) {
 		let Some(pending) = self.pending.clone() else {
 			return;
@@ -164,7 +165,7 @@ impl BraceScan {
 		}
 
 		if !pending.body_opened
-			&& !completes_immediately(&pending, line, opens, closes, depth_before)
+			&& !completes_immediately(&pending, line, opens, closes, depth_before, language)
 		{
 			return;
 		}
@@ -213,7 +214,7 @@ fn find_indentation_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
 
 		let name = line
 			.is_code()
-			.then(|| unit_name(&code_only(&line.masked_code)))
+			.then(|| unit_name(&code_only(&line.masked_code, true)))
 			.flatten();
 
 		let Some(name) = name else {
@@ -249,6 +250,7 @@ fn completes_immediately(
 	opens: usize,
 	closes: usize,
 	depth_before: usize,
+	language: Language,
 ) -> bool {
 	// The declaration's own line only: a later line at the same depth belongs to the enclosing scope.
 	if depth_before != pending.depth {
@@ -261,8 +263,11 @@ fn completes_immediately(
 	// A declaration with no braces that ends in a semicolon declares an interface rather than an
 	// implementation, so there is no body to wait for. Only a semicolon at the very end of the line counts:
 	// one followed by more code is a statement separator, not a terminator.
-	let bodyless_declaration =
-		opens == 0 && closes == 0 && code_only(&line.masked_code).trim_end().ends_with(';');
+	let bodyless_declaration = opens == 0
+		&& closes == 0
+		&& code_only(&line.masked_code, language != Language::Rust)
+			.trim_end()
+			.ends_with(';');
 
 	one_liner || expression_body || bodyless_declaration
 }
@@ -300,7 +305,7 @@ fn find_end_keyword_units(file: &LexedFile) -> Vec<CodeUnit> {
 			continue;
 		}
 
-		let code = code_only(&line.masked_code);
+		let code = code_only(&line.masked_code, true);
 
 		if let Some(name) = unit_name(&code) {
 			stack.push((name, line.number, stack.len()));
@@ -555,7 +560,7 @@ fn is_declaration_prefix(before: &str) -> bool {
 ///
 /// The input is already masked, so string contents are blank. This removes the comment that may still be
 /// present, for the case where a declaration and a trailing comment share a line.
-fn code_only(text: &str) -> String {
+fn code_only(text: &str, hash_comments: bool) -> String {
 	let mut result = String::with_capacity(text.len());
 	let mut characters = text.chars().peekable();
 
@@ -563,7 +568,7 @@ fn code_only(text: &str) -> String {
 		match character {
 			'"' | '\'' | '`' => skip_quoted(&mut characters, character),
 
-			'#' => break,
+			'#' if hash_comments => break,
 
 			'/' if characters.peek() == Some(&'/') => break,
 

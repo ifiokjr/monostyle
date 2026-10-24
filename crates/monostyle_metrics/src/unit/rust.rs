@@ -45,6 +45,7 @@ fn without_visibility(code: &str) -> Option<&str> {
 
 /// Reads the name before optional generic bounds, which may contain their own parentheses.
 fn identifier_before_parameters(declaration: &str) -> Option<String> {
+	let declaration = declaration.strip_prefix("r#").unwrap_or(declaration);
 	let (head, _) = declaration.split_once('(')?;
 	let identifier = head
 		.split(|character: char| {

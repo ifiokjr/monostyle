@@ -148,3 +148,50 @@ fn pub_remains_a_valid_function_name_in_other_languages() {
 		assert_eq!(names, ["pub"], "language: {language}");
 	}
 }
+
+#[test]
+fn raw_function_identifiers_keep_their_names_and_boundaries() {
+	const PRIVATE_LINE: usize = 2;
+	const SCOPED_START: usize = 4;
+	const SCOPED_END: usize = 6;
+	const ASYNC_START: usize = 8;
+	const ASYNC_END: usize = 10;
+	const BODYLESS_LINE: usize = 13;
+	const FINAL_LINE: usize = 16;
+
+	let source = "\
+mod functions {
+    fn r#type() {}
+
+    pub(crate) fn r#match(value: bool) -> bool {
+        value
+    }
+
+    pub(super) async fn r#async<Value: Fn()>(callback: Value) {
+        callback();
+    }
+
+    trait Callback {
+        fn r#move();
+    }
+
+    fn ordinary() {}
+}
+";
+	let units = rust_units(source);
+	let actual: Vec<_> = units
+		.iter()
+		.map(|unit| (unit.name.as_str(), unit.start_line, unit.end_line))
+		.collect();
+
+	assert_eq!(
+		actual,
+		[
+			("type", PRIVATE_LINE, PRIVATE_LINE),
+			("match", SCOPED_START, SCOPED_END),
+			("async", ASYNC_START, ASYNC_END),
+			("move", BODYLESS_LINE, BODYLESS_LINE),
+			("ordinary", FINAL_LINE, FINAL_LINE),
+		]
+	);
+}
