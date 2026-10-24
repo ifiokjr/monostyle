@@ -9,6 +9,9 @@
 //! every language — but it finds the regions that carry decisions, which is what the
 //! rules need, without a parser per language.
 
+mod rust;
+
+use monostyle_core::Language;
 use monostyle_languages::BlockStyle;
 use monostyle_lexer::LexedFile;
 use monostyle_lexer::LexedLine;
@@ -46,8 +49,8 @@ impl CodeUnit {
 #[must_use]
 pub fn find_units(file: &LexedFile) -> Vec<CodeUnit> {
 	match file.profile.block_style {
-		BlockStyle::Brace => find_brace_units(&file.lines),
-		BlockStyle::Indentation => find_indentation_units(&file.lines),
+		BlockStyle::Brace => find_brace_units(&file.lines, file.language),
+		BlockStyle::Indentation => find_indentation_units(&file.lines, file.language),
 		BlockStyle::EndKeyword => find_end_keyword_units(file),
 	}
 }
@@ -58,7 +61,7 @@ pub fn find_units(file: &LexedFile) -> Vec<CodeUnit> {
 /// Tracking that level — rather than counting braces only — is what makes nested functions,
 /// closures, and blocks inside a function all belong to the enclosing unit instead of each
 /// ending it early.
-fn find_brace_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
+fn find_brace_units(lines: &[LexedLine], language: Language) -> Vec<CodeUnit> {
 	let mut scan = BraceScan::default();
 
 	for line in lines {
@@ -72,7 +75,7 @@ fn find_brace_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
 			continue;
 		}
 
-		scan.visit(line);
+		scan.visit(line, language);
 	}
 
 	scan.finish(lines)
@@ -108,14 +111,19 @@ struct PendingUnit {
 
 impl BraceScan {
 	/// Advances the scan by one line.
-	fn visit(&mut self, line: &LexedLine) {
-		let code = code_only(&line.masked_code);
+	fn visit(&mut self, line: &LexedLine, language: Language) {
+		let code = code_only(&line.masked_code, language);
 		let opens = code.matches('{').count();
 		let closes = code.matches('}').count();
 		let depth_before = self.depth;
 
 		if self.pending.is_none() {
-			self.pending = unit_name(&code).map(|name| {
+			let name = match language {
+				Language::Rust => rust::function_name(&code),
+				_ => unit_name(&code),
+			};
+
+			self.pending = name.map(|name| {
 				PendingUnit {
 					name,
 					start_line: line.number,
@@ -127,7 +135,7 @@ impl BraceScan {
 
 		self.depth = self.depth.saturating_add(opens).saturating_sub(closes);
 
-		self.close_if_finished(line, opens, closes, depth_before);
+		self.close_if_finished(line, opens, closes, depth_before, language);
 	}
 
 	/// Closes the open unit when this line completes it.
@@ -141,6 +149,7 @@ impl BraceScan {
 		opens: usize,
 		closes: usize,
 		depth_before: usize,
+		language: Language,
 	) {
 		let Some(pending) = self.pending.clone() else {
 			return;
@@ -156,7 +165,7 @@ impl BraceScan {
 		}
 
 		if !pending.body_opened
-			&& !completes_immediately(&pending, line, opens, closes, depth_before)
+			&& !completes_immediately(&pending, line, opens, closes, depth_before, language)
 		{
 			return;
 		}
@@ -194,7 +203,7 @@ impl BraceScan {
 ///
 /// A declaration's body is everything indented further than the declaration itself, so the scan for each
 /// unit stops at the first line that returns to the declaration's own level.
-fn find_indentation_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
+fn find_indentation_units(lines: &[LexedLine], language: Language) -> Vec<CodeUnit> {
 	let mut units = Vec::new();
 	let mut index = 0;
 
@@ -205,7 +214,7 @@ fn find_indentation_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
 
 		let name = line
 			.is_code()
-			.then(|| unit_name(&code_only(&line.masked_code)))
+			.then(|| unit_name(&code_only(&line.masked_code, language)))
 			.flatten();
 
 		let Some(name) = name else {
@@ -241,6 +250,7 @@ fn completes_immediately(
 	opens: usize,
 	closes: usize,
 	depth_before: usize,
+	language: Language,
 ) -> bool {
 	// The declaration's own line only: a later line at the same depth belongs to the enclosing scope.
 	if depth_before != pending.depth {
@@ -253,8 +263,11 @@ fn completes_immediately(
 	// A declaration with no braces that ends in a semicolon declares an interface rather than an
 	// implementation, so there is no body to wait for. Only a semicolon at the very end of the line counts:
 	// one followed by more code is a statement separator, not a terminator.
-	let bodyless_declaration =
-		opens == 0 && closes == 0 && code_only(&line.masked_code).trim_end().ends_with(';');
+	let bodyless_declaration = opens == 0
+		&& closes == 0
+		&& code_only(&line.masked_code, language)
+			.trim_end()
+			.ends_with(';');
 
 	one_liner || expression_body || bodyless_declaration
 }
@@ -292,7 +305,7 @@ fn find_end_keyword_units(file: &LexedFile) -> Vec<CodeUnit> {
 			continue;
 		}
 
-		let code = code_only(&line.masked_code);
+		let code = code_only(&line.masked_code, file.language);
 
 		if let Some(name) = unit_name(&code) {
 			stack.push((name, line.number, stack.len()));
@@ -547,7 +560,12 @@ fn is_declaration_prefix(before: &str) -> bool {
 ///
 /// The input is already masked, so string contents are blank. This removes the comment that may still be
 /// present, for the case where a declaration and a trailing comment share a line.
-fn code_only(text: &str) -> String {
+fn code_only(text: &str, language: Language) -> String {
+	// Rust literals and comments are already masked; remaining apostrophes mark lifetimes.
+	if language == Language::Rust {
+		return text.to_owned();
+	}
+
 	let mut result = String::with_capacity(text.len());
 	let mut characters = text.chars().peekable();
 
