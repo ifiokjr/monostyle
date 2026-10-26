@@ -23,7 +23,7 @@ use crate::unit_measures::UnitSet;
 /// One file, its rule configuration, and the unit measurements rules share.
 #[derive(Debug)]
 pub struct RuleContext<'file> {
-	file: &'file LexedFile,
+	file: &'file LexedFile<'file>,
 	config: &'file RulesConfig,
 	units: OnceCell<UnitSet>,
 }
@@ -31,7 +31,7 @@ pub struct RuleContext<'file> {
 impl<'file> RuleContext<'file> {
 	/// Pairs a lexed file with the configuration its rules should read.
 	#[must_use]
-	pub fn new(file: &'file LexedFile, config: &'file RulesConfig) -> Self {
+	pub fn new(file: &'file LexedFile<'file>, config: &'file RulesConfig) -> Self {
 		Self {
 			file,
 			config,
@@ -41,7 +41,7 @@ impl<'file> RuleContext<'file> {
 
 	/// The file under analysis.
 	#[must_use]
-	pub fn file(&self) -> &'file LexedFile {
+	pub fn file(&self) -> &'file LexedFile<'file> {
 		self.file
 	}
 

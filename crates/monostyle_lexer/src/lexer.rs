@@ -42,6 +42,8 @@
 // workspace keeps the lint.
 #![allow(clippy::indexing_slicing)]
 
+use std::borrow::Cow;
+
 use monostyle_core::Language;
 use monostyle_languages::Interpolation;
 use monostyle_languages::LanguageProfile;
@@ -55,13 +57,13 @@ use crate::line::LineKind;
 
 /// The result of lexing one file.
 #[derive(Debug, Clone)]
-pub struct LexedFile {
+pub struct LexedFile<'source> {
 	/// The language analyzed.
 	pub language: Language,
 	/// The profile used, kept so rules can consult language-specific settings.
 	pub profile: LanguageProfile,
 	/// One entry per physical line.
-	pub lines: Vec<LexedLine>,
+	pub lines: Vec<LexedLine<'source>>,
 	/// Whether the file indents with tabs.
 	pub uses_tabs: bool,
 	/// Whether the file mixes tabs and spaces for indentation.
@@ -127,9 +129,9 @@ pub enum UnterminatedKind {
 	Regex,
 }
 
-impl LexedFile {
+impl LexedFile<'_> {
 	/// Lines that contain executable code.
-	pub fn code_lines(&self) -> impl Iterator<Item = &LexedLine> {
+	pub fn code_lines(&self) -> impl Iterator<Item = &LexedLine<'_>> {
 		self.lines.iter().filter(|line| line.is_code())
 	}
 
@@ -161,13 +163,13 @@ impl LexedFile {
 
 /// Lexes `source` in `language`.
 #[must_use]
-pub fn lex(source: &str, language: Language) -> LexedFile {
+pub fn lex(source: &str, language: Language) -> LexedFile<'_> {
 	lex_with_profile(source, profile_for(language))
 }
 
 /// Lexes `source` using an explicit profile.
 #[must_use]
-pub fn lex_with_profile(source: &str, profile: LanguageProfile) -> LexedFile {
+pub fn lex_with_profile(source: &str, profile: LanguageProfile) -> LexedFile<'_> {
 	let mut scanner = Scanner::new(profile);
 	let mut lines = scanner.run(source);
 	let protected = std::mem::take(&mut scanner.protected);
@@ -209,7 +211,11 @@ pub fn lex_with_profile(source: &str, profile: LanguageProfile) -> LexedFile {
 #[derive(Debug, Clone)]
 struct Literal {
 	/// The delimiter that closes it.
-	end: String,
+	///
+	/// Borrowed from the language profile for every ordinary string, so the per-character copy of
+	/// the open literal that scanning its content makes never touches the heap. Only a closer that
+	/// depends on the opener — a hashed raw string's, or a C++ raw string's delimiter — is owned.
+	end: Cow<'static, str>,
 	/// Whether backslash escapes apply.
 	escapes: bool,
 	/// Whether it may span physical lines.
@@ -301,11 +307,30 @@ struct Heredoc {
 }
 
 /// Accumulates one physical line while scanning.
+///
+/// The line's text is never copied: the builder records where the line starts in the source and
+/// how many bytes it spans, and `build` slices the text out at the end. The masked view is the
+/// one thing that can differ from the text, so it is built lazily: while only verbatim code has
+/// been recorded, the mask is simply the text's own prefix of that many bytes, and only a line
+/// that hides literal or comment content ever owns a separate copy. Comment characters are
+/// recorded for the text but not the mask, so `masked_bytes` grows more slowly than the line
+/// itself when a trailing comment is present.
 #[derive(Debug)]
-struct LineBuilder {
+struct LineBuilder<'source> {
 	number: usize,
-	raw: String,
-	masked: String,
+	/// The whole source, so `build` can slice out this line's text.
+	source: &'source str,
+	/// Bytes of line content recorded so far, excluding the terminator.
+	code_bytes: usize,
+	/// Characters of line content recorded so far, for comment columns.
+	code_chars: usize,
+	/// Bytes the masked view covers so far.
+	masked_bytes: usize,
+	/// Present once a hidden character forced the mask apart from the text; absent while the
+	/// mask is the text's own prefix.
+	masked: Option<String>,
+	/// The comment recorded on this line. Comment text is kept out of the mask, so once this is
+	/// set the mask is no longer a prefix of the text and any further code goes into an owned mask.
 	comment: Option<String>,
 	comment_column: Option<usize>,
 	is_doc_comment: bool,
@@ -317,7 +342,7 @@ struct LineBuilder {
 	end_byte: usize,
 }
 
-impl LineBuilder {
+impl<'source> LineBuilder<'source> {
 	/// Records the line's byte range in the source.
 	fn set_bytes(&mut self, start: usize, end: usize) {
 		self.start_byte = start;
@@ -325,11 +350,14 @@ impl LineBuilder {
 	}
 
 	/// Starts a new line.
-	fn new(number: usize) -> Self {
+	fn new(source: &'source str, number: usize) -> Self {
 		Self {
 			number,
-			raw: String::new(),
-			masked: String::new(),
+			source,
+			code_bytes: 0,
+			code_chars: 0,
+			masked_bytes: 0,
+			masked: None,
 			comment: None,
 			comment_column: None,
 			is_doc_comment: false,
@@ -340,63 +368,98 @@ impl LineBuilder {
 		}
 	}
 
+	/// This line's text, once its byte range is known.
+	fn text(&self) -> &'source str {
+		self.source
+			.get(self.start_byte..self.end_byte)
+			.unwrap_or("")
+	}
+
+	/// Whether any character was recorded for this line.
+	fn is_empty(&self) -> bool {
+		self.code_bytes == 0
+	}
+
+	/// Copies the mask as it stands into an owned string, ahead of a character that cannot be
+	/// represented as a prefix of the text.
+	fn ensure_masked(&mut self) {
+		if self.masked.is_none() {
+			let end = self.start_byte + self.masked_bytes;
+
+			self.masked = Some(self.source[self.start_byte..end].to_string());
+		}
+	}
+
 	/// Records a character that is part of the code.
 	fn push_code(&mut self, character: char) {
-		self.raw.push(character);
-		self.masked.push(character);
+		if self.comment.is_some() {
+			self.ensure_masked();
+		}
+
+		if let Some(masked) = self.masked.as_mut() {
+			masked.push(character);
+		}
 
 		if !character.is_whitespace() {
 			self.saw_code = true;
 		}
+
+		self.code_chars += 1;
+		self.code_bytes += character.len_utf8();
+		self.masked_bytes += character.len_utf8();
 	}
 
 	/// Records a character whose content must be hidden from later passes.
 	fn push_masked(&mut self, character: char) {
-		self.raw.push(character);
+		self.ensure_masked();
 
-		if character.is_whitespace() {
-			self.masked.push(character);
-		} else {
-			self.masked.push(' ');
+		if let Some(masked) = self.masked.as_mut() {
+			if character.is_whitespace() {
+				masked.push(character);
+			} else {
+				masked.push(' ');
+			}
 		}
+
+		self.code_chars += 1;
+		self.code_bytes += character.len_utf8();
 	}
 
 	/// Records the first comment on the line.
 	fn push_comment(&mut self, body: char) {
-		self.raw.push(body);
-
 		if self.comment.is_none() {
-			self.comment_column = Some(self.raw.chars().count() - 1);
+			self.comment_column = Some(self.code_chars);
 			self.comment = Some(String::new());
 		}
 
 		if let Some(comment) = self.comment.as_mut() {
 			comment.push(body);
 		}
+
+		self.code_chars += 1;
+		self.code_bytes += body.len_utf8();
 	}
 
 	/// Records a character that belongs to a literal's content.
 	fn push_literal(&mut self, character: char) {
-		self.raw.push(character);
-		self.masked.push(if character.is_whitespace() {
-			character
-		} else {
-			' '
-		});
+		self.push_masked(character);
 	}
 
 	/// Finishes the line.
-	fn build(self, profile: &LanguageProfile) -> LexedLine {
-		let indent_text: String = self
-			.raw
-			.chars()
-			.take_while(|character| character.is_whitespace())
-			.collect();
-		let indent = expanded_width(&indent_text);
-		let code_start_column = self.raw.chars().count() - self.raw.trim_start().chars().count();
+	fn build(self, profile: &LanguageProfile) -> LexedLine<'source> {
+		let text = self.text();
+		let indent_end = text
+			.char_indices()
+			.find(|(_, character)| !character.is_whitespace())
+			.map_or(text.len(), |(index, _)| index);
+		let indent_text = text.get(..indent_end).unwrap_or_default();
+		let indent = expanded_width(indent_text);
+		let code_start_column = indent_text.chars().count();
 
+		let prefix = text.get(..self.masked_bytes).unwrap_or_default();
+		let masked = self.masked.as_deref().unwrap_or(prefix);
 		let kind = classify_line(
-			&self.masked,
+			masked,
 			self.comment.as_deref(),
 			self.literal_only,
 			self.saw_code,
@@ -404,10 +467,13 @@ impl LineBuilder {
 
 		let mut line = LexedLine {
 			number: self.number,
-			text: self.raw,
+			text,
 			start_byte: self.start_byte,
 			end_byte: self.end_byte,
-			masked_code: self.masked,
+			masked_code: match self.masked {
+				Some(masked) => Cow::Owned(masked),
+				None => Cow::Borrowed(prefix),
+			},
 			indent,
 			indent_text,
 			kind,
@@ -437,9 +503,9 @@ impl LineBuilder {
 }
 
 /// The scanner's state.
-struct Scanner {
+struct Scanner<'source> {
 	profile: LanguageProfile,
-	lines: Vec<LexedLine>,
+	lines: Vec<LexedLine<'source>>,
 	/// Open string literals, innermost last.
 	literals: Vec<Literal>,
 	/// The interpolation currently open, if any.
@@ -465,11 +531,9 @@ struct Scanner {
 	current_byte: usize,
 	/// Byte offset where the current line began.
 	line_start_byte: usize,
-	/// Whether the current line was terminated by a CR that has already been consumed.
-	crlf_pending: bool,
 }
 
-impl Scanner {
+impl<'source> Scanner<'source> {
 	/// Creates a scanner for `profile`.
 	fn new(profile: LanguageProfile) -> Self {
 		Self {
@@ -486,7 +550,6 @@ impl Scanner {
 			previous_code: None,
 			current_byte: 0,
 			line_start_byte: 0,
-			crlf_pending: false,
 		}
 	}
 
@@ -523,9 +586,9 @@ impl Scanner {
 	}
 
 	/// Runs the scan over `source`.
-	fn run(&mut self, source: &str) -> Vec<LexedLine> {
+	fn run(&mut self, source: &'source str) -> Vec<LexedLine<'source>> {
 		let characters: Vec<char> = source.chars().collect();
-		let mut line = LineBuilder::new(1);
+		let mut line = LineBuilder::new(source, 1);
 		let mut index = 0;
 
 		while index < characters.len() {
@@ -535,11 +598,17 @@ impl Scanner {
 
 			// A line break ends the current line. The two forms differ only in how many bytes they consume,
 			// so the handling is shared rather than repeated for each.
-			if let Some(consumed) = self.line_break_length(character, &characters, index) {
-				self.finish_line_at_break(&mut line);
+			if let Some(consumed) = Self::line_break_length(&characters, character, index) {
+				self.finish_line_at_break(&mut line, source);
 				index += consumed;
 				self.current_byte += consumed;
 				self.line_start_byte = self.current_byte;
+
+				// The fresh builder slices its mask from the source as it scans, so it must know
+				// where its line begins before the first character is recorded rather than only
+				// when the line closes.
+				line.start_byte = self.line_start_byte;
+
 				continue;
 			}
 
@@ -576,21 +645,16 @@ impl Scanner {
 
 	/// Closes `line` at a line break and leaves `line` holding the next line's builder.
 	///
-	/// A CR consumed by the CRLF form is a terminator byte rather than content, so the range ends
-	/// before it while the offsets that follow still count it.
-	fn finish_line_at_break(&mut self, line: &mut LineBuilder) {
-		let end = if self.crlf_pending {
-			self.current_byte.saturating_sub(1)
-		} else {
-			self.current_byte
-		};
-
+	/// The scan is standing on the first terminator byte, so the line's range ends exactly here
+	/// for every line-ending style: a CRLF's carriage return is already past the end. An earlier
+	/// version stepped back one more byte for CRLF, which cut the last character off every such
+	/// line's range and left a blank CRLF line with an end before its start.
+	fn finish_line_at_break(&mut self, line: &mut LineBuilder<'source>, source: &'source str) {
 		let number = line.number;
 
-		self.crlf_pending = false;
-		line.set_bytes(self.line_start_byte, end);
+		line.set_bytes(self.line_start_byte, self.current_byte);
 
-		let finished = std::mem::replace(line, LineBuilder::new(number + 1));
+		let finished = std::mem::replace(line, LineBuilder::new(source, number + 1));
 		self.close_line(finished);
 	}
 
@@ -598,8 +662,8 @@ impl Scanner {
 	///
 	/// A file ending in a newline leaves an empty builder behind. Emitting it would report one more line than
 	/// the file has, which would make every line count and density denominator slightly wrong.
-	fn close_final_line(&mut self, mut line: LineBuilder) {
-		if line.raw.is_empty() && !self.lines.is_empty() {
+	fn close_final_line(&mut self, mut line: LineBuilder<'source>) {
+		if line.is_empty() && !self.lines.is_empty() {
 			return;
 		}
 
@@ -610,20 +674,12 @@ impl Scanner {
 	/// How many bytes a line break consumes here, or `None` when this character is not one.
 	///
 	/// A carriage return is a break on its own, but a carriage return followed by a newline is one CRLF break
-	/// rather than two. The consumed count is what advances both the index and the byte offset, and a CRLF
-	/// additionally records that the pending line range must exclude the carriage return.
-	fn line_break_length(
-		&mut self,
-		character: char,
-		characters: &[char],
-		index: usize,
-	) -> Option<usize> {
+	/// rather than two. The consumed count is what advances both the index and the byte offset.
+	fn line_break_length(characters: &[char], character: char, index: usize) -> Option<usize> {
 		match character {
 			'\n' => Some(1),
 			'\r' => {
 				if characters.get(index + 1) == Some(&'\n') {
-					self.crlf_pending = true;
-
 					return Some(2);
 				}
 
@@ -703,17 +759,26 @@ impl Scanner {
 			return self.open_literal(start, &rest, &line_remainder, line, index);
 		}
 
-		let line_window = peek_line(characters, index, MAX_LINE_PEEK);
-
 		// The delimiter can be any length, so the heredoc check reads the rest of the line rather
 		// than the bounded peek window: a marker like `<<~CONFIG` was truncated to `CON`, which
-		// matched no terminator and swallowed the rest of the file.
-		if self.try_open_heredoc(&line_window, line) {
-			return index
-				+ self
-					.heredoc
-					.as_ref()
-					.map_or(0, |heredoc| heredoc.opener_length);
+		// matched no terminator and swallowed the rest of the file. Reading the line costs an
+		// allocation, so it happens only where a heredoc can begin — in a language that has them,
+		// at the character its marker starts with. Reading it for every code character was most
+		// of the allocation the scanner did.
+		if self
+			.profile
+			.heredoc
+			.is_some_and(|syntax| syntax.marker.starts_with(character))
+		{
+			let line_window = peek_line(characters, index, MAX_LINE_PEEK);
+
+			if self.try_open_heredoc(&line_window, line) {
+				return index
+					+ self
+						.heredoc
+						.as_ref()
+						.map_or(0, |heredoc| heredoc.opener_length);
+			}
 		}
 
 		if character == '/'
@@ -795,7 +860,7 @@ impl Scanner {
 			return index + consumed;
 		}
 
-		if rest.starts_with(&literal.end) {
+		if rest.starts_with(literal.end.as_ref()) {
 			return self.close_literal(characters, index, line, &literal);
 		}
 
@@ -1006,7 +1071,7 @@ impl Scanner {
 	}
 
 	/// Closes a finished line, applying heredoc termination and literal recovery.
-	fn close_line(&mut self, builder: LineBuilder) {
+	fn close_line(&mut self, builder: LineBuilder<'source>) {
 		// A line comment always ends at the line break.
 		if self.line_comment {
 			self.line_comment = false;
@@ -1017,7 +1082,7 @@ impl Scanner {
 			.as_ref()
 			.is_some_and(|heredoc| !heredoc.first_line)
 		{
-			self.close_heredoc_if_terminated(&builder.raw.clone(), builder.end_byte);
+			self.close_heredoc_if_terminated(builder.text(), builder.end_byte);
 		}
 
 		self.abandon_single_line_literal();
@@ -1088,20 +1153,17 @@ impl Scanner {
 		let character = characters.get(index)?;
 
 		// Everything below inspects only the characters immediately after this one, so a bounded
-		// window is enough. Collecting the remainder of the file here was the scanner's dominant
-		// cost: prefix letters are ordinary identifier characters, so this ran on a large fraction
-		// of all characters and allocated a buffer the length of the remaining text each time.
-		let after_prefix: Vec<char> = characters
-			.iter()
-			.skip(index + 1)
-			.take(PEEK)
-			.copied()
-			.collect();
+		// window is enough, and it is a view into the scanned text rather than a copy. Collecting
+		// the remainder of the file here was once the scanner's dominant cost, and collecting even
+		// a six-character window was still one allocation per code character: prefix letters are
+		// ordinary identifier characters, so this runs on a large fraction of all characters.
+		let after = characters.get(index + 1..).unwrap_or_default();
+		let after_prefix = after.get(..PEEK).unwrap_or(after);
 
 		// A hashed raw string: prefix, then hashes, then a quote.
 		if self.profile.hashed_raw_strings
 			&& self.profile.raw_string_prefix == Some(*character)
-			&& let Some(start) = self.hashed_raw_start(&after_prefix)
+			&& let Some(start) = self.hashed_raw_start(after_prefix)
 		{
 			return Some(start);
 		}
@@ -1116,7 +1178,7 @@ impl Scanner {
 			return None;
 		}
 
-		let remainder: String = after_prefix.iter().collect();
+		let remainder = peek(characters, index + 1);
 		let rule = self.profile.string_at(&remainder)?;
 
 		// A prefixed form such as `r"..."` is a raw literal, which spans lines. Every language that defines a
@@ -1150,7 +1212,7 @@ impl Scanner {
 			raw,
 			end_override,
 		} = start;
-		let end = end_override.unwrap_or_else(|| closing_delimiter(rule, hashes));
+		let end = end_override.map_or_else(|| closing_delimiter(rule, hashes), Cow::Owned);
 
 		// Whether a short literal closes on this line can only be answered from the whole line, so the
 		// caller passes the remainder of the line rather than the bounded peek window used for
@@ -1486,13 +1548,15 @@ fn comment_block_end(lines: &[LexedLine], index: usize) -> usize {
 fn comment_block_intent(lines: &[LexedLine], index: usize, end: usize) -> CommentIntent {
 	let is_doc =
 		lines.get(index).and_then(|line| line.comment_intent) == Some(CommentIntent::Documentation);
-	let body = lines
-		.get(index..end)
-		.unwrap_or_default()
-		.iter()
-		.map(LexedLine::comment_body)
-		.collect::<Vec<_>>()
-		.join("\n");
+	let mut body = String::new();
+
+	for line in lines.get(index..end).unwrap_or_default() {
+		if !body.is_empty() {
+			body.push('\n');
+		}
+
+		body.push_str(line.comment_body());
+	}
 
 	classify(&body, is_doc)
 }
@@ -1543,7 +1607,7 @@ fn records_for_open_constructs(
 		unterminated.push(Unterminated {
 			kind: UnterminatedKind::Literal,
 			line: literal.opened_at,
-			delimiter: literal.end.clone(),
+			delimiter: literal.end.to_string(),
 		});
 	}
 
@@ -1815,11 +1879,11 @@ struct LiteralStart {
 ///
 /// Rust's `r#"…"#` is why this cannot be a constant: the closer's hash count must match the
 /// opener's exactly, so it can only be known once the opener has been read.
-fn closing_delimiter(rule: &StringRule, hashes: usize) -> String {
+fn closing_delimiter(rule: &StringRule, hashes: usize) -> Cow<'static, str> {
 	if hashes == 0 {
-		rule.close.to_string()
+		Cow::Borrowed(rule.close)
 	} else {
-		format!("\"{}", "#".repeat(hashes))
+		Cow::Owned(format!("\"{}", "#".repeat(hashes)))
 	}
 }
 
@@ -1998,42 +2062,43 @@ fn classify_line(
 }
 
 /// Populates a line's complexity signals from its masked code.
-fn apply_code_signals(line: &mut LexedLine, profile: &LanguageProfile) {
-	let masked = line.masked_code.clone();
-	let words = tokenize_words(&masked);
-	let joined = words.join(" ");
+///
+/// The words borrow the masked view rather than being collected into owned strings, so the
+/// per-line cost of this pass is one vector of slices and nothing else.
+fn apply_code_signals(line: &mut LexedLine<'_>, profile: &LanguageProfile) {
+	let words = tokenize_words(&line.masked_code);
 
 	for keyword in profile.decision_keywords {
-		for _ in 0..count_decision(&masked, &joined, keyword) {
-			line.decisions.push((*keyword).to_string());
+		for _ in 0..count_decision(&line.masked_code, &words, keyword) {
+			line.decisions.push(keyword);
 		}
 	}
 
-	let else_ifs = count_decision(&masked, &joined, "else if");
+	let else_ifs = count_decision(&line.masked_code, &words, "else if");
 
 	for keyword in profile.nesting_keywords {
-		for _ in 0..nesting_keyword_count(&masked, &joined, keyword, else_ifs) {
-			line.nesting.push((*keyword).to_string());
+		for _ in 0..nesting_keyword_count(&line.masked_code, &words, keyword, else_ifs) {
+			line.nesting.push(keyword);
 		}
 	}
 
 	line.logical_operators = profile
 		.logical_operators
 		.iter()
-		.map(|operator| masked.matches(operator).count())
+		.map(|operator| line.masked_code.matches(*operator).count())
 		.sum();
 
 	line.null_coalescing = profile
 		.null_coalescing
 		.iter()
-		.map(|operator| masked.matches(operator).count())
+		.map(|operator| line.masked_code.matches(*operator).count())
 		.sum();
 
 	line.has_ternary = profile.ternary_operator.is_some_and(|operator| {
 		// A ternary needs a `:` after the `?` on the same line; otherwise it is a nullable
 		// type annotation, an optional parameter marker, or a map literal.
 		matches!(
-			(masked.find(operator), masked.rfind(':')),
+			(line.masked_code.find(operator), line.masked_code.rfind(':')),
 			(Some(question), Some(colon)) if colon > question
 		)
 	});
@@ -2041,29 +2106,34 @@ fn apply_code_signals(line: &mut LexedLine, profile: &LanguageProfile) {
 	line.jumps = profile
 		.jump_keywords
 		.iter()
-		.map(|keyword| count_keyword(&joined, keyword))
+		.map(|keyword| count_keyword(&words, keyword))
 		.sum();
 
-	line.is_return = joined
-		.split_whitespace()
-		.any(|word| word == "return" || word == "yield");
+	line.is_return = words
+		.iter()
+		.any(|word| *word == "return" || *word == "yield");
 }
 
 /// Splits code into identifier-like words so multi-word keywords stay adjacent.
-fn tokenize_words(code: &str) -> Vec<String> {
+///
+/// The words are slices of `code`, so tokenizing a line allocates one vector of pointers and
+/// no strings.
+fn tokenize_words(code: &str) -> Vec<&str> {
 	let mut words = Vec::new();
-	let mut current = String::new();
+	let mut start: Option<usize> = None;
 
-	for character in code.chars() {
+	for (index, character) in code.char_indices() {
 		if character.is_alphanumeric() || character == '_' || character == '$' || character == '!' {
-			current.push(character);
-		} else if !current.is_empty() {
-			words.push(std::mem::take(&mut current));
+			if start.is_none() {
+				start = Some(index);
+			}
+		} else if let Some(from) = start.take() {
+			words.push(&code[from..index]);
 		}
 	}
 
-	if !current.is_empty() {
-		words.push(current);
+	if let Some(from) = start {
+		words.push(&code[from..]);
 	}
 
 	words
@@ -2075,8 +2145,8 @@ fn tokenize_words(code: &str) -> Vec<String> {
 /// must not record "if", "else if", and "else" as three nested decisions. The else-if count is
 /// subtracted from the bare "if" and "else" counts, which otherwise include it as standalone
 /// words, so each construct is charged exactly once.
-fn nesting_keyword_count(masked: &str, joined: &str, keyword: &str, else_ifs: usize) -> usize {
-	let count = count_decision(masked, joined, keyword);
+fn nesting_keyword_count(masked: &str, words: &[&str], keyword: &str, else_ifs: usize) -> usize {
+	let count = count_decision(masked, words, keyword);
 
 	if (keyword == "if" || keyword == "else") && else_ifs > 0 {
 		count.saturating_sub(else_ifs)
@@ -2085,16 +2155,37 @@ fn nesting_keyword_count(masked: &str, joined: &str, keyword: &str, else_ifs: us
 	}
 }
 
-/// Counts occurrences of a keyword in a joined word stream.
-fn count_keyword(joined: &str, keyword: &str) -> usize {
-	if keyword.contains(' ') {
-		return joined.matches(keyword).count();
+/// Counts occurrences of a keyword in a word stream.
+///
+/// A single-word keyword fills one word exactly. A multi-word keyword fills consecutive words,
+/// advancing past a whole match so overlapping readings are not counted — the same counting the
+/// joined stream gave without joining it.
+fn count_keyword(words: &[&str], keyword: &str) -> usize {
+	let parts = keyword.split(' ').count();
+
+	if parts == 1 {
+		return words.iter().filter(|word| **word == keyword).count();
 	}
 
-	joined
-		.split_whitespace()
-		.filter(|word| *word == keyword)
-		.count()
+	let mut count = 0;
+	let mut start = 0;
+
+	while start + parts <= words.len() {
+		let window = &words[start..start + parts];
+		let matches = window
+			.iter()
+			.zip(keyword.split(' '))
+			.all(|(word, part)| *word == part);
+
+		if matches {
+			count += 1;
+			start += parts;
+		} else {
+			start += 1;
+		}
+	}
+
+	count
 }
 
 /// Counts a keyword with the position it occupies checked against the code around it.
@@ -2106,7 +2197,7 @@ fn count_keyword(joined: &str, keyword: &str) -> usize {
 /// what detached `#[cfg]` attributes from their items downstream. `default` is a decision only
 /// as a switch arm (`default:` or `default =>`); `ServerConfig::default()` is a trait call, and
 /// Rust has no `default` arm at all.
-fn count_decision(masked: &str, joined: &str, keyword: &str) -> usize {
+fn count_decision(masked: &str, words: &[&str], keyword: &str) -> usize {
 	match keyword {
 		"for" => {
 			count_keyword_where(masked, keyword, |rest| {
@@ -2123,7 +2214,7 @@ fn count_decision(masked: &str, joined: &str, keyword: &str) -> usize {
 				rest.trim_start().starts_with(':') || rest.trim_start().starts_with("=>")
 			})
 		}
-		_ => count_keyword(joined, keyword),
+		_ => count_keyword(words, keyword),
 	}
 }
 

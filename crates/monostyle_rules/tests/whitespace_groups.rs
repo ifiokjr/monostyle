@@ -543,7 +543,8 @@ fn the_limit_is_configurable_from_toml() {
 
 #[test]
 fn disabling_the_rule_removes_every_finding() {
-	let lexed = lex(&statements(20), Language::Dart);
+	let source = statements(20);
+	let lexed = lex(&source, Language::Dart);
 	let config = RulesConfig {
 		require_group_separation: false,
 		..RulesConfig::default()

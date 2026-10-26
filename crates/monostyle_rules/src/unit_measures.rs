@@ -137,7 +137,10 @@ fn measure(file: &LexedFile, unit: &CodeUnit) -> UnitMetrics {
 
 /// Returns the lines belonging to a unit.
 #[must_use]
-pub fn lines_of<'file>(file: &'file LexedFile, unit: &CodeUnit) -> &'file [LexedLine] {
+pub fn lines_of<'file>(
+	file: &'file LexedFile<'file>,
+	unit: &CodeUnit,
+) -> &'file [LexedLine<'file>] {
 	let start = unit.start_line.saturating_sub(1).min(file.lines.len());
 	let end = unit.end_line.min(file.lines.len());
 	file.lines.get(start..end).unwrap_or_default()

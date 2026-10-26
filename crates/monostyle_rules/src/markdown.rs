@@ -17,7 +17,6 @@ use monostyle_core::FindingBuilder;
 use monostyle_core::Severity;
 use monostyle_core::Span;
 use monostyle_lexer::LexedFile;
-use monostyle_lexer::LexedLine;
 use monostyle_lexer::lex;
 use monostyle_markdown::CodeFence;
 
@@ -185,7 +184,7 @@ fn is_known_unanalyzed_language(info_string: &str) -> bool {
 fn document_source(file: &LexedFile) -> String {
 	file.lines
 		.iter()
-		.map(|line| line.text.as_str())
+		.map(|line| line.text)
 		.collect::<Vec<_>>()
 		.join("\n")
 }
@@ -284,7 +283,7 @@ pub fn prose_runs(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 	let source = file
 		.lines
 		.iter()
-		.map(|line| line.text.as_str())
+		.map(|line| line.text)
 		.collect::<Vec<_>>()
 		.join("\n");
 	let document = monostyle_markdown::analyze(&source);
@@ -431,12 +430,4 @@ fn is_markdown(file: &LexedFile) -> bool {
 /// The document's headings.
 fn headings_of(file: &LexedFile) -> Vec<monostyle_markdown::Heading> {
 	monostyle_markdown::analyze(&document_source(file)).headings
-}
-
-/// Returns the lines of a lexed file, for callers that need them.
-///
-/// This exists so the module can be tested without reaching into `LexedFile` internals.
-#[must_use]
-pub fn lexed_lines(file: &LexedFile) -> &[LexedLine] {
-	&file.lines
 }

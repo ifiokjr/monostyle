@@ -37,6 +37,22 @@ Seven rules ask for a file's function-like units, and detection is a structural 
 
 Distinct operators and operands were held in `Vec`s and tested with `iter().any()`, which is quadratic in the token count. They are now `HashSet`s.
 
+### The scanner allocated once per character
+
+Counting allocations with a wrapping global allocator showed the scanner making **64 to 72 heap allocations per line** — about one per character — and allocating 6.3 MB to lex an 82 KB file. None of it was quadratic, which is why the whole-repository timings above looked reasonable; it was simply a constant tax on every character. Three sources accounted for nearly all of it:
+
+- `step_code` read the rest of the line into a `String` for **every code character**, to ask whether a heredoc opened there. Most languages have no heredocs, and in the ones that do the marker starts with one specific character, so the line is now read only when both are true.
+- `literal_at` collected a six-character `Vec<char>` lookahead window for every character before checking whether the character could even begin a literal. The window is now a slice of the text already in memory.
+- Every character inside a string literal cloned the open `Literal`, whose closing delimiter was an owned `String`. The delimiter borrows from the language profile for every ordinary string now, so the copy touches no heap; only a closer that depends on the opener — a hashed raw string's hash count, a C++ raw string's custom delimiter — is owned.
+
+With those gone, the per-line model was the next layer. Each `LexedLine` owned three `String`s (its text, its leading whitespace, and its masked view) and a `Vec<String>` of keyword names, and the keyword pass tokenized every code line into a second `Vec<String>` plus a joined copy. The line now borrows its text and indentation from the source — `LexedFile` carries the source's lifetime — the keywords are the profile's own `&'static str`s, and the word list is a vector of slices. The masked view is built lazily: it is the text's own prefix until a literal or comment forces it apart, so a plain code line, a comment line, and a line with only a trailing comment never allocate one.
+
+Comment classification normalized every comment body through four allocations (a punctuation-stripped copy, a word list, a joined copy, and a lowercased copy) and the block pass re-copied each line's body to join them; both are single buffers now, and a line's comment body is a slice of the line.
+
+The result on this repository's two largest files: `whitespace.rs` went from 146,116 allocations to 6,822 (64 per line to 3), and `lexer.rs` from 159,766 to 5,268 (72 per line to 2.3), with the bytes allocated down by 2.3×. Plain code lines make exactly one allocation — the word list — and blank lines none.
+
+One latent bug surfaced in the process. The byte range recorded for every CRLF-terminated line ended one byte early, and a blank CRLF line's range ran backwards, because the close stepped back for a carriage return the scan had not yet passed. The old model copied each line's text as it scanned, so the wrong range never showed in the text; the borrowed model slices the text from the range, which made the fixer's own tests fail on every CRLF fixture. The range is now exact, and the regression test asserts the slice equals the text rather than merely excluding the terminator.
+
 ## The disk cache, and why it was removed
 
 The scanner's line model was once cached on disk under `target/monostyle`, keyed by path, modification time, size, language, and a schema number, so a repeated run could skip the scan. It was removed because measurement showed it cost more than it saved:

@@ -1,5 +1,7 @@
 //! A single lexed line.
 
+use std::borrow::Cow;
+
 use crate::comment::CommentIntent;
 
 /// What a line is primarily doing.
@@ -21,12 +23,17 @@ pub enum LineKind {
 }
 
 /// One line of source, with the signals the readability rules need.
+///
+/// The line borrows the text it describes from the source it was lexed from, so a file's line
+/// model is not a second, heap-allocated copy of the file. `masked_code` is the exception: it
+/// differs from `text` exactly when the line carries literal or comment content, so it is
+/// borrowed until the first masked character and owns its storage only from there.
 #[derive(Debug, Clone)]
-pub struct LexedLine {
+pub struct LexedLine<'source> {
 	/// 1-based line number.
 	pub number: usize,
 	/// The raw line text, without its terminator.
-	pub text: String,
+	pub text: &'source str,
 	/// Byte offset of this line's first character in the source file.
 	///
 	/// Fixes address the original text by byte range, so a line without its offset cannot be
@@ -39,11 +46,11 @@ pub struct LexedLine {
 	/// Keeping this means every later pass — keyword counting, parameter spans, brace
 	/// tracking — sees the same masked view, so a `?` inside a Dart string can never be
 	/// mistaken for a ternary by one pass after another pass masked it.
-	pub masked_code: String,
+	pub masked_code: Cow<'source, str>,
 	/// Characters of leading whitespace, with tabs expanded.
 	pub indent: usize,
 	/// The raw leading whitespace, preserved so indentation style can be measured.
-	pub indent_text: String,
+	pub indent_text: &'source str,
 	/// What the line primarily is.
 	pub kind: LineKind,
 	/// Column where the code begins, ignoring leading whitespace.
@@ -53,9 +60,9 @@ pub struct LexedLine {
 	/// How the trailing comment, or a whole-line comment, reads.
 	pub comment_intent: Option<CommentIntent>,
 	/// Decision keywords found on this line.
-	pub decisions: Vec<String>,
+	pub decisions: Vec<&'static str>,
 	/// Nesting keywords found on this line.
-	pub nesting: Vec<String>,
+	pub nesting: Vec<&'static str>,
 	/// Number of short-circuiting operators on this line.
 	pub logical_operators: usize,
 	/// Number of null-coalescing or optional-chaining operators on this line.
@@ -70,7 +77,7 @@ pub struct LexedLine {
 	pub is_return: bool,
 }
 
-impl LexedLine {
+impl LexedLine<'_> {
 	/// Whether the line contributes executable code.
 	#[must_use]
 	pub fn is_code(&self) -> bool {
@@ -139,9 +146,10 @@ impl LexedLine {
 	/// Returns the text of this line's comment.
 	///
 	/// The lexer keeps comment text inside `text` rather than a separate field, so this strips the
-	/// leading marker so a caller can classify the prose without the syntax.
+	/// leading marker so a caller can classify the prose without the syntax. The body is a slice of
+	/// the line, so asking for it costs nothing.
 	#[must_use]
-	pub fn comment_body(&self) -> String {
+	pub fn comment_body(&self) -> &str {
 		let trimmed = self.text.trim_start();
 
 		let body = trimmed
@@ -156,7 +164,7 @@ impl LexedLine {
 			.or_else(|| trimmed.strip_prefix("--"))
 			.unwrap_or(trimmed);
 
-		body.trim_end_matches("*/").trim().to_string()
+		body.trim_end_matches("*/").trim()
 	}
 
 	/// Whether the line uses the language's documentation comment syntax.
