@@ -729,7 +729,7 @@ fn crowded_return(
 /// recommends for flattening code. Detecting it needs the enclosing block's opener, so the
 /// check is on the previous non-blank line being a conditional that this return is the body of.
 fn is_guard_clause(line: &LexedLine) -> bool {
-	line.decision_count() > 0 && line.decisions.iter().all(|decision| decision == "if")
+	line.decision_count() > 0 && line.decisions.iter().all(|decision| *decision == "if")
 }
 
 /// Reports long runs of statements with no blank lines between logical groups.
@@ -1249,7 +1249,7 @@ fn opens_alternatives(line: &LexedLine) -> bool {
 	line.decisions
 		.iter()
 		.chain(line.nesting.iter())
-		.any(|keyword| ALTERNATIVE_KEYWORDS.contains(&keyword.as_str()))
+		.any(|keyword| ALTERNATIVE_KEYWORDS.contains(keyword))
 		|| has_keyword(line, ALTERNATIVE_KEYWORDS)
 }
 
@@ -1529,7 +1529,10 @@ fn check_run(lines: &[LexedLine], run: &[usize], limit: usize, findings: &mut Ve
 
 /// The line a splitting blank opens above: the statement itself, or the comment block
 /// attached above it when one is there, so the blank never strands a comment from its code.
-fn split_anchor(lines: &[LexedLine], index: usize) -> Option<&LexedLine> {
+fn split_anchor<'line>(
+	lines: &'line [LexedLine<'line>],
+	index: usize,
+) -> Option<&'line LexedLine<'line>> {
 	let mut anchor = index;
 
 	while anchor > 0 && lines.get(anchor - 1).is_some_and(LexedLine::is_comment) {
@@ -2264,7 +2267,10 @@ fn is_attribute(line: &LexedLine) -> bool {
 }
 
 /// Finds the index of the previous line that is not blank.
-fn previous_code_line(lines: &[LexedLine], index: usize) -> Option<&LexedLine> {
+fn previous_code_line<'line>(
+	lines: &'line [LexedLine<'line>],
+	index: usize,
+) -> Option<&'line LexedLine<'line>> {
 	lines.iter().take(index).rev().find(|candidate| {
 		!candidate.is_blank() && !candidate.is_comment() && !candidate.is_literal()
 	})

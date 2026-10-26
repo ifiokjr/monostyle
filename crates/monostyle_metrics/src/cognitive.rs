@@ -123,7 +123,7 @@ fn line_cost(line: &LexedLine, depth: usize) -> LineCost {
 	// A run of `&&`/`||` counts once; alternating operators read as separate conditions and so count
 	// again, which is why this is modeled as a sequence rather than a simple presence check.
 	if line.logical_operators > 0 {
-		total += count_logical_sequences(&line.text, line.logical_operators);
+		total += count_logical_sequences(line.text, line.logical_operators);
 	}
 
 	LineCost {
@@ -203,7 +203,7 @@ fn positions_of<'text>(
 fn opens_nesting(line: &LexedLine) -> bool {
 	if line.nesting.iter().any(|keyword| {
 		matches!(
-			keyword.as_str(),
+			*keyword,
 			"if" | "elif"
 				| "elseif" | "else if"
 				| "else" | "unless"

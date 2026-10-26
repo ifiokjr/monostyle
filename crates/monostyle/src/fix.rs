@@ -232,7 +232,7 @@ fn write_atomic(path: &Path, text: &str) -> std::io::Result<()> {
 }
 
 /// Scans `source` under the language `path` implies, if it implies one.
-fn scan_of(path: &Path, source: &str) -> Option<LexedFile> {
+fn scan_of<'source>(path: &Path, source: &'source str) -> Option<LexedFile<'source>> {
 	crate::analysis::language_for_path(path).map(|language| lex(source, language))
 }
 

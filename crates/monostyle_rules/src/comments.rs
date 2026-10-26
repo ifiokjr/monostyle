@@ -56,7 +56,11 @@ fn lead_in_starts_at(file: &LexedFile, start_line: usize) -> usize {
 /// The predicate is asked about the line *above* the current top, so the walk stops before
 /// consuming a line that extends nothing. Indexing is `number - 2` because line numbers are
 /// 1-based while the vector is 0-based.
-fn walk_while(file: &LexedFile, mut top: usize, extends: impl Fn(&LexedLine) -> bool) -> usize {
+fn walk_while<'file>(
+	file: &LexedFile<'file>,
+	mut top: usize,
+	extends: fn(&LexedLine<'file>) -> bool,
+) -> usize {
 	while top > 1 {
 		let Some(line) = file.lines.get(top - 2) else {
 			break;
