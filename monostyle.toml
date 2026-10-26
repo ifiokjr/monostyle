@@ -56,6 +56,13 @@ path = "crates/monostyle/tests/fixtures"
 ignore = true
 reason = "these are test inputs; bad/rust.rs scores 0 by design"
 
+# The benchmark corpus: one file per language, written to exercise the scanner's hardest paths
+# rather than to read well. Measuring them would score the benchmark inputs, not this project.
+[[section]]
+path = "crates/monostyle/benches/corpus"
+ignore = true
+reason = "benchmark inputs are written to exercise the scanner, not to be read"
+
 # The worked examples at the repository root, which include another deliberately-bad file.
 [[section]]
 path = "examples"

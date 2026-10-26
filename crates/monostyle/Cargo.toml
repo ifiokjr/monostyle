@@ -10,6 +10,10 @@ readme.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Measure the complexity and readability of a codebase, a file, or a function."
+# The benches and the corpus they read are development tooling, not part of the published crate.
+# The corpus is also what the benchmark workflow copies into its mixed-language scenario, so it
+# lives beside the bench that reads it rather than in a directory of its own.
+exclude = ["benches/"]
 
 [lib]
 name = "monostyle"
@@ -34,8 +38,13 @@ serde_json = { workspace = true }
 toml = { workspace = true }
 
 [dev-dependencies]
+criterion = { workspace = true }
 insta = { workspace = true }
 tempfile = { workspace = true }
+
+[[bench]]
+name = "hot_paths"
+harness = false
 
 [lints]
 workspace = true

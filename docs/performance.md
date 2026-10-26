@@ -65,9 +65,19 @@ A cache could only pay if restoring the line model were cheaper than scanning th
 
 ## Measuring it yourself
 
-Every pull request is benchmarked automatically: the `benchmark` workflow builds release binaries of the PR and of the commit it branched from, runs both over this repository's own tree and an eightfold copy of it, and posts a comparison comment with a merge recommendation. The comment is updated in place on every push, and re-running the workflow regenerates it.
+Every pull request is benchmarked automatically: the `benchmark` workflow builds release binaries of the PR and of the commit it branched from, runs both over four corpora, and posts a comparison comment with a merge recommendation. The comment is updated in place on every push, and re-running the workflow regenerates it. The corpora are:
 
-To measure locally:
+- **the repository's own tree**, which is what a person running `monostyle check .` here would measure;
+- **an eightfold copy of it**, so a small regression is multiplied into something the runner can see;
+- **a mixed-language corpus**: the ten files under `crates/monostyle/benches/corpus/`, each written in its language to exercise the scanner's hardest paths — Python f-strings, shell heredocs, JavaScript regex against division, Nix indented strings — repeated so every language carries the same weight. The two Rust corpora never reach those paths, so a regression in one of them was invisible before this corpus existed;
+- **a single file of about seven thousand lines**, the size at which every quadratic path the scanner has had so far first showed. A tree of small files cannot catch the next one.
+
+Two more guards run on every change without timing anything:
+
+- `cargo bench --package monostyle` runs Criterion micro-benchmarks for each stage a file goes through — lexing (as bytes per second, per language), unit measurement, the rule set, and the whole analysis — so a change that slows one stage cannot hide behind another that got faster. They compile under `cargo clippy --all-targets` in CI and are meant to be run locally before and after a change to the hot path.
+- The `allocations` test in `monostyle_lexer` counts heap allocations through a wrapping global allocator and holds the scanner to a ceiling per line for each line shape: a plain code line may allocate once (its word list) and a blank line never. Counting is exact and deterministic where timing on a shared machine is not, so a per-character allocation returning to the scanner fails a test instead of the next profiling session.
+
+To measure a repository locally:
 
 ```console
 cargo build --release --package monostyle

@@ -21,6 +21,9 @@ ignore = { version = "0.4", default-features = false }
 # than silent.
 insta = { version = "1", default-features = false, features = ["filters", "json"] }
 rayon = { version = "1.10", default-features = false }
+# Micro-benchmarks for the per-file hot paths. The default features pull in a plotting stack and a
+# thread pool the benches do not use; `cargo_bench_support` is the one feature `cargo bench` needs.
+criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
 # `std` is required: findings carry owned `String` messages, which need the
 # standard library's `Serialize` implementations to be available.
 serde = { version = "1", default-features = false, features = ["derive", "std"] }
