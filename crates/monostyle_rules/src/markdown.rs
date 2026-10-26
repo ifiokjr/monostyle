@@ -263,7 +263,7 @@ fn rebase(finding: Finding, fence: &CodeFence, language: &str) -> Finding {
 			start_line,
 			end_line,
 		),
-		message: format!("in the {language} example: {}", finding.message),
+		message: format!("in the {language} example: {}", finding.message).into(),
 		suggestion: finding.suggestion,
 		weight: finding.weight,
 		// A fix inside a fence would address offsets in the extracted code, not the document, so

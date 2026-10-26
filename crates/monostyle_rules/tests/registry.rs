@@ -3,11 +3,19 @@
 //! Individual rules have their own suites. These tests cover the contracts the registry must satisfy:
 //! every rule is reachable, disableable, and explained, and running the whole set is deterministic.
 
+use monostyle_core::Finding;
 use monostyle_core::Language;
+use monostyle_lexer::LexedFile;
 use monostyle_lexer::lex;
+use monostyle_rules::RuleContext;
 use monostyle_rules::RulesConfig;
 use monostyle_rules::all_rules;
 use monostyle_rules::run_rules;
+
+/// Runs the whole rule set the way the analysis pipeline does.
+fn run(lexed: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
+	run_rules(&RuleContext::new(lexed, config))
+}
 
 /// A source file with a deliberate problem for each class of rule.
 const KITCHEN_SINK: &str = r"
@@ -148,7 +156,7 @@ fn disabling_a_rule_removes_its_findings() {
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
 
 	let enabled = RulesConfig::default();
-	let all = run_rules(&lexed, &enabled);
+	let all = run(&lexed, &enabled);
 
 	let rule = "readability/blank-line-before-control-flow";
 
@@ -163,7 +171,7 @@ fn disabling_a_rule_removes_its_findings() {
 		..RulesConfig::default()
 	};
 
-	let filtered = run_rules(&lexed, &disabled);
+	let filtered = run(&lexed, &disabled);
 
 	assert!(
 		filtered.iter().all(|finding| finding.rule != rule),
@@ -181,12 +189,9 @@ fn a_kitchen_sink_source_exercises_many_rules() {
 	// rule has silently stopped firing.
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
 
-	let findings = run_rules(&lexed, &RulesConfig::default());
+	let findings = run(&lexed, &RulesConfig::default());
 
-	let mut rules: Vec<&str> = findings
-		.iter()
-		.map(|finding| finding.rule.as_str())
-		.collect();
+	let mut rules: Vec<&str> = findings.iter().map(|finding| finding.rule).collect();
 	rules.sort_unstable();
 	rules.dedup();
 
@@ -201,9 +206,9 @@ fn a_kitchen_sink_source_exercises_many_rules() {
 fn running_the_rules_twice_gives_the_same_answer() {
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
 
-	let first = run_rules(&lexed, &RulesConfig::default());
+	let first = run(&lexed, &RulesConfig::default());
 
-	let second = run_rules(&lexed, &RulesConfig::default());
+	let second = run(&lexed, &RulesConfig::default());
 
 	assert_eq!(first.len(), second.len());
 
@@ -218,7 +223,7 @@ fn running_the_rules_twice_gives_the_same_answer() {
 fn every_finding_from_the_whole_set_is_explained() {
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
 
-	for finding in run_rules(&lexed, &RulesConfig::default()) {
+	for finding in run(&lexed, &RulesConfig::default()) {
 		assert!(
 			!finding.message.is_empty(),
 			"{} has no message",
@@ -244,7 +249,9 @@ fn every_finding_carries_a_category_matching_its_namespace() {
 	for rule in all_rules() {
 		let lexed = lex(KITCHEN_SINK, Language::Rust);
 
-		let findings = (rule.run)(&lexed, &RulesConfig::default());
+		let findings = rule
+			.run
+			.invoke(&RuleContext::new(&lexed, &RulesConfig::default()));
 
 		let namespace = rule.name.split('/').next().unwrap_or_default();
 
@@ -275,7 +282,9 @@ fn every_rule_survives_an_empty_file() {
 
 			// The assertion is that the rule terminates without panicking on no input, which is the
 			// case a malformed file produces.
-			let _ = (rule.run)(&lexed, &RulesConfig::default());
+			let _ = rule
+				.run
+				.invoke(&RuleContext::new(&lexed, &RulesConfig::default()));
 		}
 	}
 }
@@ -285,7 +294,9 @@ fn every_rule_survives_one_line_of_garbage() {
 	for rule in all_rules() {
 		let lexed = lex("}}}]]](((:::;;;", Language::Rust);
 
-		let _ = (rule.run)(&lexed, &RulesConfig::default());
+		let _ = rule
+			.run
+			.invoke(&RuleContext::new(&lexed, &RulesConfig::default()));
 	}
 }
 
@@ -298,12 +309,12 @@ fn only_the_formatter_safe_rules_produce_a_fix() {
 	// make; a run longer than twice the limit takes one blank per fixer pass.
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
 
-	let findings = run_rules(&lexed, &RulesConfig::default());
+	let findings = run(&lexed, &RulesConfig::default());
 
 	let mut unique: Vec<&str> = findings
 		.iter()
 		.filter(|finding| finding.fix.is_some())
-		.map(|finding| finding.rule.as_str())
+		.map(|finding| finding.rule)
 		.collect();
 
 	unique.sort_unstable();
@@ -339,11 +350,11 @@ fn every_finding_of_a_fixable_rule_carries_a_fix() {
 
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
 
-	let findings = run_rules(&lexed, &RulesConfig::default());
+	let findings = run(&lexed, &RulesConfig::default());
 
 	for finding in findings
 		.iter()
-		.filter(|finding| FIXABLE.contains(&finding.rule.as_str()))
+		.filter(|finding| FIXABLE.contains(&finding.rule))
 	{
 		assert!(
 			finding.fix.is_some(),
@@ -360,7 +371,7 @@ fn the_blank_line_before_control_flow_fix_never_lands_inside_a_statement() {
 	// an attribute block), never inside a chain, condition, or directive.
 	let lexed = lex(KITCHEN_SINK, Language::Rust);
 
-	let findings = run_rules(&lexed, &RulesConfig::default());
+	let findings = run(&lexed, &RulesConfig::default());
 
 	for finding in findings
 		.iter()

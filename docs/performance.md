@@ -31,7 +31,7 @@ The same pattern appeared in `literal_at`, which ran on a large fraction of all 
 
 ### Unit detection ran seven times per file
 
-Seven rules ask for a file's function-like units, and detection is a structural scan over every line. On a 17,000-line file with 499 functions that was 499 units times seven scans. Detection and the per-unit metrics now run once and are memoized, keyed by the unit's line range so two functions with the same name in different places cannot be confused.
+Seven rules ask for a file's function-like units, and detection is a structural scan over every line. On a 17,000-line file with 499 functions that was 499 units times seven scans — and each scan re-measured every unit's cyclomatic, cognitive, Halstead, and maintainability figures besides. Detection and the per-unit metrics now run once per file: the rule context holds a `UnitSet` and hands the same measurements to whichever rule asks. The context is a value owned for exactly one file, so there is no cache to key and no way for one file's measurements to reach another — an earlier attempt to share them through a cache keyed on the file's memory address produced exactly that confusion.
 
 ### Halstead used linear membership tests
 

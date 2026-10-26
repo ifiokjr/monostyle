@@ -1,5 +1,7 @@
 //! Findings and their explanations.
 
+use std::borrow::Cow;
+
 use serde::Serialize;
 
 use crate::Category;
@@ -12,10 +14,15 @@ use crate::Span;
 /// Every finding must be able to answer "why did I lose points here?" without the
 /// reader consulting external documentation, so [`Finding::message`] and
 /// [`Finding::suggestion`] are required rather than optional.
+///
+/// A large repository produces tens of thousands of findings, so the text fields are
+/// borrowed where they can be: the rule name is always a registry constant, and most
+/// suggestions are a fixed sentence. Only a message that quotes the code it describes
+/// owns its storage.
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct Finding {
 	/// Stable rule identifier, such as `readability/blank-line-before-control-flow`.
-	pub rule: String,
+	pub rule: &'static str,
 	/// The score this finding moves.
 	pub category: Category,
 	/// How serious the finding is.
@@ -23,9 +30,9 @@ pub struct Finding {
 	/// Where the finding applies.
 	pub span: Span,
 	/// One sentence explaining what is wrong.
-	pub message: String,
+	pub message: Cow<'static, str>,
 	/// One sentence explaining how to fix it.
-	pub suggestion: String,
+	pub suggestion: Cow<'static, str>,
 	/// Per-finding weight, after the rule's own scaling.
 	///
 	/// This is the value before [`Severity`] is applied, and it is recorded so that
@@ -58,22 +65,22 @@ impl Finding {
 /// themselves scored by this tool.
 #[derive(Debug, Clone)]
 pub struct FindingBuilder {
-	rule: String,
+	rule: &'static str,
 	category: Category,
 	severity: Severity,
 	span: Span,
 	weight: f64,
-	message: Option<String>,
-	suggestion: Option<String>,
+	message: Option<Cow<'static, str>>,
+	suggestion: Option<Cow<'static, str>>,
 	fix: Option<Fix>,
 }
 
 impl FindingBuilder {
 	/// Starts a builder for `rule` at `span`.
 	#[must_use]
-	pub fn new(rule: impl Into<String>, category: Category, span: Span) -> Self {
+	pub fn new(rule: &'static str, category: Category, span: Span) -> Self {
 		Self {
-			rule: rule.into(),
+			rule,
 			category,
 			severity: Severity::Minor,
 			span,
@@ -99,15 +106,17 @@ impl FindingBuilder {
 	}
 
 	/// Sets the explanation of what is wrong.
+	///
+	/// A literal is stored without copying; a formatted `String` is stored as it is.
 	#[must_use]
-	pub fn message(mut self, message: impl Into<String>) -> Self {
+	pub fn message(mut self, message: impl Into<Cow<'static, str>>) -> Self {
 		self.message = Some(message.into());
 		self
 	}
 
 	/// Sets the explanation of how to fix it.
 	#[must_use]
-	pub fn suggestion(mut self, suggestion: impl Into<String>) -> Self {
+	pub fn suggestion(mut self, suggestion: impl Into<Cow<'static, str>>) -> Self {
 		self.suggestion = Some(suggestion.into());
 		self
 	}
@@ -131,10 +140,10 @@ impl FindingBuilder {
 			category: self.category,
 			severity: self.severity,
 			span: self.span,
-			message: self.message.unwrap_or_else(|| "rule violated".to_string()),
+			message: self.message.unwrap_or(Cow::Borrowed("rule violated")),
 			suggestion: self
 				.suggestion
-				.unwrap_or_else(|| "review this location".to_string()),
+				.unwrap_or(Cow::Borrowed("review this location")),
 			weight: self.weight,
 			fix: self.fix,
 		}
