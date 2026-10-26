@@ -281,11 +281,8 @@ fn apply_unit_filters(report: &mut analysis::ProjectReport, args: &CheckArgs) {
 
 	if let Some(limit) = args.top {
 		for file in &mut report.files {
-			file.units.sort_by(|left, right| {
-				left.score()
-					.partial_cmp(&right.score())
-					.unwrap_or(std::cmp::Ordering::Equal)
-			});
+			file.units
+				.sort_by(|left, right| left.score().total_cmp(&right.score()));
 
 			file.units.truncate(limit);
 		}
@@ -486,7 +483,9 @@ fn fixable_findings(report: &analysis::FileReport, args: &FixArgs) -> Vec<monost
 		.findings
 		.iter()
 		.filter(|finding| finding.fix.is_some())
-		.filter(|finding| args.rules.is_empty() || args.rules.contains(&finding.rule))
+		.filter(|finding| {
+			args.rules.is_empty() || args.rules.iter().any(|rule| rule == finding.rule)
+		})
 		.cloned()
 		.collect()
 }
@@ -521,7 +520,7 @@ fn report_fix(outcome: &FixOutcome, dry_run: bool) {
 			style::dim("+"),
 			outcome.outcome.path.display(),
 			finding.span.start_line,
-			style::magenta(&finding.rule)
+			style::magenta(finding.rule)
 		);
 		println!("      {}", wrap_text(&finding.message, 74, "      "));
 	}
@@ -550,7 +549,7 @@ fn report_decisions(path: &Path, remaining: &[monostyle_core::Finding]) {
 			"    {}:{}  {}",
 			path.display(),
 			finding.span.start_line,
-			style::magenta(&finding.rule)
+			style::magenta(finding.rule)
 		);
 		println!("        {}", wrap_text(&finding.message, 70, "        "));
 		println!(
@@ -668,16 +667,18 @@ fn run_fix(
 
 /// Runs the `rules` command.
 fn run_rules(args: &RulesArgs) -> Result<ExitCode, Box<dyn std::error::Error>> {
-	let mut rules = monostyle_rules::all_rules();
+	let mut rules: Vec<&monostyle_rules::Rule> = monostyle_rules::all_rules().iter().collect();
 
 	// A rule is fixable when running it can produce an edit, which is discovered by running it rather
 	// than declared alongside the rule. Declaring it separately would be a second place to forget.
 	if args.fixable {
 		let lexed = monostyle_lexer::lex(SAMPLE_FOR_FIXABILITY, monostyle_core::Language::Rust);
+		let config = monostyle_rules::RulesConfig::default();
+		let context = monostyle_rules::RuleContext::new(&lexed, &config);
 
 		rules.retain(|rule| {
-			let config = monostyle_rules::RulesConfig::default();
-			(rule.run)(&lexed, &config)
+			rule.run
+				.invoke(&context)
 				.iter()
 				.any(|finding| finding.fix.is_some())
 		});

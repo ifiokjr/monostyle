@@ -53,11 +53,11 @@ fn analyze_allow_empty(relative: &str) -> ProjectReport {
 }
 
 /// Returns the rules that produced a penalizing finding in a report.
-fn penalizing_rules(report: &ProjectReport) -> Vec<String> {
-	let mut rules: Vec<String> = report
+fn penalizing_rules(report: &ProjectReport) -> Vec<&'static str> {
+	let mut rules: Vec<&'static str> = report
 		.penalizing_findings()
 		.into_iter()
-		.map(|(_path, finding)| finding.rule.clone())
+		.map(|(_path, finding)| finding.rule)
 		.collect();
 
 	rules.sort_unstable();
@@ -126,7 +126,7 @@ fn badly_written_code_is_caught_by_named_rules() {
 		"readability/comment-required-on-complex-unit",
 	] {
 		assert!(
-			rules.contains(&expected.to_string()),
+			rules.contains(&expected),
 			"`{expected}` should have fired. Rules that did: {rules:?}"
 		);
 	}
@@ -372,7 +372,7 @@ fn markdown_measures_code_inside_fences() {
 		"the deliberately cramped fence should be measured. Findings: {:?}",
 		file.findings
 			.iter()
-			.map(|finding| finding.rule.clone())
+			.map(|finding| finding.rule)
 			.collect::<Vec<_>>()
 	);
 

@@ -268,18 +268,15 @@ fn findings_rank_into_rule_impacts() {
 	let first = analyze(BAD);
 	let second = analyze(BAD);
 
-	let owned: Vec<(PathBuf, monostyle_core::Finding)> = vec![
-		(PathBuf::from("one.rs"), first),
-		(PathBuf::from("two.rs"), second),
-	]
-	.into_iter()
-	.flat_map(|(path, report)| {
-		report
-			.findings
-			.into_iter()
-			.map(move |finding| (path.clone(), finding))
-	})
-	.collect();
+	let owned: Vec<(&Path, &monostyle_core::Finding)> = [&first, &second]
+		.into_iter()
+		.flat_map(|report| {
+			report
+				.findings
+				.iter()
+				.map(move |finding| (report.path.as_path(), finding))
+		})
+		.collect();
 
 	let overall = rank_overall_impact(&owned);
 

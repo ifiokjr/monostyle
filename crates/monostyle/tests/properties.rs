@@ -297,7 +297,7 @@ fn the_rules_never_panic_on_arbitrary_line_soup() {
 			Language::Shell,
 		] {
 			let lexed = monostyle_lexer::lex(text, language);
-			let findings = run_rules(&lexed, &config);
+			let findings = run_rules(&monostyle_rules::RuleContext::new(&lexed, &config));
 
 			// Whatever the findings, applying them must also be safe.
 			let fixes: Vec<Fix> = findings

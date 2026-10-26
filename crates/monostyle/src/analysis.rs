@@ -11,18 +11,21 @@
 //! by the same denominators and applies the same curve, so a function's score and its file's
 //! score are directly comparable rather than merely similar.
 
+use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
 
 use monostyle_core::Category;
+use monostyle_core::CategoryScores;
 use monostyle_core::Finding;
 use monostyle_core::Language;
 use monostyle_core::Score;
 use monostyle_core::ScoringConfig;
-use monostyle_lexer::LexedFile;
 use monostyle_lexer::lex;
 use monostyle_metrics::CodeUnit;
+use monostyle_rules::RuleContext;
 use monostyle_rules::RulesConfig;
+use monostyle_rules::unit_measures::UnitMetrics;
 use serde::Serialize;
 
 /// A scored function-like unit.
@@ -139,12 +142,7 @@ impl FileReport {
 	pub fn ranked_findings(&self) -> Vec<&Finding> {
 		let mut findings: Vec<&Finding> = self.findings.iter().collect();
 
-		findings.sort_by(|left, right| {
-			right
-				.penalty()
-				.partial_cmp(&left.penalty())
-				.unwrap_or(std::cmp::Ordering::Equal)
-		});
+		findings.sort_by(|left, right| right.penalty().total_cmp(&left.penalty()));
 
 		findings
 	}
@@ -196,7 +194,7 @@ pub struct FloorViolation {
 	///
 	/// This is what turns a failure into a worklist: the reader sees the floor, how far short it fell, and
 	/// which rules to address.
-	pub top_offenders: Vec<(String, f64)>,
+	pub top_offenders: Vec<(&'static str, f64)>,
 }
 
 impl FloorViolation {
@@ -245,13 +243,13 @@ impl ProjectReport {
 	/// The first entry is the single change that would recover the most points.
 	#[must_use]
 	pub fn readability_impact(&self) -> Vec<crate::aggregate::RuleImpact> {
-		crate::aggregate::rank_rule_impact(&self.owned_findings(), Category::Readability)
+		crate::aggregate::rank_rule_impact(&self.all_findings(), Category::Readability)
 	}
 
 	/// Rules ranked by how much complexity penalty each contributes.
 	#[must_use]
 	pub fn complexity_impact(&self) -> Vec<crate::aggregate::RuleImpact> {
-		crate::aggregate::rank_rule_impact(&self.owned_findings(), Category::Complexity)
+		crate::aggregate::rank_rule_impact(&self.all_findings(), Category::Complexity)
 	}
 
 	/// Files ranked by the penalty they contribute, most costly first.
@@ -270,12 +268,7 @@ impl ProjectReport {
 			})
 			.collect();
 
-		ranked.sort_by(|left, right| {
-			right
-				.1
-				.partial_cmp(&left.1)
-				.unwrap_or(std::cmp::Ordering::Equal)
-		});
+		ranked.sort_by(|left, right| right.1.total_cmp(&left.1));
 		ranked
 	}
 
@@ -286,24 +279,6 @@ impl ProjectReport {
 	#[must_use]
 	pub fn has_any_floor(&self) -> bool {
 		!self.floor_violations.is_empty() || self.floor_configured
-	}
-
-	/// Findings paired with their paths, as owned values.
-	#[must_use]
-	pub fn owned_findings_public(&self) -> Vec<(PathBuf, Finding)> {
-		self.owned_findings()
-	}
-
-	/// Findings paired with their paths, as owned values.
-	fn owned_findings(&self) -> Vec<(PathBuf, Finding)> {
-		self.files
-			.iter()
-			.flat_map(|file| {
-				file.findings
-					.iter()
-					.map(|finding| (file.path.clone(), finding.clone()))
-			})
-			.collect()
 	}
 }
 
@@ -316,13 +291,13 @@ impl ProjectReport {
 
 	/// Every finding across every file, paired with the file it came from.
 	#[must_use]
-	pub fn all_findings(&self) -> Vec<(&PathBuf, &Finding)> {
+	pub fn all_findings(&self) -> Vec<(&Path, &Finding)> {
 		self.files
 			.iter()
 			.flat_map(|file| {
 				file.findings
 					.iter()
-					.map(move |finding| (&file.path, finding))
+					.map(move |finding| (file.path.as_path(), finding))
 			})
 			.collect()
 	}
@@ -333,7 +308,7 @@ impl ProjectReport {
 	/// scoring arithmetic uniform. Reporting has to reverse that: counting a credit line as a
 	/// "rule violation" would tell the reader to fix something the tool just praised.
 	#[must_use]
-	pub fn penalizing_findings(&self) -> Vec<(&PathBuf, &Finding)> {
+	pub fn penalizing_findings(&self) -> Vec<(&Path, &Finding)> {
 		self.all_findings()
 			.into_iter()
 			.filter(|(_path, finding)| finding.penalty() > 0.0)
@@ -342,7 +317,7 @@ impl ProjectReport {
 
 	/// Findings that earn credit.
 	#[must_use]
-	pub fn credited_findings(&self) -> Vec<(&PathBuf, &Finding)> {
+	pub fn credited_findings(&self) -> Vec<(&Path, &Finding)> {
 		self.all_findings()
 			.into_iter()
 			.filter(|(_path, finding)| finding.penalty() < 0.0)
@@ -351,17 +326,15 @@ impl ProjectReport {
 
 	/// Counts penalizing findings by rule name, most frequent first.
 	#[must_use]
-	pub fn findings_by_rule(&self) -> Vec<(String, usize)> {
-		let mut counts: Vec<(String, usize)> = Vec::new();
+	pub fn findings_by_rule(&self) -> Vec<(&'static str, usize)> {
+		let mut counts: HashMap<&'static str, usize> = HashMap::new();
 
 		for (_path, finding) in self.penalizing_findings() {
-			match counts.iter_mut().find(|(rule, _)| *rule == finding.rule) {
-				Some((_, count)) => *count += 1,
-				None => counts.push((finding.rule.clone(), 1)),
-			}
+			*counts.entry(finding.rule).or_insert(0) += 1;
 		}
 
-		counts.sort_by(|left, right| right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0)));
+		let mut counts: Vec<(&'static str, usize)> = counts.into_iter().collect();
+		counts.sort_by(|left, right| right.1.cmp(&left.1).then_with(|| left.0.cmp(right.0)));
 		counts
 	}
 
@@ -370,11 +343,7 @@ impl ProjectReport {
 	pub fn worst_files(&self, limit: usize) -> Vec<&FileReport> {
 		let mut files: Vec<&FileReport> = self.files.iter().collect();
 
-		files.sort_by(|left, right| {
-			left.overall()
-				.partial_cmp(&right.overall())
-				.unwrap_or(std::cmp::Ordering::Equal)
-		});
+		files.sort_by(|left, right| left.overall().total_cmp(&right.overall()));
 
 		files.into_iter().take(limit).collect()
 	}
@@ -406,14 +375,15 @@ impl AnalysisOptions {
 	/// Returns the rules that apply to `path`.
 	///
 	/// A section's rules are layered onto the repository-wide values when the configuration is read, so a
-	/// section only states what differs and this is a selection rather than a merge.
+	/// section only states what differs and this is a selection rather than a merge. The reference is
+	/// borrowed because every file pays this call, and cloning the pattern lists it would copy was pure
+	/// overhead.
 	#[must_use]
-	pub fn rules_for(&self, path: &Path) -> RulesConfig {
-		let Some(section) = crate::section::section_for(&self.sections, path) else {
-			return self.rules.clone();
-		};
-
-		section.rules.clone()
+	pub fn rules_for(&self, path: &Path) -> &RulesConfig {
+		match crate::section::section_for(&self.sections, path) {
+			Some(section) => &section.rules,
+			None => &self.rules,
+		}
 	}
 
 	/// Returns the floor that applies to `path`.
@@ -422,7 +392,12 @@ impl AnalysisOptions {
 	/// the rest, so a section can raise the bar for readability without restating complexity.
 	#[must_use]
 	pub fn floor_for(&self, path: &Path) -> crate::section::ScoreFloor {
-		let Some(section) = crate::section::section_for(&self.sections, path) else {
+		self.floor_from(crate::section::section_for(&self.sections, path))
+	}
+
+	/// Merges the repository-wide floor with the section that applies, when one does.
+	fn floor_from(&self, section: Option<&crate::section::Section>) -> crate::section::ScoreFloor {
+		let Some(section) = section else {
 			return self.fail_under;
 		};
 
@@ -458,39 +433,33 @@ pub fn analyze_with_language(
 	options: &AnalysisOptions,
 ) -> FileReport {
 	let lexed = lex(source, language);
-	let findings = findings_for(&lexed, path, options);
-	build_report(path, &lexed, findings, options)
+
+	// The rules come from the section that matches the file's path, so a directory can hold a different
+	// bar from the rest of the repository without the rule being disabled everywhere. The context shares
+	// the unit measurements between the rules and this file's unit reports.
+	let context = RuleContext::new(&lexed, options.rules_for(path));
+	let findings = monostyle_rules::run_rules(&context);
+
+	build_report(path, &context, findings, options)
 }
 
-/// Runs the rule set over a lexed file.
-///
-/// The rules come from the section that matches the file's path, so a directory can hold a different bar
-/// from the rest of the repository without the rule being disabled everywhere.
-fn findings_for(lexed: &LexedFile, path: &Path, options: &AnalysisOptions) -> Vec<Finding> {
-	monostyle_rules::run_rules(lexed, &options.rules_for(path))
-}
-
-/// Builds a report from an already-lexed file.
+/// Builds a report from a file that has been lexed and run through its rules.
 fn build_report(
 	path: &Path,
-	lexed: &LexedFile,
+	context: &RuleContext<'_>,
 	findings: Vec<Finding>,
 	options: &AnalysisOptions,
 ) -> FileReport {
+	let lexed = context.file();
 	let code_lines = lexed.source_line_count();
 	let cyclomatic = monostyle_metrics::cyclomatic_complexity(lexed);
 	let cognitive = monostyle_metrics::cognitive_complexity(lexed);
+	let CategoryScores {
+		readability,
+		complexity,
+	} = Score::by_category(&findings, code_lines, options.scoring);
 
-	let readability = Score::from_findings(
-		&findings,
-		Category::Readability,
-		code_lines,
-		options.scoring,
-	);
-	let complexity =
-		Score::from_findings(&findings, Category::Complexity, code_lines, options.scoring);
-
-	let units = build_unit_reports(lexed, &findings, options);
+	let units = build_unit_reports(context, &findings, options);
 
 	FileReport {
 		path: path.to_path_buf(),
@@ -525,79 +494,102 @@ fn build_report(
 	}
 }
 
-/// Scores each function-like unit and attributes findings to them.
+/// Scores each function-like unit and attributes findings to it.
+///
+/// Findings are indexed by line once, so attributing them is a binary search per unit rather
+/// than a scan of every finding for every unit.
 fn build_unit_reports(
-	lexed: &LexedFile,
+	context: &RuleContext<'_>,
 	findings: &[Finding],
 	options: &AnalysisOptions,
 ) -> Vec<UnitReport> {
-	monostyle_metrics::find_units(lexed)
-		.into_iter()
-		.map(|unit| build_unit_report(lexed, &unit, findings, options))
+	let by_line = FindingsByLine::new(findings);
+
+	context
+		.units()
+		.iter()
+		.map(|(unit, metrics)| {
+			build_unit_report(unit, metrics, findings, &by_line.within(unit), options)
+		})
 		.collect()
 }
 
 /// Scores one unit and collects the findings that fall inside it.
 fn build_unit_report(
-	lexed: &LexedFile,
 	unit: &CodeUnit,
+	metrics: &UnitMetrics,
 	findings: &[Finding],
+	positions: &[usize],
 	options: &AnalysisOptions,
 ) -> UnitReport {
-	let lines = unit_lines(lexed, unit);
-	let cyclomatic = monostyle_metrics::complexity_of_lines(lines);
-	let cognitive = monostyle_metrics::cognitive_complexity_of_lines(lines);
-	let code_lines = lines
-		.iter()
-		.filter(|line| !line.is_blank() && !line.is_comment() && !line.is_literal())
-		.count();
-
 	// Only findings that fall within the unit contribute to its score, so a unit's number is
 	// attributable to the unit rather than to its neighbours.
-	let unit_findings: Vec<Finding> = findings
+	let unit_findings: Vec<Finding> = positions
 		.iter()
-		.filter(|finding| unit.contains(finding.span.start_line))
-		.cloned()
+		.filter_map(|&position| findings.get(position).cloned())
 		.collect();
 
-	let readability = Score::from_findings(
-		&unit_findings,
-		Category::Readability,
-		code_lines,
-		options.scoring,
-	);
-	let complexity = Score::from_findings(
-		&unit_findings,
-		Category::Complexity,
-		code_lines,
-		options.scoring,
-	);
+	let CategoryScores {
+		readability,
+		complexity,
+	} = Score::by_category(&unit_findings, metrics.code_lines, options.scoring);
 
 	UnitReport {
 		name: unit.name.clone(),
 		start_line: unit.start_line,
 		end_line: unit.end_line,
-		lines: code_lines,
-		cyclomatic: cyclomatic.total,
-		cyclomatic_risk: cyclomatic.risk().label().to_string(),
-		cognitive: cognitive.total,
-		cognitive_grade: cognitive.grade().to_string(),
-		nesting_penalty: cognitive.nesting_penalty,
-		max_nesting: cognitive.max_nesting,
+		lines: metrics.code_lines,
+		cyclomatic: metrics.cyclomatic,
+		cyclomatic_risk: metrics.cyclomatic_risk.to_string(),
+		cognitive: metrics.cognitive,
+		cognitive_grade: metrics.cognitive_grade.to_string(),
+		nesting_penalty: metrics.nesting_penalty,
+		max_nesting: metrics.max_nesting,
 		readability,
 		complexity,
 		findings: unit_findings,
 	}
 }
 
-/// Returns the lines belonging to a unit.
-fn unit_lines<'file>(
-	file: &'file LexedFile,
-	unit: &CodeUnit,
-) -> &'file [monostyle_lexer::LexedLine] {
-	let start = unit.start_line.saturating_sub(1).min(file.lines.len());
-	let end = unit.end_line.min(file.lines.len());
-	file.lines.get(start..end).unwrap_or_default()
+/// A file's findings, ordered by the line each starts on.
+struct FindingsByLine {
+	/// The line a finding starts on and where it sits in the file's list, ordered by line.
+	entries: Vec<(usize, usize)>,
+}
+
+impl FindingsByLine {
+	/// Indexes `findings` by start line.
+	fn new(findings: &[Finding]) -> Self {
+		let mut entries: Vec<(usize, usize)> = findings
+			.iter()
+			.enumerate()
+			.map(|(position, finding)| (finding.span.start_line, position))
+			.collect();
+
+		entries.sort_unstable();
+
+		Self { entries }
+	}
+
+	/// Where the findings that start inside `unit` sit in the file's list, in list order.
+	fn within(&self, unit: &CodeUnit) -> Vec<usize> {
+		let first = self
+			.entries
+			.partition_point(|&(line, _)| line < unit.start_line);
+
+		let mut positions: Vec<usize> = self
+			.entries
+			.get(first..)
+			.unwrap_or_default()
+			.iter()
+			.take_while(|&&(line, _)| line <= unit.end_line)
+			.map(|&(_, position)| position)
+			.collect();
+
+		positions.sort_unstable();
+
+		positions
+	}
 }
 
 /// Aggregates file reports into a project report.
@@ -607,22 +599,14 @@ pub fn aggregate(
 	skipped: Vec<PathBuf>,
 	options: &AnalysisOptions,
 ) -> ProjectReport {
-	let all_findings: Vec<Finding> = files
-		.iter()
-		.flat_map(|file| file.findings.clone())
-		.collect();
 	let code_lines: usize = files.iter().map(|file| file.code_lines).sum();
 	let total_lines: usize = files.iter().map(|file| file.total_lines).sum();
 
-	let readability = Score::from_findings(
-		&all_findings,
-		Category::Readability,
-		code_lines,
-		options.scoring,
-	);
-	let complexity = Score::from_findings(
-		&all_findings,
-		Category::Complexity,
+	let CategoryScores {
+		readability,
+		complexity,
+	} = Score::by_category(
+		files.iter().flat_map(|file| &file.findings),
 		code_lines,
 		options.scoring,
 	);
@@ -657,7 +641,8 @@ fn find_floor_violations(files: &[FileReport], options: &AnalysisOptions) -> Vec
 	let mut violations = Vec::new();
 
 	for file in files {
-		let floor = options.floor_for(&file.path);
+		let section = crate::section::section_for(&options.sections, &file.path);
+		let floor = options.floor_from(section);
 
 		if !floor.is_set() {
 			continue;
@@ -669,8 +654,7 @@ fn find_floor_violations(files: &[FileReport], options: &AnalysisOptions) -> Vec
 			complexity: file.complexity.value,
 			readability_floor: floor.readability,
 			complexity_floor: floor.complexity,
-			reason: crate::section::section_for(&options.sections, &file.path)
-				.and_then(|section| section.reason.clone()),
+			reason: section.and_then(|section| section.reason.clone()),
 			top_offenders: top_offenders_for(file),
 		};
 
@@ -693,17 +677,15 @@ fn find_floor_violations(files: &[FileReport], options: &AnalysisOptions) -> Vec
 			read + cplx
 		};
 
-		shortfall(right)
-			.partial_cmp(&shortfall(left))
-			.unwrap_or(std::cmp::Ordering::Equal)
+		shortfall(right).total_cmp(&shortfall(left))
 	});
 
 	violations
 }
 
 /// Returns the rules that cost a file the most points, worst first.
-fn top_offenders_for(file: &FileReport) -> Vec<(String, f64)> {
-	let mut totals: Vec<(String, f64)> = Vec::new();
+fn top_offenders_for(file: &FileReport) -> Vec<(&'static str, f64)> {
+	let mut totals: HashMap<&'static str, f64> = HashMap::new();
 
 	for finding in &file.findings {
 		let penalty = finding.penalty();
@@ -712,18 +694,11 @@ fn top_offenders_for(file: &FileReport) -> Vec<(String, f64)> {
 			continue;
 		}
 
-		match totals.iter_mut().find(|(rule, _)| *rule == finding.rule) {
-			Some((_, total)) => *total += penalty,
-			None => totals.push((finding.rule.clone(), penalty)),
-		}
+		*totals.entry(finding.rule).or_insert(0.0) += penalty;
 	}
 
-	totals.sort_by(|left, right| {
-		right
-			.1
-			.partial_cmp(&left.1)
-			.unwrap_or(std::cmp::Ordering::Equal)
-	});
+	let mut totals: Vec<(&'static str, f64)> = totals.into_iter().collect();
+	totals.sort_by(|left, right| right.1.total_cmp(&left.1).then_with(|| left.0.cmp(right.0)));
 	totals.truncate(3);
 	totals
 }
@@ -750,7 +725,7 @@ fn score_packages(
 	let scores: Vec<crate::aggregate::FileScore> =
 		files.iter().map(FileReport::to_file_score).collect();
 
-	let by_path: std::collections::HashMap<&PathBuf, &crate::aggregate::FileScore> =
+	let by_path: HashMap<&PathBuf, &crate::aggregate::FileScore> =
 		paths.iter().zip(scores.iter()).collect();
 
 	crate::package::attribute_files(&packages, &paths)

@@ -51,8 +51,6 @@ pub struct UnitMetrics {
 	pub halstead: Halstead,
 	/// Maintainability index on a 0–100 scale.
 	pub maintainability: f64,
-	/// Whether a why-comment or doc comment appears anywhere inside the unit.
-	pub documented: bool,
 }
 
 /// A unit and its measurements.
@@ -95,18 +93,6 @@ impl UnitSet {
 			.map(|measured| (&measured.unit, &measured.metrics))
 	}
 
-	/// Returns the measurement for `unit`, or `None` when it is not part of this set.
-	///
-	/// A rule that needs one unit's figures looks it up by line range, which identifies it within the file
-	/// the set was built from.
-	#[must_use]
-	pub fn metrics_for(&self, unit: &CodeUnit) -> Option<&UnitMetrics> {
-		self.units
-			.iter()
-			.find(|measured| measured.unit.start_line == unit.start_line)
-			.map(|measured| &measured.metrics)
-	}
-
 	/// Whether the file declared no units at all.
 	#[must_use]
 	pub fn is_empty(&self) -> bool {
@@ -146,15 +132,6 @@ fn measure(file: &LexedFile, unit: &CodeUnit) -> UnitMetrics {
 		exits: monostyle_metrics::exit_count_of_lines(lines),
 		halstead,
 		maintainability: maintainability.value,
-		documented: lines.iter().any(|line| {
-			matches!(
-				line.comment_intent,
-				Some(
-					monostyle_lexer::CommentIntent::Why
-						| monostyle_lexer::CommentIntent::Documentation
-				)
-			)
-		}),
 	}
 }
 
