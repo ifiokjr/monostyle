@@ -42,11 +42,11 @@ pub struct UnitReport {
 	/// Cyclomatic complexity.
 	pub cyclomatic: usize,
 	/// Cyclomatic risk band.
-	pub cyclomatic_risk: String,
+	pub cyclomatic_risk: &'static str,
 	/// Cognitive complexity.
 	pub cognitive: usize,
 	/// Cognitive complexity band.
-	pub cognitive_grade: String,
+	pub cognitive_grade: &'static str,
 	/// How many points came from nesting.
 	pub nesting_penalty: usize,
 	/// Deepest nesting level reached.
@@ -540,9 +540,9 @@ fn build_unit_report(
 		end_line: unit.end_line,
 		lines: metrics.code_lines,
 		cyclomatic: metrics.cyclomatic,
-		cyclomatic_risk: metrics.cyclomatic_risk.to_string(),
+		cyclomatic_risk: metrics.cyclomatic_risk,
 		cognitive: metrics.cognitive,
-		cognitive_grade: metrics.cognitive_grade.to_string(),
+		cognitive_grade: metrics.cognitive_grade,
 		nesting_penalty: metrics.nesting_penalty,
 		max_nesting: metrics.max_nesting,
 		readability,
