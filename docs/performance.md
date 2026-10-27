@@ -1,15 +1,15 @@
 # Performance
 
-Measured on an Apple Silicon laptop against four repositories, three of them real projects. Each number is the best of three runs of `monostyle check --quiet`, which is what a person or a CI job would actually invoke.
+Every pull request is benchmarked on a quiet CI runner against the commit it branched from, over four corpora, comparing the fastest of fifteen runs of `monostyle check --quiet` each — which is what a person or a CI job would actually invoke. The numbers below are from the benchmark on the run that completed the pipeline-wide work (PR #101):
 
-| Repository | Files | Lines of code | Time  |
-| ---------- | ----- | ------------- | ----- |
-| monostyle  | 87    | 16,529        | 0.12s |
-| mdt        | 228   | 35,749        | 0.13s |
-| monochange | 318   | 193,900       | 0.42s |
-| pina       | 2,198 | 232,417       | 1.08s |
+| Scenario                        | What it holds                                               | Time    |
+| ------------------------------- | ----------------------------------------------------------- | ------- |
+| Repository (crates + examples)  | this repository's own tree, 87 files                        | 0.11 s  |
+| Large corpus (8× crates)        | eight copies of the tree, ~700 files, ~130,000 lines        | 0.86 s  |
+| Mixed languages (10 × 25 files) | the benchmark corpus, every supported stress shape          | 0.065 s |
+| Single 7,000-line file          | the size at which the scanner's past quadratic paths showed | 0.030 s |
 
-A 2,198-file repository with 232,000 lines of code completes in about a second.
+A whole check of a repository this size takes about a tenth of a second; a tree eight times larger stays under one.
 
 ## What made it fast
 
@@ -50,6 +50,10 @@ With those gone, the per-line model was the next layer. Each `LexedLine` owned t
 Comment classification normalized every comment body through four allocations (a punctuation-stripped copy, a word list, a joined copy, and a lowercased copy) and the block pass re-copied each line's body to join them; both are single buffers now, and a line's comment body is a slice of the line.
 
 The result on this repository's two largest files: `whitespace.rs` went from 146,116 allocations to 6,822 (64 per line to 3), and `lexer.rs` from 159,766 to 5,268 (72 per line to 2.3), with the bytes allocated down by 2.3×. Plain code lines make exactly one allocation — the word list — and blank lines none.
+
+### The measurement stage allocated once per token
+
+With the scanner's own allocations gone, profiling showed the hottest frames were all drop glue: freeing what the measurement and report stages had allocated was most of what remained. Three sources covered it. Halstead's distinct-token sets inserted `to_string()` copies — one allocation per _token_, not per distinct token, because the copy is made before the set decides. Unit detection copied every code line's masked text twice through `code_only`. And the quality rules owned their findings' material: numeric literals, names, and keywords were heap strings, keyword comparison lowercased into a new string per word, and unit reports copied their risk bands out of `&'static str` labels. All of it borrows now, the group-separation depth table counts all four bracket kinds in one pass over a line instead of four, and analyzing the largest file here went from 11.1 to 7.3 allocations per line — worth −6% to −8% on every benchmark scenario.
 
 One latent bug surfaced in the process. The byte range recorded for every CRLF-terminated line ended one byte early, and a blank CRLF line's range ran backwards, because the close stepped back for a carriage return the scan had not yet passed. The old model copied each line's text as it scanned, so the wrong range never showed in the text; the borrowed model slices the text from the range, which made the fixer's own tests fail on every CRLF fixture. The range is now exact, and the regression test asserts the slice equals the text rather than merely excluding the terminator.
 
