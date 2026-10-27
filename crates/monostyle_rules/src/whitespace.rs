@@ -2132,11 +2132,16 @@ impl PrefixDepth {
 
 		for line in lines {
 			// A line that is not code contributes nothing, which is what the rescan's `continue` did.
+			// The four bracket kinds are counted in one pass: a scan per kind meant reading every
+			// code line four times, and this table is built for every file the rule sees.
 			if line.is_code() {
-				depth += line.masked_code.matches('(').count() as isize;
-				depth -= line.masked_code.matches(')').count() as isize;
-				depth += line.masked_code.matches('[').count() as isize;
-				depth -= line.masked_code.matches(']').count() as isize;
+				for character in line.masked_code.chars() {
+					match character {
+						'(' | '[' => depth += 1,
+						')' | ']' => depth -= 1,
+						_ => {}
+					}
+				}
 			}
 
 			boundaries.push(depth);

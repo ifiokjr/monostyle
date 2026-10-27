@@ -214,7 +214,11 @@ fn find_indentation_units(lines: &[LexedLine], language: Language) -> Vec<CodeUn
 
 		let name = line
 			.is_code()
-			.then(|| unit_name(&code_only(&line.masked_code, language)))
+			.then(|| {
+				let code = code_only(&line.masked_code, language);
+
+				unit_name(code.as_ref())
+			})
 			.flatten();
 
 		let Some(name) = name else {
@@ -560,10 +564,12 @@ fn is_declaration_prefix(before: &str) -> bool {
 ///
 /// The input is already masked, so string contents are blank. This removes the comment that may still be
 /// present, for the case where a declaration and a trailing comment share a line.
-fn code_only(text: &str, language: Language) -> String {
-	// Rust literals and comments are already masked; remaining apostrophes mark lifetimes.
+fn code_only(text: &str, language: Language) -> std::borrow::Cow<'_, str> {
+	// Rust literals and comments are already masked; remaining apostrophes mark lifetimes. The
+	// masked text is returned as-is rather than copied: unit detection runs over every code line,
+	// and a copy per line was most of what the measurement stage allocated.
 	if language == Language::Rust {
-		return text.to_owned();
+		return std::borrow::Cow::Borrowed(text);
 	}
 
 	let mut result = String::with_capacity(text.len());
@@ -583,7 +589,7 @@ fn code_only(text: &str, language: Language) -> String {
 		}
 	}
 
-	result
+	std::borrow::Cow::Owned(result)
 }
 
 /// Consumes characters until the closing `delimiter`, so string contents never reach the caller.

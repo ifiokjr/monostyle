@@ -131,8 +131,10 @@ pub fn halstead_of_lines(lines: &[LexedLine], _language: Language) -> Halstead {
 	let operators = Operators::SHARED;
 	// Sets rather than vectors: membership is tested once per token, so a linear scan makes the
 	// measure quadratic in the token count, which is what dominated the runtime on large files.
-	let mut distinct_operators: HashSet<String> = HashSet::new();
-	let mut distinct_operands: HashSet<String> = HashSet::new();
+	// The sets hold the tokens themselves rather than owned copies: a copy is made for every
+	// insert attempt, which is one allocation per token — and a file holds tens of tokens per line.
+	let mut distinct_operators: HashSet<&str> = HashSet::new();
+	let mut distinct_operands: HashSet<&str> = HashSet::new();
 	let mut total_operators = 0;
 	let mut total_operands = 0;
 
@@ -147,11 +149,11 @@ pub fn halstead_of_lines(lines: &[LexedLine], _language: Language) -> Halstead {
 			match token {
 				Token::Operator(text) => {
 					total_operators += 1;
-					distinct_operators.insert(text.to_string());
+					distinct_operators.insert(text);
 				}
 				Token::Operand(text) => {
 					total_operands += 1;
-					distinct_operands.insert(text.to_string());
+					distinct_operands.insert(text);
 				}
 			}
 		}
