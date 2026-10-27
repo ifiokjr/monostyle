@@ -1333,6 +1333,13 @@ impl<'source> Scanner<'source> {
 		let (dash_present, tilde_present) = (after.starts_with('-'), after.starts_with('~'));
 		let after = Self::strip_modifier(after, syntax.allows_dash && dash_present, '-');
 		let after = Self::strip_modifier(after, syntax.allows_tilde && tilde_present, '~');
+
+		// Where the language forbids a space here, the marker is an operator instead: Ruby's
+		// `list << item` appends and `class << self` opens a singleton class.
+		if !syntax.allows_space && after.starts_with(char::is_whitespace) {
+			return false;
+		}
+
 		let after = after.trim_start();
 		let delimiter = Self::heredoc_delimiter(after);
 

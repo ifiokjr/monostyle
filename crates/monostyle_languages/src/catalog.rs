@@ -242,6 +242,7 @@ const PHP_HEREDOC: HeredocSyntax = HeredocSyntax {
 	allows_dash: false,
 	allows_tilde: false,
 	allows_suffix: true,
+	allows_space: true,
 };
 
 /// Scala string rules.
@@ -311,12 +312,13 @@ const RUBY_NESTING: &[&str] = &[
 /// Ruby boolean operators in both symbolic and word form.
 const RUBY_LOGICAL: &[&str] = &["&&", "||", " and ", " or "];
 
-/// Ruby heredocs, which also accept `<<-` and `<<~`.
+/// Ruby heredocs, which also accept `<<-` and `<<~`, and never a space before the delimiter.
 const RUBY_HEREDOC: HeredocSyntax = HeredocSyntax {
 	marker: "<<",
 	allows_dash: true,
 	allows_tilde: true,
 	allows_suffix: false,
+	allows_space: false,
 };
 
 /// The keyword that closes most Ruby blocks.
@@ -438,6 +440,7 @@ const SHELL_HEREDOC: HeredocSyntax = HeredocSyntax {
 	allows_dash: true,
 	allows_tilde: false,
 	allows_suffix: false,
+	allows_space: true,
 };
 
 /// The keywords that close Shell blocks.
