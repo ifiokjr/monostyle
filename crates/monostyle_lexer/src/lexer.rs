@@ -20,6 +20,7 @@
 //! | Extra escapes | Nix's `''$`, `'''`, and `''\\`, where `''` does not always close |
 //! | Interpolation | `"${foo("x")}"` ending at the inner quote |
 //! | Heredocs | Shell and PHP bodies being read as code |
+//! | YAML block scalars | Embedded quotes hiding a later mapping |
 //! | Regex versus division | JavaScript `/` read as a literal where it divides |
 //! | Single-line recovery | An unterminated `'` swallowing the rest of the file |
 //!
@@ -298,12 +299,10 @@ struct Heredoc {
 	delimiter: String,
 	/// Whether a leading tab may precede the terminator.
 	strip_tabs: bool,
-	/// How many bytes the whole opener spans, from marker through delimiter.
+	/// How many characters the whole opener spans, from marker through delimiter.
 	opener_length: usize,
 	/// The line it opened on.
 	opened_at: usize,
-	/// Whether the current line is the first of the body.
-	first_line: bool,
 }
 
 /// Accumulates one physical line while scanning.
@@ -373,6 +372,13 @@ impl<'source> LineBuilder<'source> {
 		self.source
 			.get(self.start_byte..self.end_byte)
 			.unwrap_or("")
+	}
+
+	/// Borrows either the existing owned mask or the original verbatim prefix.
+	fn masked_text(&self) -> &str {
+		self.masked
+			.as_deref()
+			.unwrap_or_else(|| self.text().get(..self.masked_bytes).unwrap_or_default())
 	}
 
 	/// Whether any character was recorded for this line.
@@ -514,6 +520,8 @@ struct Scanner<'source> {
 	block_comment: Option<BlockComment>,
 	/// The open heredoc, if any.
 	heredoc: Option<Heredoc>,
+	/// A YAML scalar whose indentation, rather than a quote, ends its body.
+	yaml_scalar: Option<crate::yaml::BlockScalar>,
 	/// Whether a line comment is in progress.
 	line_comment: bool,
 	/// Lines still awaiting their closing construct.
@@ -543,6 +551,7 @@ impl<'source> Scanner<'source> {
 			interpolation: None,
 			block_comment: None,
 			heredoc: None,
+			yaml_scalar: None,
 			line_comment: false,
 			unterminated: Vec::new(),
 			open_regions: Vec::new(),
@@ -585,6 +594,36 @@ impl<'source> Scanner<'source> {
 		});
 	}
 
+	/// Establishes scalar ownership before payload quotes or comments are inspected.
+	fn prepare_yaml_line(&mut self, characters: &[char], line: &mut LineBuilder) {
+		let Some(scalar) = self.yaml_scalar.as_mut() else {
+			return;
+		};
+
+		if !scalar.contains_line(characters) {
+			self.close_yaml_scalar();
+
+			return;
+		}
+
+		if scalar.begin() {
+			self.open_region(ProtectedKind::Literal);
+		}
+
+		line.literal_only = true;
+	}
+
+	/// EOF and dedent finish a scalar without an unterminated-string diagnostic.
+	fn close_yaml_scalar(&mut self) {
+		if self
+			.yaml_scalar
+			.take()
+			.is_some_and(|scalar| scalar.started())
+		{
+			self.close_region(ProtectedKind::Literal, self.current_byte);
+		}
+	}
+
 	/// Runs the scan over `source`.
 	fn run(&mut self, source: &'source str) -> Vec<LexedLine<'source>> {
 		let characters: Vec<char> = source.chars().collect();
@@ -595,6 +634,10 @@ impl<'source> Scanner<'source> {
 			let Some(character) = characters.get(index).copied() else {
 				break;
 			};
+
+			if self.current_byte == self.line_start_byte {
+				self.prepare_yaml_line(&characters[index..], &mut line);
+			}
 
 			// A line break ends the current line. The two forms differ only in how many bytes they consume,
 			// so the handling is shared rather than repeated for each.
@@ -615,7 +658,7 @@ impl<'source> Scanner<'source> {
 			// A line that begins inside an open literal is literal content until the closer is found,
 			// however many lines later. Recording that here is what keeps a Python snippet embedded in a
 			// Rust string from being measured as indented Rust code.
-			if self.inside_multiline_construct() {
+			if self.inside_multiline_construct(line.number) {
 				line.literal_only = true;
 			}
 
@@ -634,6 +677,7 @@ impl<'source> Scanner<'source> {
 		}
 
 		self.close_final_line(line);
+		self.close_yaml_scalar();
 		records_for_open_constructs(
 			&mut self.unterminated,
 			&self.literals,
@@ -695,7 +739,7 @@ impl<'source> Scanner<'source> {
 	///
 	/// # Dispatch order
 	///
-	/// Heredocs, line comments, and block comments are exclusive: nothing else can be open
+	/// YAML block scalars, heredocs, line comments, and block comments are exclusive: nothing else is open
 	/// while one of them is. Literals and interpolations are not exclusive, because a literal
 	/// may contain an interpolation which may itself contain further literals. They are
 	/// therefore ordered by stack depth rather than by kind: whatever was opened most
@@ -703,8 +747,20 @@ impl<'source> Scanner<'source> {
 	/// interpolation sits above it and is scanned first, which is what keeps
 	/// `"${describe("inner")}"` from being read as two sibling strings.
 	fn step(&mut self, characters: &[char], index: usize, line: &mut LineBuilder) -> usize {
-		if self.heredoc.is_some() {
-			return self.step_heredoc(characters, index, line);
+		let scalar_body = self
+			.yaml_scalar
+			.as_ref()
+			.is_some_and(super::yaml::BlockScalar::started);
+		let heredoc_body = self
+			.heredoc
+			.as_ref()
+			.is_some_and(|heredoc| line.number > heredoc.opened_at);
+
+		if scalar_body || heredoc_body {
+			line.push_literal(characters[index]);
+			line.literal_only = true;
+
+			return index + 1;
 		}
 
 		if self.line_comment {
@@ -772,12 +828,22 @@ impl<'source> Scanner<'source> {
 		{
 			let line_window = peek_line(characters, index, MAX_LINE_PEEK);
 
-			if self.try_open_heredoc(&line_window, line) {
-				return index
-					+ self
-						.heredoc
-						.as_ref()
-						.map_or(0, |heredoc| heredoc.opener_length);
+			if self.profile.language == Language::Shell && line_window.starts_with("<<<") {
+				for character in &characters[index..index + 3] {
+					line.push_code(*character);
+				}
+
+				return index + 3;
+			}
+
+			if self.heredoc.is_none() && self.try_open_heredoc(&line_window, line) {
+				let length = self
+					.heredoc
+					.as_ref()
+					.map_or(0, |heredoc| heredoc.opener_length);
+				consume_masked(characters, index, length, line);
+
+				return index + length;
 			}
 		}
 
@@ -1043,33 +1109,6 @@ impl<'source> Scanner<'source> {
 			.map(|(open, _)| *open)
 	}
 
-	/// Handles a character while a heredoc body is open.
-	fn step_heredoc(&mut self, characters: &[char], index: usize, line: &mut LineBuilder) -> usize {
-		let Some(heredoc) = self.heredoc.clone() else {
-			return index + 1;
-		};
-
-		let character = characters[index];
-
-		if heredoc.first_line {
-			line.push_code(character);
-
-			if !character.is_whitespace() {
-				self.heredoc = Some(Heredoc {
-					first_line: false,
-					..heredoc
-				});
-			}
-
-			return index + 1;
-		}
-
-		line.push_literal(character);
-		line.literal_only = true;
-
-		index + 1
-	}
-
 	/// Closes a finished line, applying heredoc termination and literal recovery.
 	fn close_line(&mut self, builder: LineBuilder<'source>) {
 		// A line comment always ends at the line break.
@@ -1080,13 +1119,21 @@ impl<'source> Scanner<'source> {
 		if self
 			.heredoc
 			.as_ref()
-			.is_some_and(|heredoc| !heredoc.first_line)
+			.is_some_and(|heredoc| builder.number > heredoc.opened_at)
 		{
 			self.close_heredoc_if_terminated(builder.text(), builder.end_byte);
 		}
 
 		self.abandon_single_line_literal();
 		self.previous_code = None;
+
+		if self.profile.language == Language::Yaml
+			&& self.yaml_scalar.is_none()
+			&& self.literals.is_empty()
+		{
+			self.yaml_scalar =
+				crate::yaml::BlockScalar::from_header(builder.text(), builder.masked_text());
+		}
 
 		let line = builder.build(&self.profile);
 		self.lines.push(line);
@@ -1287,16 +1334,21 @@ impl<'source> Scanner<'source> {
 	}
 
 	/// The delimiter a heredoc opener names, quoted or bare.
-	fn heredoc_delimiter(after: &str) -> String {
-		match after.chars().next() {
-			Some(quote @ ('"' | '\'')) => after[1..].chars().take_while(|c| *c != quote).collect(),
-			_ => {
-				after
-					.chars()
-					.take_while(|c| c.is_alphanumeric() || *c == '_')
-					.collect()
-			}
+	fn heredoc_delimiter(after: &str) -> Option<(String, usize)> {
+		if let Some(quote @ ('"' | '\'')) = after.chars().next() {
+			let end = after[1..].find(quote)? + 1;
+			let delimiter = after[1..end].to_string();
+
+			return Some((delimiter, after[..=end].chars().count()));
 		}
+
+		let delimiter: String = after
+			.chars()
+			.take_while(|c| c.is_alphanumeric() || *c == '_')
+			.collect();
+		let length = delimiter.chars().count();
+
+		Some((delimiter, length))
 	}
 
 	/// The hashed raw string starting after this prefix character, if a quote follows its hashes.
@@ -1341,15 +1393,16 @@ impl<'source> Scanner<'source> {
 		}
 
 		let after = after.trim_start();
-		let delimiter = Self::heredoc_delimiter(after);
+		let Some((delimiter, delimiter_length)) = Self::heredoc_delimiter(after) else {
+			return false;
+		};
 
 		if delimiter.is_empty() {
 			return false;
 		}
 
-		let after_trimmed = after.trim_start();
 		// The opener spans the marker, any dash or tilde, any whitespace, and the delimiter.
-		let opener_length = rest.len() - after_trimmed.len() + delimiter.len();
+		let opener_length = rest[..rest.len() - after.len()].chars().count() + delimiter_length;
 
 		self.open_region(ProtectedKind::Literal);
 		self.heredoc = Some(Heredoc {
@@ -1359,7 +1412,6 @@ impl<'source> Scanner<'source> {
 			strip_tabs: syntax.allows_dash && dash_present && !tilde_present,
 			opener_length,
 			opened_at: line.number,
-			first_line: true,
 		});
 
 		true
@@ -1370,13 +1422,13 @@ impl<'source> Scanner<'source> {
 	/// Used to mark continuation lines as literal content rather than indented code. Only
 	/// constructs that genuinely continue are considered: a single-line literal never survives a
 	/// line break, so it cannot make the next line literal.
-	fn inside_multiline_construct(&self) -> bool {
+	fn inside_multiline_construct(&self, line_number: usize) -> bool {
 		self.literals.iter().any(|literal| literal.multiline)
 			|| self.block_comment.is_some()
 			|| self
 				.heredoc
 				.as_ref()
-				.is_some_and(|heredoc| !heredoc.first_line)
+				.is_some_and(|heredoc| line_number > heredoc.opened_at)
 	}
 
 	/// The interpolation style the profile gives to literals that embed expressions.
