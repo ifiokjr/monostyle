@@ -824,36 +824,8 @@ impl<'source> Scanner<'source> {
 			return self.open_literal(start, &rest, &line_remainder, line, index);
 		}
 
-		// The delimiter can be any length, so the heredoc check reads the rest of the line rather
-		// than the bounded peek window: a marker like `<<~CONFIG` was truncated to `CON`, which
-		// matched no terminator and swallowed the rest of the file. Reading the line costs an
-		// allocation, so it happens only where a heredoc can begin — in a language that has them,
-		// at the character its marker starts with. Reading it for every code character was most
-		// of the allocation the scanner did.
-		if self
-			.profile
-			.heredoc
-			.is_some_and(|syntax| syntax.marker.starts_with(character))
-		{
-			let line_window = peek_line(characters, index, MAX_LINE_PEEK);
-
-			if self.profile.language == Language::Shell && line_window.starts_with("<<<") {
-				for character in &characters[index..index + 3] {
-					line.push_code(*character);
-				}
-
-				return index + 3;
-			}
-
-			if self.heredoc.is_none() && self.try_open_heredoc(&line_window, line) {
-				let length = self
-					.heredoc
-					.as_ref()
-					.map_or(0, |heredoc| heredoc.opener_length);
-				consume_masked(characters, index, length, line);
-
-				return index + length;
-			}
+		if let Some(next) = self.step_heredoc_redirect(characters, index, line) {
+			return next;
 		}
 
 		if character == '/'
@@ -872,6 +844,48 @@ impl<'source> Scanner<'source> {
 		}
 
 		index + 1
+	}
+
+	/// Consumes a here-string operator or a heredoc opener in ordinary code.
+	fn step_heredoc_redirect(
+		&mut self,
+		characters: &[char],
+		index: usize,
+		line: &mut LineBuilder,
+	) -> Option<usize> {
+		let syntax = self.profile.heredoc?;
+
+		if !syntax.marker.starts_with(characters[index]) {
+			return None;
+		}
+
+		// The delimiter can be any length, so the heredoc check reads the rest of the line rather
+		// than the bounded peek window: a marker like `<<~CONFIG` was truncated to `CON`, which
+		// matched no terminator and swallowed the rest of the file. Reading the line costs an
+		// allocation, so it happens only where a heredoc can begin — in a language that has them,
+		// at the character its marker starts with. Reading it for every code character was most
+		// of the allocation the scanner did.
+		let line_window = peek_line(characters, index, MAX_LINE_PEEK);
+
+		if self.profile.language == Language::Shell && line_window.starts_with("<<<") {
+			for character in &characters[index..index + 3] {
+				line.push_code(*character);
+			}
+
+			return Some(index + 3);
+		}
+
+		if self.heredoc.is_some() || !self.try_open_heredoc(&line_window, line) {
+			return None;
+		}
+
+		let length = self
+			.heredoc
+			.as_ref()
+			.map_or(0, |heredoc| heredoc.opener_length);
+		consume_masked(characters, index, length, line);
+
+		Some(index + length)
 	}
 
 	/// Opens a block comment and consumes its opener, recording whether it is documentation.
