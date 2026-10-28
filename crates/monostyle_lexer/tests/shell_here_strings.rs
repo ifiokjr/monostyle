@@ -81,7 +81,7 @@ fn multiple_shell_here_strings_do_not_open_a_heredoc_from_the_operator_suffix() 
 
 	assert!(lexed.is_clean(), "{:?}", lexed.unterminated);
 	assert_eq!(lexed.source_line_count(), 2);
-	assert!(lexed.protected.is_empty());
+	assert_eq!(lexed.protected, Vec::<ProtectedRange>::new());
 
 	for (line, expected) in lexed.lines.iter().zip(source.lines()) {
 		assert_eq!(line.masked_code, expected);
