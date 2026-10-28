@@ -48,6 +48,11 @@ impl CodeUnit {
 /// Finds every function-like unit in `file`.
 #[must_use]
 pub fn find_units(file: &LexedFile) -> Vec<CodeUnit> {
+	// Shell control blocks end with keywords, while braced functions close with `}`.
+	if file.language == Language::Shell {
+		return find_brace_units(&file.lines, file.language);
+	}
+
 	match file.profile.block_style {
 		BlockStyle::Brace => find_brace_units(&file.lines, file.language),
 		BlockStyle::Indentation => find_indentation_units(&file.lines, file.language),
