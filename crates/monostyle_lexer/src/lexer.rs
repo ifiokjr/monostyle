@@ -303,6 +303,15 @@ struct Heredoc {
 	opener_length: usize,
 	/// The line it opened on.
 	opened_at: usize,
+	/// Header quoting and continuation finish before body text owns characters.
+	phase: HeredocPhase,
+}
+
+/// A physical newline does not finish a Shell header while its syntax continues.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum HeredocPhase {
+	Header,
+	Body,
 }
 
 /// Accumulates one physical line while scanning.
@@ -658,7 +667,7 @@ impl<'source> Scanner<'source> {
 			// A line that begins inside an open literal is literal content until the closer is found,
 			// however many lines later. Recording that here is what keeps a Python snippet embedded in a
 			// Rust string from being measured as indented Rust code.
-			if self.inside_multiline_construct(line.number) {
+			if self.inside_multiline_construct() {
 				line.literal_only = true;
 			}
 
@@ -754,7 +763,7 @@ impl<'source> Scanner<'source> {
 		let heredoc_body = self
 			.heredoc
 			.as_ref()
-			.is_some_and(|heredoc| line.number > heredoc.opened_at);
+			.is_some_and(|heredoc| heredoc.phase == HeredocPhase::Body);
 
 		if scalar_body || heredoc_body {
 			line.push_literal(characters[index]);
@@ -1111,20 +1120,14 @@ impl<'source> Scanner<'source> {
 
 	/// Closes a finished line, applying heredoc termination and literal recovery.
 	fn close_line(&mut self, builder: LineBuilder<'source>) {
+		self.abandon_single_line_literal();
+		self.advance_heredoc(&builder);
+
 		// A line comment always ends at the line break.
 		if self.line_comment {
 			self.line_comment = false;
 		}
 
-		if self
-			.heredoc
-			.as_ref()
-			.is_some_and(|heredoc| builder.number > heredoc.opened_at)
-		{
-			self.close_heredoc_if_terminated(builder.text(), builder.end_byte);
-		}
-
-		self.abandon_single_line_literal();
 		self.previous_code = None;
 
 		if self.profile.language == Language::Yaml
@@ -1137,6 +1140,49 @@ impl<'source> Scanner<'source> {
 
 		let line = builder.build(&self.profile);
 		self.lines.push(line);
+	}
+
+	/// Advances a completed logical header, or checks a body line's terminator.
+	fn advance_heredoc(&mut self, builder: &LineBuilder<'_>) {
+		let Some(phase) = self.heredoc.as_ref().map(|heredoc| heredoc.phase) else {
+			return;
+		};
+
+		if phase == HeredocPhase::Body {
+			self.close_heredoc_if_terminated(builder.text(), builder.end_byte);
+
+			return;
+		}
+
+		if !self.heredoc_header_complete(builder) {
+			return;
+		}
+
+		if let Some(heredoc) = self.heredoc.as_mut() {
+			heredoc.phase = HeredocPhase::Body;
+		}
+	}
+
+	/// Existing Shell literals and escaped newlines retain header ownership.
+	fn heredoc_header_complete(&self, builder: &LineBuilder<'_>) -> bool {
+		if self.profile.language != Language::Shell {
+			return true;
+		}
+
+		if !self.literals.is_empty() || self.interpolation.is_some() || self.block_comment.is_some()
+		{
+			return false;
+		}
+
+		// A comment's trailing backslash is not an escape in the command syntax.
+		builder.comment.is_some()
+			|| builder
+				.text()
+				.chars()
+				.rev()
+				.take_while(|character| *character == '\\')
+				.count()
+				.is_multiple_of(2)
 	}
 
 	/// Ends the open heredoc when this line is its terminator.
@@ -1412,6 +1458,7 @@ impl<'source> Scanner<'source> {
 			strip_tabs: syntax.allows_dash && dash_present && !tilde_present,
 			opener_length,
 			opened_at: line.number,
+			phase: HeredocPhase::Header,
 		});
 
 		true
@@ -1422,13 +1469,13 @@ impl<'source> Scanner<'source> {
 	/// Used to mark continuation lines as literal content rather than indented code. Only
 	/// constructs that genuinely continue are considered: a single-line literal never survives a
 	/// line break, so it cannot make the next line literal.
-	fn inside_multiline_construct(&self, line_number: usize) -> bool {
+	fn inside_multiline_construct(&self) -> bool {
 		self.literals.iter().any(|literal| literal.multiline)
 			|| self.block_comment.is_some()
 			|| self
 				.heredoc
 				.as_ref()
-				.is_some_and(|heredoc| line_number > heredoc.opened_at)
+				.is_some_and(|heredoc| heredoc.phase == HeredocPhase::Body)
 	}
 
 	/// The interpolation style the profile gives to literals that embed expressions.
