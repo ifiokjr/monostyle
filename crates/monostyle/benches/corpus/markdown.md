@@ -1,12 +1,10 @@
 # Deploying the service
 
-This guide walks through a first deployment. The fenced examples below are scored as code in their
-own language, and the untagged fence is reported for having no language.
+This guide walks through a first deployment. The fenced examples below are scored as code in their own language, and the untagged fence is reported for having no language.
 
 ## Prerequisites
 
-You need a container runtime, a registry login, and the configuration file described in the next
-section. The steps assume a Unix shell; on Windows, use the WSL instructions in the appendix.
+You need a container runtime, a registry login, and the configuration file described in the next section. The steps assume a Unix shell; on Windows, use the WSL instructions in the appendix.
 
 ## Configuration
 
@@ -22,9 +20,7 @@ cpu = "500m"
 memory = "256Mi"
 ```
 
-The replica count is the one value most people get wrong. Three is the minimum for a rolling
-deployment to keep serving while one instance restarts, and more than five rarely helps a service
-this size.
+The replica count is the one value most people get wrong. Three is the minimum for a rolling deployment to keep serving while one instance restarts, and more than five rarely helps a service this size.
 
 ## Build
 
@@ -41,8 +37,7 @@ docker login registry.example.com
 
 ## Verify
 
-The health endpoint returns the running version, so a quick check is enough to confirm the roll-out
-finished:
+The health endpoint returns the running version, so a quick check is enough to confirm the roll-out finished:
 
 ```typescript
 const response = await fetch("https://ledger.example.com/health");
@@ -55,8 +50,7 @@ if (body.version !== expected) {
 
 ### Reading the logs
 
-Logs are structured JSON. Filter by the request identifier to follow one request through every
-hop:
+Logs are structured JSON. Filter by the request identifier to follow one request through every hop:
 
 ```python
 import json
@@ -70,8 +64,7 @@ for line in sys.stdin:
 
 ## Rolling back
 
-Roll back by re-deploying the previous tag. The deployment keeps the last five images, so there is
-always something to return to. See [the release history](./releases.md) for the tags.
+Roll back by re-deploying the previous tag. The deployment keeps the last five images, so there is always something to return to. See [the release history](./releases.md) for the tags.
 
 - Find the previous tag in the release history.
 - Re-run the deploy step with that tag.

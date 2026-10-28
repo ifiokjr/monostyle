@@ -4,6 +4,52 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)
+
+### Fixes
+
+#### The line model borrows the source instead of copying it
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #98](https://github.com/ifiokjr/monostyle/pull/98)
+
+The scanner made one heap allocation per character: it read the rest of the line into a string for every code character to look for a heredoc, collected a lookahead window for every character before checking whether a literal could begin there, and cloned the open literal — owned closer included — for every character inside a string. Each of those is now a slice or a borrowed profile string. On this repository's largest file, lexing went from 146,116 allocations to 6,822 (64 per line to 3), and a plain code line now allocates exactly once.
+
+`LexedFile` and `LexedLine` carry the source's lifetime: a line's text and indentation are slices of the source, its decision and nesting keywords are the profile's own static strings, the keyword pass tokenizes into slices rather than owned words, and the masked view is the text's own prefix until a literal or comment forces it apart. `LexedLine::comment_body` returns a slice rather than a copy, and the unused `markdown::lexed_lines` helper is gone.
+
+Every CRLF-terminated line's byte range ended one byte early, and a blank CRLF line's range ran backwards, because the line was closed one byte too soon. The copied text hid it; the borrowed text exposed it. The range is now exact.
+
+#### Preserve Shell and YAML literal boundaries
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #103](https://github.com/ifiokjr/monostyle/pull/103)
+
+Recognize Shell here-strings without opening a heredoc from their operator suffix. Keep complete quoted heredoc openers and every body character inside their correct literal boundaries, including Unicode byte ranges.
+
+Treat YAML literal and folded block payloads as data until dedent or EOF. Embedded quotes and comments no longer hide later mappings or create false diagnostics.
+
+End braced Shell function metrics at their closing brace while preserving the language's decision and nesting rules.
+
+#### Preserve function declarations and brace ownership
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #95](https://github.com/ifiokjr/monostyle/pull/95)
+
+Recognize Rust functions after restricted visibility and qualifiers, while keeping constant tables and function-pointer data out of function metrics. Preserve real function names, boundaries, decisions and parameter findings.
+
+Walk braces in reverse character order when locating an enclosing group. Nested objects and blocks no longer overflow or lose the required whitespace findings.
+
+Keep Rust lifetime parameters, references and labels visible to unit metrics, while preserving character and byte literal masking.
+
+Separate Halstead token classification from cursor advancement without changing operator or operand streams.
+
+#### The rule pipeline stops copying what it reads
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #101](https://github.com/ifiokjr/monostyle/pull/101)
+
+Halstead's distinct-token sets allocated a copy of every token before inserting it — one heap allocation per token, tens per line — and unit detection copied every code line's masked text twice per line. Both borrow now, and the measurement stage allocates a fraction of what it did.
+
+The quality rules borrow their findings' material as well: numeric literals, assigned and declared names, and handler keywords are slices of the line rather than owned strings, keyword comparison no longer lowercases into a heap string, and literal parsing skips separators through a stack buffer. Unit reports carry their risk bands as the static strings they already were, and the group-separation depth table counts all four bracket kinds in one pass over a line instead of four.
+
+Analyzing this repository's largest source file went from 11.1 to 7.3 heap allocations per line, with every test, the allocation ceilings, and the dogfood floor unchanged.
+
 ## [0.3.27](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.27) (2026-10-23)
 
 ### Changed

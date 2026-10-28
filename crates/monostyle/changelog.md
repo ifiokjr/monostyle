@@ -4,6 +4,52 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)
+
+### Features
+
+#### Measure each file's units once and stop copying the findings
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #97](https://github.com/ifiokjr/monostyle/pull/97)
+
+Seven rules each built their own set of measured units per file, so unit detection and the per-unit cyclomatic, cognitive, Halstead, and maintainability figures ran seven times over every file. The run context now holds one `UnitSet` shared by the rules and the report, and rules that never look at units never pay for them.
+
+Findings borrow their text: the rule name is a registry constant and most suggestions are fixed sentences, so a rule name is no longer copied into every finding and a fixed suggestion owns nothing. Project-wide ranking and scoring work from references instead of cloning every finding and its path, and the worst-offender location for a rule is built only when a finding actually wins that title.
+
+Attributing findings to units is now a binary search per unit rather than a scan of every finding for every unit, and rules are matched by name through a hash map rather than a linear scan of the registry. `f64` ordering uses `total_cmp` throughout, and the rule table is a static rather than a per-file allocation.
+
+Deleting the orphaned `metrics_bridge.rs` removes the last copy of the address-keyed unit cache whose wrong-by-construction keying was documented as unsound when `UnitSet` replaced it.
+
+### Fixes
+
+#### The line model borrows the source instead of copying it
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #98](https://github.com/ifiokjr/monostyle/pull/98)
+
+The scanner made one heap allocation per character: it read the rest of the line into a string for every code character to look for a heredoc, collected a lookahead window for every character before checking whether a literal could begin there, and cloned the open literal — owned closer included — for every character inside a string. Each of those is now a slice or a borrowed profile string. On this repository's largest file, lexing went from 146,116 allocations to 6,822 (64 per line to 3), and a plain code line now allocates exactly once.
+
+`LexedFile` and `LexedLine` carry the source's lifetime: a line's text and indentation are slices of the source, its decision and nesting keywords are the profile's own static strings, the keyword pass tokenizes into slices rather than owned words, and the masked view is the text's own prefix until a literal or comment forces it apart. `LexedLine::comment_body` returns a slice rather than a copy, and the unused `markdown::lexed_lines` helper is gone.
+
+Every CRLF-terminated line's byte range ended one byte early, and a blank CRLF line's range ran backwards, because the line was closed one byte too soon. The copied text hid it; the borrowed text exposed it. The range is now exact.
+
+#### Benchmarks and an allocation ceiling for the hot paths
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #99](https://github.com/ifiokjr/monostyle/pull/99)
+
+`cargo bench --package monostyle` runs Criterion micro-benchmarks for each stage a file goes through — lexing as bytes per second in ten languages, unit measurement for each block style, the rule set, and the whole analysis — over a corpus written to exercise the scanner's hardest paths. The pull-request benchmark workflow runs two new scenarios on the same corpus: a mixed-language tree, which the all-Rust corpora never reached, and a single seven-thousand-line file, the size at which every quadratic path so far first showed.
+
+The scanner is also held to an allocation ceiling per line for each line shape, counted through a wrapping global allocator, so a per-character allocation returning to it fails a test rather than the next profiling session. The benches and their corpus are excluded from the published crate.
+
+#### The rule pipeline stops copying what it reads
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #101](https://github.com/ifiokjr/monostyle/pull/101)
+
+Halstead's distinct-token sets allocated a copy of every token before inserting it — one heap allocation per token, tens per line — and unit detection copied every code line's masked text twice per line. Both borrow now, and the measurement stage allocates a fraction of what it did.
+
+The quality rules borrow their findings' material as well: numeric literals, assigned and declared names, and handler keywords are slices of the line rather than owned strings, keyword comparison no longer lowercases into a heap string, and literal parsing skips separators through a stack buffer. Unit reports carry their risk bands as the static strings they already were, and the group-separation depth table counts all four bracket kinds in one pass over a line instead of four.
+
+Analyzing this repository's largest source file went from 11.1 to 7.3 heap allocations per line, with every test, the allocation ceilings, and the dogfood floor unchanged.
+
 ## [0.3.27](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.27) (2026-10-23)
 
 ### Changed
