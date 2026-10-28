@@ -4,6 +4,52 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)
+
+### Features
+
+#### The line model borrows the source instead of copying it
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #98](https://github.com/ifiokjr/monostyle/pull/98)
+
+The scanner made one heap allocation per character: it read the rest of the line into a string for every code character to look for a heredoc, collected a lookahead window for every character before checking whether a literal could begin there, and cloned the open literal — owned closer included — for every character inside a string. Each of those is now a slice or a borrowed profile string. On this repository's largest file, lexing went from 146,116 allocations to 6,822 (64 per line to 3), and a plain code line now allocates exactly once.
+
+`LexedFile` and `LexedLine` carry the source's lifetime: a line's text and indentation are slices of the source, its decision and nesting keywords are the profile's own static strings, the keyword pass tokenizes into slices rather than owned words, and the masked view is the text's own prefix until a literal or comment forces it apart. `LexedLine::comment_body` returns a slice rather than a copy, and the unused `markdown::lexed_lines` helper is gone.
+
+Every CRLF-terminated line's byte range ended one byte early, and a blank CRLF line's range ran backwards, because the line was closed one byte too soon. The copied text hid it; the borrowed text exposed it. The range is now exact.
+
+### Fixes
+
+#### Preserve Shell and YAML literal boundaries
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #103](https://github.com/ifiokjr/monostyle/pull/103)
+
+Recognize Shell here-strings without opening a heredoc from their operator suffix. Keep complete quoted heredoc openers and every body character inside their correct literal boundaries, including Unicode byte ranges.
+
+Treat YAML literal and folded block payloads as data until dedent or EOF. Embedded quotes and comments no longer hide later mappings or create false diagnostics.
+
+End braced Shell function metrics at their closing brace while preserving the language's decision and nesting rules.
+
+#### Preserve function declarations and brace ownership
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #95](https://github.com/ifiokjr/monostyle/pull/95)
+
+Recognize Rust functions after restricted visibility and qualifiers, while keeping constant tables and function-pointer data out of function metrics. Preserve real function names, boundaries, decisions and parameter findings.
+
+Walk braces in reverse character order when locating an enclosing group. Nested objects and blocks no longer overflow or lose the required whitespace findings.
+
+Keep Rust lifetime parameters, references and labels visible to unit metrics, while preserving character and byte literal masking.
+
+Separate Halstead token classification from cursor advancement without changing operator or operand streams.
+
+#### A Ruby append is no longer read as a heredoc
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #100](https://github.com/ifiokjr/monostyle/pull/100)
+
+Ruby's `<<` is also its append operator, and spacing is what tells the two apart: a heredoc's delimiter follows the marker immediately, so `list << item` appends and `class << self` opens a singleton class. Reading those as heredoc openers swallowed every line after them as string content, which mis-scored any Ruby file that appends to an array.
+
+The heredoc syntax now says whether whitespace may separate the marker from the delimiter. Shell and PHP allow it (`cat << EOF`), so their behavior is unchanged; Ruby does not.
+
 ## [0.3.27](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.27) (2026-10-23)
 
 ### Changed

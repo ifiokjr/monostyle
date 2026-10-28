@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)
+
+### Features
+
+#### A Ruby append is no longer read as a heredoc
+
+_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #100](https://github.com/ifiokjr/monostyle/pull/100)
+
+Ruby's `<<` is also its append operator, and spacing is what tells the two apart: a heredoc's delimiter follows the marker immediately, so `list << item` appends and `class << self` opens a singleton class. Reading those as heredoc openers swallowed every line after them as string content, which mis-scored any Ruby file that appends to an array.
+
+The heredoc syntax now says whether whitespace may separate the marker from the delimiter. Shell and PHP allow it (`cat << EOF`), so their behavior is unchanged; Ruby does not.
+
 ## [0.3.27](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.27) (2026-10-23)
 
 ### Features

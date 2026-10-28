@@ -1,0 +1,1694 @@
+{
+	"schema_version": "0.10",
+	"kind": "monochange.releaseRecord",
+	"created_at": "2026-10-28T22:58:27Z",
+	"command": "release",
+	"version": "0.3.28",
+	"versions": {
+		"release": "0.3.28"
+	},
+	"release_targets": [
+		{
+			"id": "release",
+			"kind": "group",
+			"version": "0.3.28",
+			"version_format": "primary",
+			"tag": true,
+			"release": true,
+			"tag_name": "v0.3.28",
+			"rendered_title": "v0.3.28 (2026-10-28)",
+			"rendered_changelog_title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+			"members": [
+				"monostyle",
+				"monostyle_core",
+				"monostyle_languages",
+				"monostyle_lexer",
+				"monostyle_markdown",
+				"monostyle_metrics",
+				"monostyle_rules",
+				"@monostyle-rs/cli",
+				"@monostyle-rs/cli-darwin-arm64",
+				"@monostyle-rs/cli-darwin-x64",
+				"@monostyle-rs/cli-linux-arm64-gnu",
+				"@monostyle-rs/cli-linux-arm64-musl",
+				"@monostyle-rs/cli-linux-x64-gnu",
+				"@monostyle-rs/cli-linux-x64-musl",
+				"@monostyle-rs/cli-win32-arm64-msvc",
+				"@monostyle-rs/cli-win32-x64-msvc",
+				"@monostyle-rs/skill"
+			]
+		}
+	],
+	"released_packages": [
+		"@monostyle-rs/cli",
+		"@monostyle-rs/cli-darwin-arm64",
+		"@monostyle-rs/cli-darwin-x64",
+		"@monostyle-rs/cli-linux-arm64-gnu",
+		"@monostyle-rs/cli-linux-arm64-musl",
+		"@monostyle-rs/cli-linux-x64-gnu",
+		"@monostyle-rs/cli-linux-x64-musl",
+		"@monostyle-rs/cli-win32-arm64-msvc",
+		"@monostyle-rs/cli-win32-x64-msvc",
+		"@monostyle-rs/skill",
+		"monostyle",
+		"monostyle_core",
+		"monostyle_languages",
+		"monostyle_lexer",
+		"monostyle_markdown",
+		"monostyle_metrics",
+		"monostyle_rules"
+	],
+	"changed_files": [
+		"Cargo.lock",
+		"Cargo.toml",
+		"changelog.md",
+		"crates/monostyle/Cargo.toml",
+		"crates/monostyle/changelog.md",
+		"crates/monostyle_core/Cargo.toml",
+		"crates/monostyle_core/changelog.md",
+		"crates/monostyle_languages/Cargo.toml",
+		"crates/monostyle_languages/changelog.md",
+		"crates/monostyle_lexer/Cargo.toml",
+		"crates/monostyle_lexer/changelog.md",
+		"crates/monostyle_markdown/Cargo.toml",
+		"crates/monostyle_markdown/changelog.md",
+		"crates/monostyle_metrics/Cargo.toml",
+		"crates/monostyle_metrics/changelog.md",
+		"crates/monostyle_rules/Cargo.toml",
+		"crates/monostyle_rules/changelog.md",
+		"packages/monostyle__cli/changelog.md",
+		"packages/monostyle__cli/package.json",
+		"packages/monostyle__cli-darwin-arm64/changelog.md",
+		"packages/monostyle__cli-darwin-arm64/package.json",
+		"packages/monostyle__cli-darwin-x64/changelog.md",
+		"packages/monostyle__cli-darwin-x64/package.json",
+		"packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-arm64-gnu/package.json",
+		"packages/monostyle__cli-linux-arm64-musl/changelog.md",
+		"packages/monostyle__cli-linux-arm64-musl/package.json",
+		"packages/monostyle__cli-linux-x64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-x64-gnu/package.json",
+		"packages/monostyle__cli-linux-x64-musl/changelog.md",
+		"packages/monostyle__cli-linux-x64-musl/package.json",
+		"packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-arm64-msvc/package.json",
+		"packages/monostyle__cli-win32-x64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-x64-msvc/package.json",
+		"packages/monostyle__skill/changelog.md",
+		"packages/monostyle__skill/package.json",
+		"pnpm-lock.yaml"
+	],
+	"package_publications": [
+		{
+			"package": "@monostyle-rs/cli",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-darwin-arm64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-darwin-x64",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-arm64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-arm64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-x64-gnu",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-linux-x64-musl",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-win32-arm64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/cli-win32-x64-msvc",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "@monostyle-rs/skill",
+			"ecosystem": "npm",
+			"registry": "npm",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_core",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_languages",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_lexer",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_markdown",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_metrics",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		},
+		{
+			"package": "monostyle_rules",
+			"ecosystem": "cargo",
+			"registry": "crates_io",
+			"version": "0.3.28",
+			"mode": "builtin",
+			"trusted_publishing": {
+				"enabled": true,
+				"mode": "preferred",
+				"repository": "ifiokjr/monostyle",
+				"workflow": "publish.yml",
+				"environment": "publisher"
+			},
+			"attestations": {
+				"require_registry_provenance": true
+			}
+		}
+	],
+	"updated_changelogs": [
+		"changelog.md",
+		"crates/monostyle/changelog.md",
+		"crates/monostyle_core/changelog.md",
+		"crates/monostyle_languages/changelog.md",
+		"crates/monostyle_lexer/changelog.md",
+		"crates/monostyle_markdown/changelog.md",
+		"crates/monostyle_metrics/changelog.md",
+		"crates/monostyle_rules/changelog.md",
+		"packages/monostyle__cli/changelog.md",
+		"packages/monostyle__cli-darwin-arm64/changelog.md",
+		"packages/monostyle__cli-darwin-x64/changelog.md",
+		"packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-arm64-musl/changelog.md",
+		"packages/monostyle__cli-linux-x64-gnu/changelog.md",
+		"packages/monostyle__cli-linux-x64-musl/changelog.md",
+		"packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+		"packages/monostyle__cli-win32-x64-msvc/changelog.md",
+		"packages/monostyle__skill/changelog.md"
+	],
+	"deleted_changesets": [
+		".changeset/borrowed-line-model.md",
+		".changeset/hot-path-benchmarks.md",
+		".changeset/literal-boundary-classification.md",
+		".changeset/measure-units-once.md",
+		".changeset/parser-declarations-and-brace-ownership.md",
+		".changeset/ruby-shovel-heredoc.md",
+		".changeset/rule-pipeline-borrows.md"
+	],
+	"changesets": [
+		{
+			"path": ".changeset/borrowed-line-model.md",
+			"summary": "The line model borrows the source instead of copying it",
+			"details": "The scanner made one heap allocation per character: it read the rest of the line into a string for every code character to look for a heredoc, collected a lookahead window for every character before checking whether a literal could begin there, and cloned the open literal — owned closer included — for every character inside a string. Each of those is now a slice or a borrowed profile string. On this repository's largest file, lexing went from 146,116 allocations to 6,822 (64 per line to 3), and a plain code line now allocates exactly once.\n\n`LexedFile` and `LexedLine` carry the source's lifetime: a line's text and indentation are slices of the source, its decision and nesting keywords are the profile's own static strings, the keyword pass tokenizes into slices rather than owned words, and the masked view is the text's own prefix until a literal or comment forces it apart. `LexedLine::comment_body` returns a slice rather than a copy, and the unused `markdown::lexed_lines` helper is gone.\n\nEvery CRLF-terminated line's byte range ended one byte early, and a blank CRLF line's range ran backwards, because the line was closed one byte too soon. The copied text hid it; the borrowed text exposed it. The range is now exact.",
+			"targets": [
+				{
+					"id": "monostyle_lexer",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monostyle_rules",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monostyle_metrics",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monostyle",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "b2c7f3167a2e4f12f0bc1be97d3b8476958f24cb",
+						"short_sha": "b2c7f31",
+						"url": "https://github.com/ifiokjr/monostyle/commit/b2c7f3167a2e4f12f0bc1be97d3b8476958f24cb",
+						"authored_at": "2026-10-26T21:54:27Z",
+						"committed_at": "2026-10-26T21:54:27Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#98",
+						"title": "perf(lexer)!: borrow the line model from the source, stop allocating per character",
+						"url": "https://github.com/ifiokjr/monostyle/pull/98",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "b2c7f3167a2e4f12f0bc1be97d3b8476958f24cb",
+						"short_sha": "b2c7f31",
+						"url": "https://github.com/ifiokjr/monostyle/commit/b2c7f3167a2e4f12f0bc1be97d3b8476958f24cb",
+						"authored_at": "2026-10-26T21:54:27Z",
+						"committed_at": "2026-10-26T21:54:27Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#98",
+						"title": "perf(lexer)!: borrow the line model from the source, stop allocating per character",
+						"url": "https://github.com/ifiokjr/monostyle/pull/98",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/hot-path-benchmarks.md",
+			"summary": "Benchmarks and an allocation ceiling for the hot paths",
+			"details": "`cargo bench --package monostyle` runs Criterion micro-benchmarks for each stage a file goes through — lexing as bytes per second in ten languages, unit measurement for each block style, the rule set, and the whole analysis — over a corpus written to exercise the scanner's hardest paths. The pull-request benchmark workflow runs two new scenarios on the same corpus: a mixed-language tree, which the all-Rust corpora never reached, and a single seven-thousand-line file, the size at which every quadratic path so far first showed.\n\nThe scanner is also held to an allocation ceiling per line for each line shape, counted through a wrapping global allocator, so a per-character allocation returning to it fails a test rather than the next profiling session. The benches and their corpus are excluded from the published crate.",
+			"targets": [
+				{
+					"id": "monostyle",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c516ec216dcf2e2670fba4b9154b76553f45928c",
+						"short_sha": "c516ec2",
+						"url": "https://github.com/ifiokjr/monostyle/commit/c516ec216dcf2e2670fba4b9154b76553f45928c",
+						"authored_at": "2026-10-27T02:57:50Z",
+						"committed_at": "2026-10-27T02:57:50Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#99",
+						"title": "test: benchmark every hot path and hold the scanner to an allocation ceiling",
+						"url": "https://github.com/ifiokjr/monostyle/pull/99",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "c516ec216dcf2e2670fba4b9154b76553f45928c",
+						"short_sha": "c516ec2",
+						"url": "https://github.com/ifiokjr/monostyle/commit/c516ec216dcf2e2670fba4b9154b76553f45928c",
+						"authored_at": "2026-10-27T02:57:50Z",
+						"committed_at": "2026-10-27T02:57:50Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#99",
+						"title": "test: benchmark every hot path and hold the scanner to an allocation ceiling",
+						"url": "https://github.com/ifiokjr/monostyle/pull/99",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/literal-boundary-classification.md",
+			"summary": "Preserve Shell and YAML literal boundaries",
+			"details": "Recognize Shell here-strings without opening a heredoc from their operator suffix. Keep complete quoted heredoc openers and every body character inside their correct literal boundaries, including Unicode byte ranges.\n\nTreat YAML literal and folded block payloads as data until dedent or EOF. Embedded quotes and comments no longer hide later mappings or create false diagnostics.\n\nEnd braced Shell function metrics at their closing brace while preserving the language's decision and nesting rules.",
+			"targets": [
+				{
+					"id": "monostyle_lexer",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monostyle_metrics",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "45af8c52764b35f661ec03825bf9f117b1caff0b",
+						"short_sha": "45af8c5",
+						"url": "https://github.com/ifiokjr/monostyle/commit/45af8c52764b35f661ec03825bf9f117b1caff0b",
+						"authored_at": "2026-10-28T22:52:35Z",
+						"committed_at": "2026-10-28T22:52:35Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#103",
+						"title": "fix(lexer): preserve shell and YAML literal boundaries",
+						"url": "https://github.com/ifiokjr/monostyle/pull/103",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "45af8c52764b35f661ec03825bf9f117b1caff0b",
+						"short_sha": "45af8c5",
+						"url": "https://github.com/ifiokjr/monostyle/commit/45af8c52764b35f661ec03825bf9f117b1caff0b",
+						"authored_at": "2026-10-28T22:52:35Z",
+						"committed_at": "2026-10-28T22:52:35Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#103",
+						"title": "fix(lexer): preserve shell and YAML literal boundaries",
+						"url": "https://github.com/ifiokjr/monostyle/pull/103",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/measure-units-once.md",
+			"summary": "Measure each file's units once and stop copying the findings",
+			"details": "Seven rules each built their own set of measured units per file, so unit detection and the per-unit cyclomatic, cognitive, Halstead, and maintainability figures ran seven times over every file. The run context now holds one `UnitSet` shared by the rules and the report, and rules that never look at units never pay for them.\n\nFindings borrow their text: the rule name is a registry constant and most suggestions are fixed sentences, so a rule name is no longer copied into every finding and a fixed suggestion owns nothing. Project-wide ranking and scoring work from references instead of cloning every finding and its path, and the worst-offender location for a rule is built only when a finding actually wins that title.\n\nAttributing findings to units is now a binary search per unit rather than a scan of every finding for every unit, and rules are matched by name through a hash map rather than a linear scan of the registry. `f64` ordering uses `total_cmp` throughout, and the rule table is a static rather than a per-file allocation.\n\nDeleting the orphaned `metrics_bridge.rs` removes the last copy of the address-keyed unit cache whose wrong-by-construction keying was documented as unsound when `UnitSet` replaced it.",
+			"targets": [
+				{
+					"id": "monostyle_core",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monostyle_rules",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monostyle",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "8bc68f3714785fcb64a90f8110701967c3346103",
+						"short_sha": "8bc68f3",
+						"url": "https://github.com/ifiokjr/monostyle/commit/8bc68f3714785fcb64a90f8110701967c3346103",
+						"authored_at": "2026-10-26T20:20:02Z",
+						"committed_at": "2026-10-26T20:20:02Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#97",
+						"title": "perf: measure each file's units once, borrow the findings' text",
+						"url": "https://github.com/ifiokjr/monostyle/pull/97",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "8bc68f3714785fcb64a90f8110701967c3346103",
+						"short_sha": "8bc68f3",
+						"url": "https://github.com/ifiokjr/monostyle/commit/8bc68f3714785fcb64a90f8110701967c3346103",
+						"authored_at": "2026-10-26T20:20:02Z",
+						"committed_at": "2026-10-26T20:20:02Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#97",
+						"title": "perf: measure each file's units once, borrow the findings' text",
+						"url": "https://github.com/ifiokjr/monostyle/pull/97",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/parser-declarations-and-brace-ownership.md",
+			"summary": "Preserve function declarations and brace ownership",
+			"details": "Recognize Rust functions after restricted visibility and qualifiers, while keeping\nconstant tables and function-pointer data out of function metrics. Preserve real\nfunction names, boundaries, decisions and parameter findings.\n\nWalk braces in reverse character order when locating an enclosing group. Nested\nobjects and blocks no longer overflow or lose the required whitespace findings.\n\nKeep Rust lifetime parameters, references and labels visible to unit metrics,\nwhile preserving character and byte literal masking.\n\nSeparate Halstead token classification from cursor advancement without changing\noperator or operand streams.",
+			"targets": [
+				{
+					"id": "monostyle_lexer",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monostyle_metrics",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monostyle_rules",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "8da21273398c2a9c56f2f9ba99effadd217633ce",
+						"short_sha": "8da2127",
+						"url": "https://github.com/ifiokjr/monostyle/commit/8da21273398c2a9c56f2f9ba99effadd217633ce",
+						"authored_at": "2026-10-25T00:47:08+01:00",
+						"committed_at": "2026-10-25T00:47:08+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#95",
+						"title": "fix(parser): preserve Rust function boundaries and brace ownership",
+						"url": "https://github.com/ifiokjr/monostyle/pull/95",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "8da21273398c2a9c56f2f9ba99effadd217633ce",
+						"short_sha": "8da2127",
+						"url": "https://github.com/ifiokjr/monostyle/commit/8da21273398c2a9c56f2f9ba99effadd217633ce",
+						"authored_at": "2026-10-25T00:47:08+01:00",
+						"committed_at": "2026-10-25T00:47:08+01:00",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#95",
+						"title": "fix(parser): preserve Rust function boundaries and brace ownership",
+						"url": "https://github.com/ifiokjr/monostyle/pull/95",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/ruby-shovel-heredoc.md",
+			"summary": "A Ruby append is no longer read as a heredoc",
+			"details": "Ruby's `<<` is also its append operator, and spacing is what tells the two apart: a heredoc's delimiter follows the marker immediately, so `list << item` appends and `class << self` opens a singleton class. Reading those as heredoc openers swallowed every line after them as string content, which mis-scored any Ruby file that appends to an array.\n\nThe heredoc syntax now says whether whitespace may separate the marker from the delimiter. Shell and PHP allow it (`cat << EOF`), so their behavior is unchanged; Ruby does not.",
+			"targets": [
+				{
+					"id": "monostyle_languages",
+					"kind": "package",
+					"bump": "minor",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "minor"
+				},
+				{
+					"id": "monostyle_lexer",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "f658c299fa7837ee8376a736dc72a8be704992cb",
+						"short_sha": "f658c29",
+						"url": "https://github.com/ifiokjr/monostyle/commit/f658c299fa7837ee8376a736dc72a8be704992cb",
+						"authored_at": "2026-10-27T08:41:25Z",
+						"committed_at": "2026-10-27T08:41:25Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#100",
+						"title": "fix(lexer): a Ruby append is not a heredoc",
+						"url": "https://github.com/ifiokjr/monostyle/pull/100",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "f658c299fa7837ee8376a736dc72a8be704992cb",
+						"short_sha": "f658c29",
+						"url": "https://github.com/ifiokjr/monostyle/commit/f658c299fa7837ee8376a736dc72a8be704992cb",
+						"authored_at": "2026-10-27T08:41:25Z",
+						"committed_at": "2026-10-27T08:41:25Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#100",
+						"title": "fix(lexer): a Ruby append is not a heredoc",
+						"url": "https://github.com/ifiokjr/monostyle/pull/100",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		},
+		{
+			"path": ".changeset/rule-pipeline-borrows.md",
+			"summary": "The rule pipeline stops copying what it reads",
+			"details": "Halstead's distinct-token sets allocated a copy of every token before inserting it — one heap allocation per token, tens per line — and unit detection copied every code line's masked text twice per line. Both borrow now, and the measurement stage allocates a fraction of what it did.\n\nThe quality rules borrow their findings' material as well: numeric literals, assigned and declared names, and handler keywords are slices of the line rather than owned strings, keyword comparison no longer lowercases into a heap string, and literal parsing skips separators through a stack buffer. Unit reports carry their risk bands as the static strings they already were, and the group-separation depth table counts all four bracket kinds in one pass over a line instead of four.\n\nAnalyzing this repository's largest source file went from 11.1 to 7.3 heap allocations per line, with every test, the allocation ceilings, and the dogfood floor unchanged.",
+			"targets": [
+				{
+					"id": "monostyle_metrics",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monostyle_rules",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				},
+				{
+					"id": "monostyle",
+					"kind": "package",
+					"bump": "patch",
+					"origin": "direct-change",
+					"evidence_refs": [],
+					"change_type": "patch"
+				}
+			],
+			"context": {
+				"provider": "github",
+				"host": "github.com",
+				"capabilities": {
+					"commit_web_urls": true,
+					"actor_profiles": true,
+					"review_request_lookup": true,
+					"related_issues": true,
+					"issue_comments": true
+				},
+				"introduced": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "b04f000a341643f525f84399df1592201301adde",
+						"short_sha": "b04f000",
+						"url": "https://github.com/ifiokjr/monostyle/commit/b04f000a341643f525f84399df1592201301adde",
+						"authored_at": "2026-10-27T17:34:15Z",
+						"committed_at": "2026-10-27T17:34:15Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#101",
+						"title": "perf: the rule pipeline stops copying what it reads",
+						"url": "https://github.com/ifiokjr/monostyle/pull/101",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"last_updated": {
+					"actor": {
+						"provider": "github",
+						"host": "github.com",
+						"id": null,
+						"login": "ifiokjr",
+						"display_name": "ifiokjr",
+						"url": "https://github.com/ifiokjr",
+						"source": "review_request_author"
+					},
+					"commit": {
+						"provider": "github",
+						"host": "github.com",
+						"sha": "b04f000a341643f525f84399df1592201301adde",
+						"short_sha": "b04f000",
+						"url": "https://github.com/ifiokjr/monostyle/commit/b04f000a341643f525f84399df1592201301adde",
+						"authored_at": "2026-10-27T17:34:15Z",
+						"committed_at": "2026-10-27T17:34:15Z",
+						"author_name": "Ifiok Jr.",
+						"author_email": "1160934+ifiokjr@users.noreply.github.com"
+					},
+					"review_request": {
+						"provider": "github",
+						"host": "github.com",
+						"kind": "pull_request",
+						"id": "#101",
+						"title": "perf: the rule pipeline stops copying what it reads",
+						"url": "https://github.com/ifiokjr/monostyle/pull/101",
+						"author": {
+							"provider": "github",
+							"host": "github.com",
+							"id": null,
+							"login": "ifiokjr",
+							"display_name": "ifiokjr",
+							"url": "https://github.com/ifiokjr",
+							"source": "review_request_author"
+						}
+					}
+				},
+				"related_issues": []
+			}
+		}
+	],
+	"changelogs": [
+		{
+			"owner_id": "release",
+			"owner_kind": "group",
+			"output": "default",
+			"stream": "default",
+			"path": "changelog.md",
+			"format": "monochange",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [
+					"Grouped release for `release`."
+				],
+				"sections": [
+					{
+						"title": "Features",
+						"collapsed": false,
+						"entries": [
+							"#### The line model borrows the source instead of copying it\n\n_Packages:_ 🟢 _monostyle_, 🟢 _monostyle_metrics_, 🟠 _monostyle_lexer_, 🟠 _monostyle_rules_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #98](https://github.com/ifiokjr/monostyle/pull/98)\n\nThe scanner made one heap allocation per character: it read the rest of the line into a string for every code character to look for a heredoc, collected a lookahead window for every character before checking whether a literal could begin there, and cloned the open literal — owned closer included — for every character inside a string. Each of those is now a slice or a borrowed profile string. On this repository's largest file, lexing went from 146,116 allocations to 6,822 (64 per line to 3), and a plain code line now allocates exactly once.\n\n`LexedFile` and `LexedLine` carry the source's lifetime: a line's text and indentation are slices of the source, its decision and nesting keywords are the profile's own static strings, the keyword pass tokenizes into slices rather than owned words, and the masked view is the text's own prefix until a literal or comment forces it apart. `LexedLine::comment_body` returns a slice rather than a copy, and the unused `markdown::lexed_lines` helper is gone.\n\nEvery CRLF-terminated line's byte range ended one byte early, and a blank CRLF line's range ran backwards, because the line was closed one byte too soon. The copied text hid it; the borrowed text exposed it. The range is now exact.",
+							"#### Measure each file's units once and stop copying the findings\n\n_Packages:_ 🟠 _monostyle_, 🟠 _monostyle_core_, 🟠 _monostyle_rules_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #97](https://github.com/ifiokjr/monostyle/pull/97)\n\nSeven rules each built their own set of measured units per file, so unit detection and the per-unit cyclomatic, cognitive, Halstead, and maintainability figures ran seven times over every file. The run context now holds one `UnitSet` shared by the rules and the report, and rules that never look at units never pay for them.\n\nFindings borrow their text: the rule name is a registry constant and most suggestions are fixed sentences, so a rule name is no longer copied into every finding and a fixed suggestion owns nothing. Project-wide ranking and scoring work from references instead of cloning every finding and its path, and the worst-offender location for a rule is built only when a finding actually wins that title.\n\nAttributing findings to units is now a binary search per unit rather than a scan of every finding for every unit, and rules are matched by name through a hash map rather than a linear scan of the registry. `f64` ordering uses `total_cmp` throughout, and the rule table is a static rather than a per-file allocation.\n\nDeleting the orphaned `metrics_bridge.rs` removes the last copy of the address-keyed unit cache whose wrong-by-construction keying was documented as unsound when `UnitSet` replaced it.",
+							"#### A Ruby append is no longer read as a heredoc\n\n_Packages:_ 🟠 _monostyle_languages_, 🟢 _monostyle_lexer_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #100](https://github.com/ifiokjr/monostyle/pull/100)\n\nRuby's `<<` is also its append operator, and spacing is what tells the two apart: a heredoc's delimiter follows the marker immediately, so `list << item` appends and `class << self` opens a singleton class. Reading those as heredoc openers swallowed every line after them as string content, which mis-scored any Ruby file that appends to an array.\n\nThe heredoc syntax now says whether whitespace may separate the marker from the delimiter. Shell and PHP allow it (`cat << EOF`), so their behavior is unchanged; Ruby does not."
+						]
+					},
+					{
+						"title": "Fixes",
+						"collapsed": false,
+						"entries": [
+							"#### Benchmarks and an allocation ceiling for the hot paths\n\n_Packages:_ 🟢 _monostyle_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #99](https://github.com/ifiokjr/monostyle/pull/99)\n\n`cargo bench --package monostyle` runs Criterion micro-benchmarks for each stage a file goes through — lexing as bytes per second in ten languages, unit measurement for each block style, the rule set, and the whole analysis — over a corpus written to exercise the scanner's hardest paths. The pull-request benchmark workflow runs two new scenarios on the same corpus: a mixed-language tree, which the all-Rust corpora never reached, and a single seven-thousand-line file, the size at which every quadratic path so far first showed.\n\nThe scanner is also held to an allocation ceiling per line for each line shape, counted through a wrapping global allocator, so a per-character allocation returning to it fails a test rather than the next profiling session. The benches and their corpus are excluded from the published crate.",
+							"#### The rule pipeline stops copying what it reads\n\n_Packages:_ 🟢 _monostyle_, 🟢 _monostyle_metrics_, 🟢 _monostyle_rules_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #101](https://github.com/ifiokjr/monostyle/pull/101)\n\nHalstead's distinct-token sets allocated a copy of every token before inserting it — one heap allocation per token, tens per line — and unit detection copied every code line's masked text twice per line. Both borrow now, and the measurement stage allocates a fraction of what it did.\n\nThe quality rules borrow their findings' material as well: numeric literals, assigned and declared names, and handler keywords are slices of the line rather than owned strings, keyword comparison no longer lowercases into a heap string, and literal parsing skips separators through a stack buffer. Unit reports carry their risk bands as the static strings they already were, and the group-separation depth table counts all four bracket kinds in one pass over a line instead of four.\n\nAnalyzing this repository's largest source file went from 11.1 to 7.3 heap allocations per line, with every test, the allocation ceilings, and the dogfood floor unchanged.",
+							"#### Preserve Shell and YAML literal boundaries\n\n_Packages:_ 🟢 _monostyle_lexer_, 🟢 _monostyle_metrics_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #103](https://github.com/ifiokjr/monostyle/pull/103)\n\nRecognize Shell here-strings without opening a heredoc from their operator suffix. Keep complete quoted heredoc openers and every body character inside their correct literal boundaries, including Unicode byte ranges.\n\nTreat YAML literal and folded block payloads as data until dedent or EOF. Embedded quotes and comments no longer hide later mappings or create false diagnostics.\n\nEnd braced Shell function metrics at their closing brace while preserving the language's decision and nesting rules.",
+							"#### Preserve function declarations and brace ownership\n\n_Packages:_ 🟢 _monostyle_lexer_, 🟢 _monostyle_metrics_, 🟢 _monostyle_rules_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #95](https://github.com/ifiokjr/monostyle/pull/95)\n\nRecognize Rust functions after restricted visibility and qualifiers, while keeping\nconstant tables and function-pointer data out of function metrics. Preserve real\nfunction names, boundaries, decisions and parameter findings.\n\nWalk braces in reverse character order when locating an enclosing group. Nested\nobjects and blocks no longer overflow or lose the required whitespace findings.\n\nKeep Rust lifetime parameters, references and labels visible to unit metrics,\nwhile preserving character and byte literal masking.\n\nSeparate Halstead token classification from cursor advancement without changing\noperator or operand streams."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\nGrouped release for `release`.\n\n### Features\n\n#### The line model borrows the source instead of copying it\n\n_Packages:_ 🟢 _monostyle_, 🟢 _monostyle_metrics_, 🟠 _monostyle_lexer_, 🟠 _monostyle_rules_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #98](https://github.com/ifiokjr/monostyle/pull/98)\n\nThe scanner made one heap allocation per character: it read the rest of the line into a string for every code character to look for a heredoc, collected a lookahead window for every character before checking whether a literal could begin there, and cloned the open literal — owned closer included — for every character inside a string. Each of those is now a slice or a borrowed profile string. On this repository's largest file, lexing went from 146,116 allocations to 6,822 (64 per line to 3), and a plain code line now allocates exactly once.\n\n`LexedFile` and `LexedLine` carry the source's lifetime: a line's text and indentation are slices of the source, its decision and nesting keywords are the profile's own static strings, the keyword pass tokenizes into slices rather than owned words, and the masked view is the text's own prefix until a literal or comment forces it apart. `LexedLine::comment_body` returns a slice rather than a copy, and the unused `markdown::lexed_lines` helper is gone.\n\nEvery CRLF-terminated line's byte range ended one byte early, and a blank CRLF line's range ran backwards, because the line was closed one byte too soon. The copied text hid it; the borrowed text exposed it. The range is now exact.\n\n#### Measure each file's units once and stop copying the findings\n\n_Packages:_ 🟠 _monostyle_, 🟠 _monostyle_core_, 🟠 _monostyle_rules_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #97](https://github.com/ifiokjr/monostyle/pull/97)\n\nSeven rules each built their own set of measured units per file, so unit detection and the per-unit cyclomatic, cognitive, Halstead, and maintainability figures ran seven times over every file. The run context now holds one `UnitSet` shared by the rules and the report, and rules that never look at units never pay for them.\n\nFindings borrow their text: the rule name is a registry constant and most suggestions are fixed sentences, so a rule name is no longer copied into every finding and a fixed suggestion owns nothing. Project-wide ranking and scoring work from references instead of cloning every finding and its path, and the worst-offender location for a rule is built only when a finding actually wins that title.\n\nAttributing findings to units is now a binary search per unit rather than a scan of every finding for every unit, and rules are matched by name through a hash map rather than a linear scan of the registry. `f64` ordering uses `total_cmp` throughout, and the rule table is a static rather than a per-file allocation.\n\nDeleting the orphaned `metrics_bridge.rs` removes the last copy of the address-keyed unit cache whose wrong-by-construction keying was documented as unsound when `UnitSet` replaced it.\n\n#### A Ruby append is no longer read as a heredoc\n\n_Packages:_ 🟠 _monostyle_languages_, 🟢 _monostyle_lexer_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #100](https://github.com/ifiokjr/monostyle/pull/100)\n\nRuby's `<<` is also its append operator, and spacing is what tells the two apart: a heredoc's delimiter follows the marker immediately, so `list << item` appends and `class << self` opens a singleton class. Reading those as heredoc openers swallowed every line after them as string content, which mis-scored any Ruby file that appends to an array.\n\nThe heredoc syntax now says whether whitespace may separate the marker from the delimiter. Shell and PHP allow it (`cat << EOF`), so their behavior is unchanged; Ruby does not.\n\n### Fixes\n\n#### Benchmarks and an allocation ceiling for the hot paths\n\n_Packages:_ 🟢 _monostyle_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #99](https://github.com/ifiokjr/monostyle/pull/99)\n\n`cargo bench --package monostyle` runs Criterion micro-benchmarks for each stage a file goes through — lexing as bytes per second in ten languages, unit measurement for each block style, the rule set, and the whole analysis — over a corpus written to exercise the scanner's hardest paths. The pull-request benchmark workflow runs two new scenarios on the same corpus: a mixed-language tree, which the all-Rust corpora never reached, and a single seven-thousand-line file, the size at which every quadratic path so far first showed.\n\nThe scanner is also held to an allocation ceiling per line for each line shape, counted through a wrapping global allocator, so a per-character allocation returning to it fails a test rather than the next profiling session. The benches and their corpus are excluded from the published crate.\n\n#### The rule pipeline stops copying what it reads\n\n_Packages:_ 🟢 _monostyle_, 🟢 _monostyle_metrics_, 🟢 _monostyle_rules_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #101](https://github.com/ifiokjr/monostyle/pull/101)\n\nHalstead's distinct-token sets allocated a copy of every token before inserting it — one heap allocation per token, tens per line — and unit detection copied every code line's masked text twice per line. Both borrow now, and the measurement stage allocates a fraction of what it did.\n\nThe quality rules borrow their findings' material as well: numeric literals, assigned and declared names, and handler keywords are slices of the line rather than owned strings, keyword comparison no longer lowercases into a heap string, and literal parsing skips separators through a stack buffer. Unit reports carry their risk bands as the static strings they already were, and the group-separation depth table counts all four bracket kinds in one pass over a line instead of four.\n\nAnalyzing this repository's largest source file went from 11.1 to 7.3 heap allocations per line, with every test, the allocation ceilings, and the dogfood floor unchanged.\n\n#### Preserve Shell and YAML literal boundaries\n\n_Packages:_ 🟢 _monostyle_lexer_, 🟢 _monostyle_metrics_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #103](https://github.com/ifiokjr/monostyle/pull/103)\n\nRecognize Shell here-strings without opening a heredoc from their operator suffix. Keep complete quoted heredoc openers and every body character inside their correct literal boundaries, including Unicode byte ranges.\n\nTreat YAML literal and folded block payloads as data until dedent or EOF. Embedded quotes and comments no longer hide later mappings or create false diagnostics.\n\nEnd braced Shell function metrics at their closing brace while preserving the language's decision and nesting rules.\n\n#### Preserve function declarations and brace ownership\n\n_Packages:_ 🟢 _monostyle_lexer_, 🟢 _monostyle_metrics_, 🟢 _monostyle_rules_\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #95](https://github.com/ifiokjr/monostyle/pull/95)\n\nRecognize Rust functions after restricted visibility and qualifiers, while keeping\nconstant tables and function-pointer data out of function metrics. Preserve real\nfunction names, boundaries, decisions and parameter findings.\n\nWalk braces in reverse character order when locating an enclosing group. Nested\nobjects and blocks no longer overflow or lose the required whitespace findings.\n\nKeep Rust lifetime parameters, references and labels visible to unit metrics,\nwhile preserving character and byte literal masking.\n\nSeparate Halstead token classification from cursor advancement without changing\noperator or operand streams."
+		},
+		{
+			"owner_id": "monostyle",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Features",
+						"collapsed": false,
+						"entries": [
+							"#### Measure each file's units once and stop copying the findings\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #97](https://github.com/ifiokjr/monostyle/pull/97)\n\nSeven rules each built their own set of measured units per file, so unit detection and the per-unit cyclomatic, cognitive, Halstead, and maintainability figures ran seven times over every file. The run context now holds one `UnitSet` shared by the rules and the report, and rules that never look at units never pay for them.\n\nFindings borrow their text: the rule name is a registry constant and most suggestions are fixed sentences, so a rule name is no longer copied into every finding and a fixed suggestion owns nothing. Project-wide ranking and scoring work from references instead of cloning every finding and its path, and the worst-offender location for a rule is built only when a finding actually wins that title.\n\nAttributing findings to units is now a binary search per unit rather than a scan of every finding for every unit, and rules are matched by name through a hash map rather than a linear scan of the registry. `f64` ordering uses `total_cmp` throughout, and the rule table is a static rather than a per-file allocation.\n\nDeleting the orphaned `metrics_bridge.rs` removes the last copy of the address-keyed unit cache whose wrong-by-construction keying was documented as unsound when `UnitSet` replaced it."
+						]
+					},
+					{
+						"title": "Fixes",
+						"collapsed": false,
+						"entries": [
+							"#### The line model borrows the source instead of copying it\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #98](https://github.com/ifiokjr/monostyle/pull/98)\n\nThe scanner made one heap allocation per character: it read the rest of the line into a string for every code character to look for a heredoc, collected a lookahead window for every character before checking whether a literal could begin there, and cloned the open literal — owned closer included — for every character inside a string. Each of those is now a slice or a borrowed profile string. On this repository's largest file, lexing went from 146,116 allocations to 6,822 (64 per line to 3), and a plain code line now allocates exactly once.\n\n`LexedFile` and `LexedLine` carry the source's lifetime: a line's text and indentation are slices of the source, its decision and nesting keywords are the profile's own static strings, the keyword pass tokenizes into slices rather than owned words, and the masked view is the text's own prefix until a literal or comment forces it apart. `LexedLine::comment_body` returns a slice rather than a copy, and the unused `markdown::lexed_lines` helper is gone.\n\nEvery CRLF-terminated line's byte range ended one byte early, and a blank CRLF line's range ran backwards, because the line was closed one byte too soon. The copied text hid it; the borrowed text exposed it. The range is now exact.",
+							"#### Benchmarks and an allocation ceiling for the hot paths\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #99](https://github.com/ifiokjr/monostyle/pull/99)\n\n`cargo bench --package monostyle` runs Criterion micro-benchmarks for each stage a file goes through — lexing as bytes per second in ten languages, unit measurement for each block style, the rule set, and the whole analysis — over a corpus written to exercise the scanner's hardest paths. The pull-request benchmark workflow runs two new scenarios on the same corpus: a mixed-language tree, which the all-Rust corpora never reached, and a single seven-thousand-line file, the size at which every quadratic path so far first showed.\n\nThe scanner is also held to an allocation ceiling per line for each line shape, counted through a wrapping global allocator, so a per-character allocation returning to it fails a test rather than the next profiling session. The benches and their corpus are excluded from the published crate.",
+							"#### The rule pipeline stops copying what it reads\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #101](https://github.com/ifiokjr/monostyle/pull/101)\n\nHalstead's distinct-token sets allocated a copy of every token before inserting it — one heap allocation per token, tens per line — and unit detection copied every code line's masked text twice per line. Both borrow now, and the measurement stage allocates a fraction of what it did.\n\nThe quality rules borrow their findings' material as well: numeric literals, assigned and declared names, and handler keywords are slices of the line rather than owned strings, keyword comparison no longer lowercases into a heap string, and literal parsing skips separators through a stack buffer. Unit reports carry their risk bands as the static strings they already were, and the group-separation depth table counts all four bracket kinds in one pass over a line instead of four.\n\nAnalyzing this repository's largest source file went from 11.1 to 7.3 heap allocations per line, with every test, the allocation ceilings, and the dogfood floor unchanged."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Features\n\n#### Measure each file's units once and stop copying the findings\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #97](https://github.com/ifiokjr/monostyle/pull/97)\n\nSeven rules each built their own set of measured units per file, so unit detection and the per-unit cyclomatic, cognitive, Halstead, and maintainability figures ran seven times over every file. The run context now holds one `UnitSet` shared by the rules and the report, and rules that never look at units never pay for them.\n\nFindings borrow their text: the rule name is a registry constant and most suggestions are fixed sentences, so a rule name is no longer copied into every finding and a fixed suggestion owns nothing. Project-wide ranking and scoring work from references instead of cloning every finding and its path, and the worst-offender location for a rule is built only when a finding actually wins that title.\n\nAttributing findings to units is now a binary search per unit rather than a scan of every finding for every unit, and rules are matched by name through a hash map rather than a linear scan of the registry. `f64` ordering uses `total_cmp` throughout, and the rule table is a static rather than a per-file allocation.\n\nDeleting the orphaned `metrics_bridge.rs` removes the last copy of the address-keyed unit cache whose wrong-by-construction keying was documented as unsound when `UnitSet` replaced it.\n\n### Fixes\n\n#### The line model borrows the source instead of copying it\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #98](https://github.com/ifiokjr/monostyle/pull/98)\n\nThe scanner made one heap allocation per character: it read the rest of the line into a string for every code character to look for a heredoc, collected a lookahead window for every character before checking whether a literal could begin there, and cloned the open literal — owned closer included — for every character inside a string. Each of those is now a slice or a borrowed profile string. On this repository's largest file, lexing went from 146,116 allocations to 6,822 (64 per line to 3), and a plain code line now allocates exactly once.\n\n`LexedFile` and `LexedLine` carry the source's lifetime: a line's text and indentation are slices of the source, its decision and nesting keywords are the profile's own static strings, the keyword pass tokenizes into slices rather than owned words, and the masked view is the text's own prefix until a literal or comment forces it apart. `LexedLine::comment_body` returns a slice rather than a copy, and the unused `markdown::lexed_lines` helper is gone.\n\nEvery CRLF-terminated line's byte range ended one byte early, and a blank CRLF line's range ran backwards, because the line was closed one byte too soon. The copied text hid it; the borrowed text exposed it. The range is now exact.\n\n#### Benchmarks and an allocation ceiling for the hot paths\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #99](https://github.com/ifiokjr/monostyle/pull/99)\n\n`cargo bench --package monostyle` runs Criterion micro-benchmarks for each stage a file goes through — lexing as bytes per second in ten languages, unit measurement for each block style, the rule set, and the whole analysis — over a corpus written to exercise the scanner's hardest paths. The pull-request benchmark workflow runs two new scenarios on the same corpus: a mixed-language tree, which the all-Rust corpora never reached, and a single seven-thousand-line file, the size at which every quadratic path so far first showed.\n\nThe scanner is also held to an allocation ceiling per line for each line shape, counted through a wrapping global allocator, so a per-character allocation returning to it fails a test rather than the next profiling session. The benches and their corpus are excluded from the published crate.\n\n#### The rule pipeline stops copying what it reads\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #101](https://github.com/ifiokjr/monostyle/pull/101)\n\nHalstead's distinct-token sets allocated a copy of every token before inserting it — one heap allocation per token, tens per line — and unit detection copied every code line's masked text twice per line. Both borrow now, and the measurement stage allocates a fraction of what it did.\n\nThe quality rules borrow their findings' material as well: numeric literals, assigned and declared names, and handler keywords are slices of the line rather than owned strings, keyword comparison no longer lowercases into a heap string, and literal parsing skips separators through a stack buffer. Unit reports carry their risk bands as the static strings they already were, and the group-separation depth table counts all four bracket kinds in one pass over a line instead of four.\n\nAnalyzing this repository's largest source file went from 11.1 to 7.3 heap allocations per line, with every test, the allocation ceilings, and the dogfood floor unchanged."
+		},
+		{
+			"owner_id": "monostyle_core",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_core/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Features",
+						"collapsed": false,
+						"entries": [
+							"#### Measure each file's units once and stop copying the findings\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #97](https://github.com/ifiokjr/monostyle/pull/97)\n\nSeven rules each built their own set of measured units per file, so unit detection and the per-unit cyclomatic, cognitive, Halstead, and maintainability figures ran seven times over every file. The run context now holds one `UnitSet` shared by the rules and the report, and rules that never look at units never pay for them.\n\nFindings borrow their text: the rule name is a registry constant and most suggestions are fixed sentences, so a rule name is no longer copied into every finding and a fixed suggestion owns nothing. Project-wide ranking and scoring work from references instead of cloning every finding and its path, and the worst-offender location for a rule is built only when a finding actually wins that title.\n\nAttributing findings to units is now a binary search per unit rather than a scan of every finding for every unit, and rules are matched by name through a hash map rather than a linear scan of the registry. `f64` ordering uses `total_cmp` throughout, and the rule table is a static rather than a per-file allocation.\n\nDeleting the orphaned `metrics_bridge.rs` removes the last copy of the address-keyed unit cache whose wrong-by-construction keying was documented as unsound when `UnitSet` replaced it."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Features\n\n#### Measure each file's units once and stop copying the findings\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #97](https://github.com/ifiokjr/monostyle/pull/97)\n\nSeven rules each built their own set of measured units per file, so unit detection and the per-unit cyclomatic, cognitive, Halstead, and maintainability figures ran seven times over every file. The run context now holds one `UnitSet` shared by the rules and the report, and rules that never look at units never pay for them.\n\nFindings borrow their text: the rule name is a registry constant and most suggestions are fixed sentences, so a rule name is no longer copied into every finding and a fixed suggestion owns nothing. Project-wide ranking and scoring work from references instead of cloning every finding and its path, and the worst-offender location for a rule is built only when a finding actually wins that title.\n\nAttributing findings to units is now a binary search per unit rather than a scan of every finding for every unit, and rules are matched by name through a hash map rather than a linear scan of the registry. `f64` ordering uses `total_cmp` throughout, and the rule table is a static rather than a per-file allocation.\n\nDeleting the orphaned `metrics_bridge.rs` removes the last copy of the address-keyed unit cache whose wrong-by-construction keying was documented as unsound when `UnitSet` replaced it."
+		},
+		{
+			"owner_id": "monostyle_languages",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_languages/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Features",
+						"collapsed": false,
+						"entries": [
+							"#### A Ruby append is no longer read as a heredoc\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #100](https://github.com/ifiokjr/monostyle/pull/100)\n\nRuby's `<<` is also its append operator, and spacing is what tells the two apart: a heredoc's delimiter follows the marker immediately, so `list << item` appends and `class << self` opens a singleton class. Reading those as heredoc openers swallowed every line after them as string content, which mis-scored any Ruby file that appends to an array.\n\nThe heredoc syntax now says whether whitespace may separate the marker from the delimiter. Shell and PHP allow it (`cat << EOF`), so their behavior is unchanged; Ruby does not."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Features\n\n#### A Ruby append is no longer read as a heredoc\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #100](https://github.com/ifiokjr/monostyle/pull/100)\n\nRuby's `<<` is also its append operator, and spacing is what tells the two apart: a heredoc's delimiter follows the marker immediately, so `list << item` appends and `class << self` opens a singleton class. Reading those as heredoc openers swallowed every line after them as string content, which mis-scored any Ruby file that appends to an array.\n\nThe heredoc syntax now says whether whitespace may separate the marker from the delimiter. Shell and PHP allow it (`cat << EOF`), so their behavior is unchanged; Ruby does not."
+		},
+		{
+			"owner_id": "monostyle_lexer",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_lexer/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Features",
+						"collapsed": false,
+						"entries": [
+							"#### The line model borrows the source instead of copying it\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #98](https://github.com/ifiokjr/monostyle/pull/98)\n\nThe scanner made one heap allocation per character: it read the rest of the line into a string for every code character to look for a heredoc, collected a lookahead window for every character before checking whether a literal could begin there, and cloned the open literal — owned closer included — for every character inside a string. Each of those is now a slice or a borrowed profile string. On this repository's largest file, lexing went from 146,116 allocations to 6,822 (64 per line to 3), and a plain code line now allocates exactly once.\n\n`LexedFile` and `LexedLine` carry the source's lifetime: a line's text and indentation are slices of the source, its decision and nesting keywords are the profile's own static strings, the keyword pass tokenizes into slices rather than owned words, and the masked view is the text's own prefix until a literal or comment forces it apart. `LexedLine::comment_body` returns a slice rather than a copy, and the unused `markdown::lexed_lines` helper is gone.\n\nEvery CRLF-terminated line's byte range ended one byte early, and a blank CRLF line's range ran backwards, because the line was closed one byte too soon. The copied text hid it; the borrowed text exposed it. The range is now exact."
+						]
+					},
+					{
+						"title": "Fixes",
+						"collapsed": false,
+						"entries": [
+							"#### Preserve Shell and YAML literal boundaries\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #103](https://github.com/ifiokjr/monostyle/pull/103)\n\nRecognize Shell here-strings without opening a heredoc from their operator suffix. Keep complete quoted heredoc openers and every body character inside their correct literal boundaries, including Unicode byte ranges.\n\nTreat YAML literal and folded block payloads as data until dedent or EOF. Embedded quotes and comments no longer hide later mappings or create false diagnostics.\n\nEnd braced Shell function metrics at their closing brace while preserving the language's decision and nesting rules.",
+							"#### Preserve function declarations and brace ownership\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #95](https://github.com/ifiokjr/monostyle/pull/95)\n\nRecognize Rust functions after restricted visibility and qualifiers, while keeping\nconstant tables and function-pointer data out of function metrics. Preserve real\nfunction names, boundaries, decisions and parameter findings.\n\nWalk braces in reverse character order when locating an enclosing group. Nested\nobjects and blocks no longer overflow or lose the required whitespace findings.\n\nKeep Rust lifetime parameters, references and labels visible to unit metrics,\nwhile preserving character and byte literal masking.\n\nSeparate Halstead token classification from cursor advancement without changing\noperator or operand streams.",
+							"#### A Ruby append is no longer read as a heredoc\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #100](https://github.com/ifiokjr/monostyle/pull/100)\n\nRuby's `<<` is also its append operator, and spacing is what tells the two apart: a heredoc's delimiter follows the marker immediately, so `list << item` appends and `class << self` opens a singleton class. Reading those as heredoc openers swallowed every line after them as string content, which mis-scored any Ruby file that appends to an array.\n\nThe heredoc syntax now says whether whitespace may separate the marker from the delimiter. Shell and PHP allow it (`cat << EOF`), so their behavior is unchanged; Ruby does not."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Features\n\n#### The line model borrows the source instead of copying it\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #98](https://github.com/ifiokjr/monostyle/pull/98)\n\nThe scanner made one heap allocation per character: it read the rest of the line into a string for every code character to look for a heredoc, collected a lookahead window for every character before checking whether a literal could begin there, and cloned the open literal — owned closer included — for every character inside a string. Each of those is now a slice or a borrowed profile string. On this repository's largest file, lexing went from 146,116 allocations to 6,822 (64 per line to 3), and a plain code line now allocates exactly once.\n\n`LexedFile` and `LexedLine` carry the source's lifetime: a line's text and indentation are slices of the source, its decision and nesting keywords are the profile's own static strings, the keyword pass tokenizes into slices rather than owned words, and the masked view is the text's own prefix until a literal or comment forces it apart. `LexedLine::comment_body` returns a slice rather than a copy, and the unused `markdown::lexed_lines` helper is gone.\n\nEvery CRLF-terminated line's byte range ended one byte early, and a blank CRLF line's range ran backwards, because the line was closed one byte too soon. The copied text hid it; the borrowed text exposed it. The range is now exact.\n\n### Fixes\n\n#### Preserve Shell and YAML literal boundaries\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #103](https://github.com/ifiokjr/monostyle/pull/103)\n\nRecognize Shell here-strings without opening a heredoc from their operator suffix. Keep complete quoted heredoc openers and every body character inside their correct literal boundaries, including Unicode byte ranges.\n\nTreat YAML literal and folded block payloads as data until dedent or EOF. Embedded quotes and comments no longer hide later mappings or create false diagnostics.\n\nEnd braced Shell function metrics at their closing brace while preserving the language's decision and nesting rules.\n\n#### Preserve function declarations and brace ownership\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #95](https://github.com/ifiokjr/monostyle/pull/95)\n\nRecognize Rust functions after restricted visibility and qualifiers, while keeping\nconstant tables and function-pointer data out of function metrics. Preserve real\nfunction names, boundaries, decisions and parameter findings.\n\nWalk braces in reverse character order when locating an enclosing group. Nested\nobjects and blocks no longer overflow or lose the required whitespace findings.\n\nKeep Rust lifetime parameters, references and labels visible to unit metrics,\nwhile preserving character and byte literal masking.\n\nSeparate Halstead token classification from cursor advancement without changing\noperator or operand streams.\n\n#### A Ruby append is no longer read as a heredoc\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #100](https://github.com/ifiokjr/monostyle/pull/100)\n\nRuby's `<<` is also its append operator, and spacing is what tells the two apart: a heredoc's delimiter follows the marker immediately, so `list << item` appends and `class << self` opens a singleton class. Reading those as heredoc openers swallowed every line after them as string content, which mis-scored any Ruby file that appends to an array.\n\nThe heredoc syntax now says whether whitespace may separate the marker from the delimiter. Shell and PHP allow it (`cat << EOF`), so their behavior is unchanged; Ruby does not."
+		},
+		{
+			"owner_id": "monostyle_markdown",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_markdown/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `monostyle_markdown` was updated to 0.3.28 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `monostyle_markdown` was updated to 0.3.28 as part of group `release`.**"
+		},
+		{
+			"owner_id": "monostyle_metrics",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_metrics/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Fixes",
+						"collapsed": false,
+						"entries": [
+							"#### The line model borrows the source instead of copying it\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #98](https://github.com/ifiokjr/monostyle/pull/98)\n\nThe scanner made one heap allocation per character: it read the rest of the line into a string for every code character to look for a heredoc, collected a lookahead window for every character before checking whether a literal could begin there, and cloned the open literal — owned closer included — for every character inside a string. Each of those is now a slice or a borrowed profile string. On this repository's largest file, lexing went from 146,116 allocations to 6,822 (64 per line to 3), and a plain code line now allocates exactly once.\n\n`LexedFile` and `LexedLine` carry the source's lifetime: a line's text and indentation are slices of the source, its decision and nesting keywords are the profile's own static strings, the keyword pass tokenizes into slices rather than owned words, and the masked view is the text's own prefix until a literal or comment forces it apart. `LexedLine::comment_body` returns a slice rather than a copy, and the unused `markdown::lexed_lines` helper is gone.\n\nEvery CRLF-terminated line's byte range ended one byte early, and a blank CRLF line's range ran backwards, because the line was closed one byte too soon. The copied text hid it; the borrowed text exposed it. The range is now exact.",
+							"#### Preserve Shell and YAML literal boundaries\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #103](https://github.com/ifiokjr/monostyle/pull/103)\n\nRecognize Shell here-strings without opening a heredoc from their operator suffix. Keep complete quoted heredoc openers and every body character inside their correct literal boundaries, including Unicode byte ranges.\n\nTreat YAML literal and folded block payloads as data until dedent or EOF. Embedded quotes and comments no longer hide later mappings or create false diagnostics.\n\nEnd braced Shell function metrics at their closing brace while preserving the language's decision and nesting rules.",
+							"#### Preserve function declarations and brace ownership\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #95](https://github.com/ifiokjr/monostyle/pull/95)\n\nRecognize Rust functions after restricted visibility and qualifiers, while keeping\nconstant tables and function-pointer data out of function metrics. Preserve real\nfunction names, boundaries, decisions and parameter findings.\n\nWalk braces in reverse character order when locating an enclosing group. Nested\nobjects and blocks no longer overflow or lose the required whitespace findings.\n\nKeep Rust lifetime parameters, references and labels visible to unit metrics,\nwhile preserving character and byte literal masking.\n\nSeparate Halstead token classification from cursor advancement without changing\noperator or operand streams.",
+							"#### The rule pipeline stops copying what it reads\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #101](https://github.com/ifiokjr/monostyle/pull/101)\n\nHalstead's distinct-token sets allocated a copy of every token before inserting it — one heap allocation per token, tens per line — and unit detection copied every code line's masked text twice per line. Both borrow now, and the measurement stage allocates a fraction of what it did.\n\nThe quality rules borrow their findings' material as well: numeric literals, assigned and declared names, and handler keywords are slices of the line rather than owned strings, keyword comparison no longer lowercases into a heap string, and literal parsing skips separators through a stack buffer. Unit reports carry their risk bands as the static strings they already were, and the group-separation depth table counts all four bracket kinds in one pass over a line instead of four.\n\nAnalyzing this repository's largest source file went from 11.1 to 7.3 heap allocations per line, with every test, the allocation ceilings, and the dogfood floor unchanged."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Fixes\n\n#### The line model borrows the source instead of copying it\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #98](https://github.com/ifiokjr/monostyle/pull/98)\n\nThe scanner made one heap allocation per character: it read the rest of the line into a string for every code character to look for a heredoc, collected a lookahead window for every character before checking whether a literal could begin there, and cloned the open literal — owned closer included — for every character inside a string. Each of those is now a slice or a borrowed profile string. On this repository's largest file, lexing went from 146,116 allocations to 6,822 (64 per line to 3), and a plain code line now allocates exactly once.\n\n`LexedFile` and `LexedLine` carry the source's lifetime: a line's text and indentation are slices of the source, its decision and nesting keywords are the profile's own static strings, the keyword pass tokenizes into slices rather than owned words, and the masked view is the text's own prefix until a literal or comment forces it apart. `LexedLine::comment_body` returns a slice rather than a copy, and the unused `markdown::lexed_lines` helper is gone.\n\nEvery CRLF-terminated line's byte range ended one byte early, and a blank CRLF line's range ran backwards, because the line was closed one byte too soon. The copied text hid it; the borrowed text exposed it. The range is now exact.\n\n#### Preserve Shell and YAML literal boundaries\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #103](https://github.com/ifiokjr/monostyle/pull/103)\n\nRecognize Shell here-strings without opening a heredoc from their operator suffix. Keep complete quoted heredoc openers and every body character inside their correct literal boundaries, including Unicode byte ranges.\n\nTreat YAML literal and folded block payloads as data until dedent or EOF. Embedded quotes and comments no longer hide later mappings or create false diagnostics.\n\nEnd braced Shell function metrics at their closing brace while preserving the language's decision and nesting rules.\n\n#### Preserve function declarations and brace ownership\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #95](https://github.com/ifiokjr/monostyle/pull/95)\n\nRecognize Rust functions after restricted visibility and qualifiers, while keeping\nconstant tables and function-pointer data out of function metrics. Preserve real\nfunction names, boundaries, decisions and parameter findings.\n\nWalk braces in reverse character order when locating an enclosing group. Nested\nobjects and blocks no longer overflow or lose the required whitespace findings.\n\nKeep Rust lifetime parameters, references and labels visible to unit metrics,\nwhile preserving character and byte literal masking.\n\nSeparate Halstead token classification from cursor advancement without changing\noperator or operand streams.\n\n#### The rule pipeline stops copying what it reads\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #101](https://github.com/ifiokjr/monostyle/pull/101)\n\nHalstead's distinct-token sets allocated a copy of every token before inserting it — one heap allocation per token, tens per line — and unit detection copied every code line's masked text twice per line. Both borrow now, and the measurement stage allocates a fraction of what it did.\n\nThe quality rules borrow their findings' material as well: numeric literals, assigned and declared names, and handler keywords are slices of the line rather than owned strings, keyword comparison no longer lowercases into a heap string, and literal parsing skips separators through a stack buffer. Unit reports carry their risk bands as the static strings they already were, and the group-separation depth table counts all four bracket kinds in one pass over a line instead of four.\n\nAnalyzing this repository's largest source file went from 11.1 to 7.3 heap allocations per line, with every test, the allocation ceilings, and the dogfood floor unchanged."
+		},
+		{
+			"owner_id": "monostyle_rules",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "crates/monostyle_rules/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Features",
+						"collapsed": false,
+						"entries": [
+							"#### The line model borrows the source instead of copying it\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #98](https://github.com/ifiokjr/monostyle/pull/98)\n\nThe scanner made one heap allocation per character: it read the rest of the line into a string for every code character to look for a heredoc, collected a lookahead window for every character before checking whether a literal could begin there, and cloned the open literal — owned closer included — for every character inside a string. Each of those is now a slice or a borrowed profile string. On this repository's largest file, lexing went from 146,116 allocations to 6,822 (64 per line to 3), and a plain code line now allocates exactly once.\n\n`LexedFile` and `LexedLine` carry the source's lifetime: a line's text and indentation are slices of the source, its decision and nesting keywords are the profile's own static strings, the keyword pass tokenizes into slices rather than owned words, and the masked view is the text's own prefix until a literal or comment forces it apart. `LexedLine::comment_body` returns a slice rather than a copy, and the unused `markdown::lexed_lines` helper is gone.\n\nEvery CRLF-terminated line's byte range ended one byte early, and a blank CRLF line's range ran backwards, because the line was closed one byte too soon. The copied text hid it; the borrowed text exposed it. The range is now exact.",
+							"#### Measure each file's units once and stop copying the findings\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #97](https://github.com/ifiokjr/monostyle/pull/97)\n\nSeven rules each built their own set of measured units per file, so unit detection and the per-unit cyclomatic, cognitive, Halstead, and maintainability figures ran seven times over every file. The run context now holds one `UnitSet` shared by the rules and the report, and rules that never look at units never pay for them.\n\nFindings borrow their text: the rule name is a registry constant and most suggestions are fixed sentences, so a rule name is no longer copied into every finding and a fixed suggestion owns nothing. Project-wide ranking and scoring work from references instead of cloning every finding and its path, and the worst-offender location for a rule is built only when a finding actually wins that title.\n\nAttributing findings to units is now a binary search per unit rather than a scan of every finding for every unit, and rules are matched by name through a hash map rather than a linear scan of the registry. `f64` ordering uses `total_cmp` throughout, and the rule table is a static rather than a per-file allocation.\n\nDeleting the orphaned `metrics_bridge.rs` removes the last copy of the address-keyed unit cache whose wrong-by-construction keying was documented as unsound when `UnitSet` replaced it."
+						]
+					},
+					{
+						"title": "Fixes",
+						"collapsed": false,
+						"entries": [
+							"#### Preserve function declarations and brace ownership\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #95](https://github.com/ifiokjr/monostyle/pull/95)\n\nRecognize Rust functions after restricted visibility and qualifiers, while keeping\nconstant tables and function-pointer data out of function metrics. Preserve real\nfunction names, boundaries, decisions and parameter findings.\n\nWalk braces in reverse character order when locating an enclosing group. Nested\nobjects and blocks no longer overflow or lose the required whitespace findings.\n\nKeep Rust lifetime parameters, references and labels visible to unit metrics,\nwhile preserving character and byte literal masking.\n\nSeparate Halstead token classification from cursor advancement without changing\noperator or operand streams.",
+							"#### The rule pipeline stops copying what it reads\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #101](https://github.com/ifiokjr/monostyle/pull/101)\n\nHalstead's distinct-token sets allocated a copy of every token before inserting it — one heap allocation per token, tens per line — and unit detection copied every code line's masked text twice per line. Both borrow now, and the measurement stage allocates a fraction of what it did.\n\nThe quality rules borrow their findings' material as well: numeric literals, assigned and declared names, and handler keywords are slices of the line rather than owned strings, keyword comparison no longer lowercases into a heap string, and literal parsing skips separators through a stack buffer. Unit reports carry their risk bands as the static strings they already were, and the group-separation depth table counts all four bracket kinds in one pass over a line instead of four.\n\nAnalyzing this repository's largest source file went from 11.1 to 7.3 heap allocations per line, with every test, the allocation ceilings, and the dogfood floor unchanged."
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Features\n\n#### The line model borrows the source instead of copying it\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #98](https://github.com/ifiokjr/monostyle/pull/98)\n\nThe scanner made one heap allocation per character: it read the rest of the line into a string for every code character to look for a heredoc, collected a lookahead window for every character before checking whether a literal could begin there, and cloned the open literal — owned closer included — for every character inside a string. Each of those is now a slice or a borrowed profile string. On this repository's largest file, lexing went from 146,116 allocations to 6,822 (64 per line to 3), and a plain code line now allocates exactly once.\n\n`LexedFile` and `LexedLine` carry the source's lifetime: a line's text and indentation are slices of the source, its decision and nesting keywords are the profile's own static strings, the keyword pass tokenizes into slices rather than owned words, and the masked view is the text's own prefix until a literal or comment forces it apart. `LexedLine::comment_body` returns a slice rather than a copy, and the unused `markdown::lexed_lines` helper is gone.\n\nEvery CRLF-terminated line's byte range ended one byte early, and a blank CRLF line's range ran backwards, because the line was closed one byte too soon. The copied text hid it; the borrowed text exposed it. The range is now exact.\n\n#### Measure each file's units once and stop copying the findings\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #97](https://github.com/ifiokjr/monostyle/pull/97)\n\nSeven rules each built their own set of measured units per file, so unit detection and the per-unit cyclomatic, cognitive, Halstead, and maintainability figures ran seven times over every file. The run context now holds one `UnitSet` shared by the rules and the report, and rules that never look at units never pay for them.\n\nFindings borrow their text: the rule name is a registry constant and most suggestions are fixed sentences, so a rule name is no longer copied into every finding and a fixed suggestion owns nothing. Project-wide ranking and scoring work from references instead of cloning every finding and its path, and the worst-offender location for a rule is built only when a finding actually wins that title.\n\nAttributing findings to units is now a binary search per unit rather than a scan of every finding for every unit, and rules are matched by name through a hash map rather than a linear scan of the registry. `f64` ordering uses `total_cmp` throughout, and the rule table is a static rather than a per-file allocation.\n\nDeleting the orphaned `metrics_bridge.rs` removes the last copy of the address-keyed unit cache whose wrong-by-construction keying was documented as unsound when `UnitSet` replaced it.\n\n### Fixes\n\n#### Preserve function declarations and brace ownership\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #95](https://github.com/ifiokjr/monostyle/pull/95)\n\nRecognize Rust functions after restricted visibility and qualifiers, while keeping\nconstant tables and function-pointer data out of function metrics. Preserve real\nfunction names, boundaries, decisions and parameter findings.\n\nWalk braces in reverse character order when locating an enclosing group. Nested\nobjects and blocks no longer overflow or lose the required whitespace findings.\n\nKeep Rust lifetime parameters, references and labels visible to unit metrics,\nwhile preserving character and byte literal masking.\n\nSeparate Halstead token classification from cursor advancement without changing\noperator or operand streams.\n\n#### The rule pipeline stops copying what it reads\n\n_Owner:_ [@ifiokjr](https://github.com/ifiokjr) · _Review:_ [PR #101](https://github.com/ifiokjr/monostyle/pull/101)\n\nHalstead's distinct-token sets allocated a copy of every token before inserting it — one heap allocation per token, tens per line — and unit detection copied every code line's masked text twice per line. Both borrow now, and the measurement stage allocates a fraction of what it did.\n\nThe quality rules borrow their findings' material as well: numeric literals, assigned and declared names, and handler keywords are slices of the line rather than owned strings, keyword comparison no longer lowercases into a heap string, and literal parsing skips separators through a stack buffer. Unit reports carry their risk bands as the static strings they already were, and the group-separation depth table counts all four bracket kinds in one pass over a line instead of four.\n\nAnalyzing this repository's largest source file went from 11.1 to 7.3 heap allocations per line, with every test, the allocation ceilings, and the dogfood floor unchanged."
+		},
+		{
+			"owner_id": "@monostyle-rs/cli",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli` was updated to 0.3.28 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli` was updated to 0.3.28 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-darwin-arm64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-darwin-arm64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-arm64` was updated to 0.3.28 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-arm64` was updated to 0.3.28 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-darwin-x64",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-darwin-x64/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-x64` was updated to 0.3.28 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-darwin-x64` was updated to 0.3.28 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-arm64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-arm64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-gnu` was updated to 0.3.28 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-gnu` was updated to 0.3.28 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-arm64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-arm64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-musl` was updated to 0.3.28 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-arm64-musl` was updated to 0.3.28 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-x64-gnu",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-x64-gnu/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-gnu` was updated to 0.3.28 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-gnu` was updated to 0.3.28 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-linux-x64-musl",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-linux-x64-musl/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-musl` was updated to 0.3.28 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-linux-x64-musl` was updated to 0.3.28 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-win32-arm64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-win32-arm64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-arm64-msvc` was updated to 0.3.28 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-arm64-msvc` was updated to 0.3.28 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/cli-win32-x64-msvc",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__cli-win32-x64-msvc/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-x64-msvc` was updated to 0.3.28 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/cli-win32-x64-msvc` was updated to 0.3.28 as part of group `release`.**"
+		},
+		{
+			"owner_id": "@monostyle-rs/skill",
+			"owner_kind": "package",
+			"output": "default",
+			"stream": "default",
+			"path": "packages/monostyle__skill/changelog.md",
+			"format": "keep_a_changelog",
+			"notes": {
+				"title": "[0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)",
+				"summary": [],
+				"sections": [
+					{
+						"title": "Changed",
+						"collapsed": false,
+						"entries": [
+							"- **No package-specific changes were recorded; `@monostyle-rs/skill` was updated to 0.3.28 as part of group `release`.**"
+						]
+					}
+				]
+			},
+			"rendered": "## [0.3.28](https://github.com/ifiokjr/monostyle/releases/tag/v0.3.28) (2026-10-28)\n\n### Changed\n\n- **No package-specific changes were recorded; `@monostyle-rs/skill` was updated to 0.3.28 as part of group `release`.**"
+		}
+	],
+	"provider": {
+		"kind": "github",
+		"owner": "ifiokjr",
+		"repo": "monostyle",
+		"host": null
+	}
+}
