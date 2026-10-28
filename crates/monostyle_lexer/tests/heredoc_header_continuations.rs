@@ -22,18 +22,18 @@ EOF
 echo done
 "#;
 
-const HEADER_COMMENT: &str = r#"cat <<EOF # if hidden \
+const HEADER_COMMENT: &str = r"cat <<EOF # if hidden \
 payload
 EOF
 echo done
-"#;
+";
 
-const QUOTED_DELIMITER: &str = r#"cat <<'EOF'
+const QUOTED_DELIMITER: &str = r"cat <<'EOF'
 if \
 done
 EOF
 echo done
-"#;
+";
 
 const MISSING_TERMINATOR: &str = r#"cat <<EOF \
 >"out.txt"
