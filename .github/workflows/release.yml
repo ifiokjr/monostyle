@@ -36,10 +36,12 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
-      # Writing the branch and the pull request needs both, and the token is scoped to this job
-      # rather than the whole workflow.
+      # Upload the release files as git blobs and a tree. This pushes no branch; the monochange
+      # GitHub App writes the release commit and pull request, and this run proves its repository
+      # with an OIDC token.
       contents: write
-      pull-requests: write
+      pull-requests: read
+      id-token: write
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -72,16 +74,6 @@ jobs:
 
       - name: install monochange
         run: cargo binstall monochange --no-confirm || cargo install monochange --locked
-
-      - name: configure the release commit identity
-        # A fresh runner has no git identity, and the release commit fails with "Author identity
-        # unknown" without one. The identity is the release bot rather than a person, so the commit
-        # says which automated run produced it.
-        run: |
-          set -euo pipefail
-
-          git config user.name "monostyle release bot"
-          git config user.email "release@monostyle.dev"
 
       - name: validate the release configuration
         run: monochange step validate
@@ -117,14 +109,15 @@ jobs:
       - name: open or update the release pull request
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # monochange.dev's GitHub App creates a verified release commit and opens the pull
+          # request as the monochange bot, so the pull request's own workflows run without a
+          # personal access token.
+          MONOCHANGE_RELEASE_BACKEND: hosted
           # Passed through the environment rather than interpolated into the script: a `${{ }}`
           # expression is substituted as text, so a shell comparison against it is a comparison
           # against a literal that shellcheck cannot type-check.
           PENDING: ${{ steps.pending.outputs.count }}
-          # The checkout disables credential persistence so the token is not written into `.git/config`
-          # for every later step to inherit. Pushing the release branch still needs it, so it is
-          # supplied through a helper that exists only for this command.
-          RELEASE_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -132,15 +125,6 @@ jobs:
             echo "No pending changesets; nothing to release."
             exit 0
           fi
-
-          # The value is single-quoted on purpose: git runs it through its own shell, which is what
-          # expands `$RELEASE_TOKEN`. Expanding it here instead would bake the token into the git
-          # configuration in plaintext.
-          # shellcheck disable=SC2016
-          export GIT_CONFIG_COUNT=1
-          export GIT_CONFIG_KEY_0=credential.https://github.com.helper
-          # shellcheck disable=SC2016
-          export GIT_CONFIG_VALUE_0='!f() { echo "username=x-access-token"; echo "password=$RELEASE_TOKEN"; }; f'
 
           monochange run release --commit --create-pr
 
