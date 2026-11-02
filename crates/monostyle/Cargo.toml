@@ -1,19 +1,19 @@
 [package]
 name = "monostyle"
-version = "0.3.27"
+version = "0.3.28"
 authors.workspace = true
 categories.workspace = true
 edition.workspace = true
+# The benches and the corpus they read are development tooling, not part of the published crate.
+# The corpus is also what the benchmark workflow copies into its mixed-language scenario, so it
+# lives beside the bench that reads it rather than in a directory of its own.
+exclude = ["benches/"]
 keywords.workspace = true
 license.workspace = true
 readme.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Measure the complexity and readability of a codebase, a file, or a function."
-# The benches and the corpus they read are development tooling, not part of the published crate.
-# The corpus is also what the benchmark workflow copies into its mixed-language scenario, so it
-# lives beside the bench that reads it rather than in a directory of its own.
-exclude = ["benches/"]
 
 [lib]
 name = "monostyle"

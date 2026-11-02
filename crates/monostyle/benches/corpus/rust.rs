@@ -30,7 +30,7 @@ const TEMPLATE: &str = r##"{"kind": "sku", "label": "#{label}"}"##;
 /// Bytes rather than text, with an escape the scanner must step over.
 const MAGIC: &[u8] = b"STK\x00\"v2\"";
 
-/* A block comment /* that nests */ and keeps going until the second closer. */
+// A block comment /* that nests */ and keeps going until the second closer.
 
 /// Reconciles the counted stock against the ledger and reports every discrepancy.
 ///
@@ -121,7 +121,12 @@ pub fn report(discrepancies: &[Discrepancy<'_>]) -> String {
 	discrepancies
 		.iter()
 		.map(|discrepancy| {
-			format!("{} {:<width$} {:?}", discrepancy.marker(), discrepancy.label(), discrepancy)
+			format!(
+				"{} {:<width$} {:?}",
+				discrepancy.marker(),
+				discrepancy.label(),
+				discrepancy
+			)
 		})
 		.collect::<Vec<_>>()
 		.join("\n")
