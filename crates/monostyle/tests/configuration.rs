@@ -426,3 +426,65 @@ fn a_section_can_override_one_rule_and_inherit_the_rest() {
 		"a value the section does not mention should be inherited"
 	);
 }
+
+// ---------------------------------------------------------------------------
+// Project gates
+// ---------------------------------------------------------------------------
+#[test]
+fn a_project_gate_accepts_a_bare_number() {
+	let options = options("[project]\nfail-under = 80.0\n");
+
+	assert_eq!(options.project_fail_under.readability, Some(80.0));
+	assert_eq!(options.project_fail_under.complexity, Some(80.0));
+	assert!(
+		options.fail_under.readability.is_none(),
+		"the project gate and the per-file floor are different keys"
+	);
+}
+
+#[test]
+fn a_project_gate_accepts_per_category_values() {
+	let options = options("[project]\nfail-under = { readability = 85.0, complexity = 80.0 }\n");
+
+	assert_eq!(options.project_fail_under.readability, Some(85.0));
+	assert_eq!(options.project_fail_under.complexity, Some(80.0));
+}
+
+#[test]
+fn the_project_gate_and_the_per_file_floor_are_independent() {
+	// The whole reason the gate has its own namespace: a project holding its run to one bar and
+	// its files to another can state both without one silently becoming the other.
+	let options = options(
+		"fail-under = { readability = 70.0, complexity = 70.0 }\n\n\
+		 [project]\nfail-under = 95.0\n",
+	);
+
+	assert_eq!(options.fail_under.readability, Some(70.0));
+	assert_eq!(options.project_fail_under.readability, Some(95.0));
+}
+
+#[test]
+fn an_unknown_project_key_is_an_error() {
+	let result = apply_config(
+		&AnalysisOptions::default(),
+		&load("[project]\nfail-under = 80.0\nthreshold = 50.0\n"),
+	);
+
+	assert!(
+		result.is_err(),
+		"an unknown key under [project] should be reported"
+	);
+}
+
+#[test]
+fn a_project_gate_below_the_minimum_is_an_error() {
+	let result = apply_config(
+		&AnalysisOptions::default(),
+		&load("[project]\nfail-under = 10.0\n"),
+	);
+
+	assert!(
+		result.is_err(),
+		"a gate that permits unmaintainable code is not a gate"
+	);
+}
