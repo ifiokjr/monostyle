@@ -260,6 +260,71 @@ fn javascript_regex_character_class_containing_slash() {
 }
 
 #[test]
+fn javascript_regex_longer_than_the_opener_peek_masks_its_body() {
+	// The opener peek is six characters. A closer past that used to leave the slash as code, so
+	// the body was scanned and a backtick inside it opened a template for the rest of the file.
+	let source = "const pattern = /\"([^\"`]*)\"/;\nif (pattern) { go(); }\n";
+
+	for language in [Language::JavaScript, Language::TypeScript] {
+		let lexed = lex(source, language);
+
+		assert!(
+			lexed.is_clean(),
+			"{language:?}: backtick inside a regex opened a template: {:?}",
+			lexed.unterminated
+		);
+		assert!(
+			lexed
+				.lines
+				.iter()
+				.all(|line| !line.masked_code.contains('`')),
+			"{language:?}: regex body leaked into code: {:?}",
+			lexed
+				.lines
+				.iter()
+				.map(|line| line.masked_code.as_ref())
+				.collect::<Vec<_>>()
+		);
+		assert_eq!(
+			lexed.total_decisions(),
+			1,
+			"{language:?}: the `if` after the regex should be the only decision"
+		);
+	}
+}
+
+#[test]
+fn javascript_division_after_a_regex_is_not_another_literal() {
+	// A regex is a value. The slash that follows it divides, and the operand between the two
+	// slashes has to stay visible — masking it would drop a real name from the line.
+	let source = "const ratio = /pattern-long/ / count / 2;\nif (ratio > 1) { go(); }\n";
+
+	let lexed = lex(source, Language::JavaScript);
+
+	assert!(
+		lexed.is_clean(),
+		"division after a regex was mishandled: {:?}",
+		lexed.unterminated
+	);
+	let masked = lexed
+		.lines
+		.iter()
+		.map(|line| line.masked_code.as_ref())
+		.collect::<Vec<_>>()
+		.join("\n");
+
+	assert!(
+		masked.contains("count"),
+		"division operand was masked: {masked}"
+	);
+	assert!(
+		!masked.contains("pattern"),
+		"regex body leaked into code: {masked}"
+	);
+	assert_eq!(lexed.total_decisions(), 1);
+}
+
+#[test]
 fn typescript_template_literal_with_nested_interpolation() {
 	// `${…}` may contain strings, braces, and further templates.
 	let source = r#"const message = `outer ${ inner.map((x) => `nested ${x}`).join(",") } end`;
