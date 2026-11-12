@@ -144,35 +144,73 @@ fn read_sections(
 
 /// Reads the repository-wide score floors.
 fn read_floor(file: &toml::Value) -> Result<crate::section::ScoreFloor, ConfigError> {
-	// `fail-under` may be a bare number, which sets both categories to the same floor.
-	if let Some(value) = file.get("fail-under") {
-		if let Some(number) = value
-			.as_float()
-			.or_else(|| value.as_integer().map(|i| i as f64))
-		{
-			let floor = crate::section::ScoreFloor {
-				readability: Some(number),
-				complexity: Some(number),
-			};
+	match file.get("fail-under") {
+		Some(value) => parse_floor(value, "fail-under"),
+		None => Ok(crate::section::ScoreFloor::default()),
+	}
+}
 
-			if let Some(problem) = floor.validate("fail-under") {
-				return Err(ConfigError::InvalidSection(problem));
-			}
-
-			return Ok(floor);
+/// Parses a floor that accepts either a bare number or a per-category table.
+///
+/// `fail-under = 80` sets both categories to the same value, and `fail-under = { readability =
+/// 85, complexity = 80 }` sets them separately. Every key that names a floor accepts both
+/// spellings, so a project does not have to remember which one takes which form. `label` names
+/// the key in error messages, which is how a floor under `[project]` reports as
+/// `project.fail-under` rather than as the top-level key it is not.
+fn parse_floor(
+	value: &toml::Value,
+	label: &str,
+) -> Result<crate::section::ScoreFloor, ConfigError> {
+	let floor = if let Some(number) = value
+		.as_float()
+		.or_else(|| value.as_integer().map(|i| i as f64))
+	{
+		crate::section::ScoreFloor {
+			readability: Some(number),
+			complexity: Some(number),
 		}
+	} else {
+		value.clone().try_into().map_err(ConfigError::Deserialize)?
+	};
 
-		let floor: crate::section::ScoreFloor =
-			value.clone().try_into().map_err(ConfigError::Deserialize)?;
-
-		if let Some(problem) = floor.validate("fail-under") {
-			return Err(ConfigError::InvalidSection(problem));
-		}
-
-		return Ok(floor);
+	if let Some(problem) = floor.validate(label) {
+		return Err(ConfigError::InvalidSection(problem));
 	}
 
-	Ok(crate::section::ScoreFloor::default())
+	Ok(floor)
+}
+
+/// The keys allowed under `[project]`.
+const PROJECT_KEYS: &[&str] = &["fail-under"];
+
+/// Reads the project-wide score gate from `[project] fail-under`.
+///
+/// The gate applies to the run's aggregate scores, which is what `--fail-under` enforces on the
+/// command line. The top-level `fail-under` is a per-file floor and means something different,
+/// which is why the two live in separate namespaces: a project that writes its CI bar into the
+/// file should not silently turn it into a floor that fails dozens of files.
+fn read_project_threshold(file: &toml::Value) -> Result<crate::section::ScoreFloor, ConfigError> {
+	let Some(project) = file.get("project") else {
+		return Ok(crate::section::ScoreFloor::default());
+	};
+
+	let table = project.as_table().ok_or_else(|| {
+		ConfigError::InvalidSection("[project] must be a table of settings".to_string())
+	})?;
+
+	for key in table.keys() {
+		if !PROJECT_KEYS.contains(&key.as_str()) {
+			return Err(ConfigError::UnknownKey {
+				section: "project".to_string(),
+				key: key.clone(),
+			});
+		}
+	}
+
+	match project.get("fail-under") {
+		Some(value) => parse_floor(value, "project.fail-under"),
+		None => Ok(crate::section::ScoreFloor::default()),
+	}
 }
 
 impl ConfigExt for AnalysisOptions {
@@ -214,6 +252,7 @@ impl ConfigExt for AnalysisOptions {
 			sections: read_sections(file, &resolved)?,
 			rules: resolved,
 			fail_under: read_floor(file)?,
+			project_fail_under: read_project_threshold(file)?,
 			..self
 		};
 
