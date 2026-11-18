@@ -828,13 +828,20 @@ impl<'source> Scanner<'source> {
 			return next;
 		}
 
+		// The opener peek is six characters, which is enough to tell a delimiter from code and
+		// not enough to find this closer. Searching only that window left `/` as code, so a
+		// backtick inside `/"([^"`]*)"/` opened a template that ran to the end of the file.
 		if character == '/'
 			&& self.regex_allowed(characters, index)
-			&& let Some(offset) = find_regex_close(&rest[1..])
+			&& let Some(length) = regex_literal_length(characters, index)
 		{
-			consume_masked(characters, index, offset + 1, line);
+			consume_masked(characters, index, length, line);
+			// The literal is a value. Recording the closer keeps the next `/` as division:
+			// leaving the operator that preceded the literal in place made `= /a/ / b` open a
+			// second literal and hide the operand between them.
+			self.previous_code = Some('/');
 
-			return index + offset + 1;
+			return index + length;
 		}
 
 		line.push_code(character);
@@ -1943,27 +1950,37 @@ fn find_literal_close(
 	None
 }
 
-/// Finds a regex literal's closing slash, returning the length including it.
-fn find_regex_close(text: &str) -> Option<usize> {
-	let characters: Vec<char> = text.chars().collect();
-	let mut index = 0;
+/// Length of a regex literal that opens at `index`, including both slashes.
+///
+/// The search walks the character slice already in hand rather than copying a lookahead window.
+/// It stops at a newline: a JavaScript regex cannot contain one, and reading past it would hide
+/// the following line. A backslash does not escape that newline either — consuming both would
+/// pull the next line into the literal. The walk is also capped at [`MAX_LINE_PEEK`], the same
+/// bound every other "rest of the line" check uses, so one enormous line cannot be scanned
+/// without a limit.
+fn regex_literal_length(characters: &[char], index: usize) -> Option<usize> {
+	let mut cursor = index + 1;
 	let mut in_class = false;
+	let limit = (index + MAX_LINE_PEEK).min(characters.len());
 
-	while index < characters.len() {
-		match characters[index] {
+	while cursor < limit {
+		match characters[cursor] {
 			'\\' => {
-				index += 2;
+				if characters.get(cursor + 1) == Some(&'\n') {
+					return None;
+				}
+
+				cursor += 2;
 				continue;
 			}
 			'[' => in_class = true,
 			']' => in_class = false,
-
-			'/' if !in_class => return Some(index + 1),
+			'/' if !in_class => return Some(cursor + 1 - index),
 			'\n' => return None,
 			_ => {}
 		}
 
-		index += 1;
+		cursor += 1;
 	}
 
 	None
