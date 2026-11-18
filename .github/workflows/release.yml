@@ -59,7 +59,9 @@ jobs:
 
       - uses: pnpm/action-setup@d9184bf108216479bc5a137cc391f4d7b14c870b # v6.1.0
         with:
-          version: 10
+          # Must match packageManager in the root package.json. The action compares the two
+          # as exact strings and fails the job when they differ.
+          version: 12.21.0
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
