@@ -241,7 +241,7 @@ fn every_block_style_is_used_by_at_least_one_language() {
 // ---------------------------------------------------------------------------
 // Line model
 // ---------------------------------------------------------------------------
-fn line_of(source: &str) -> monostyle_lexer::LexedLine {
+fn line_of(source: &str) -> monostyle_lexer::LexedLine<'_> {
 	lex(source, Language::Rust)
 		.lines
 		.first()
@@ -428,17 +428,92 @@ fn a_file_with_no_trailing_newline_still_reports_its_last_line() {
 
 #[test]
 fn byte_offsets_survive_crlf() {
-	let source = "fn a() {}\r\nfn b() {}\r\n";
+	// The range used to stop one byte short on every CRLF line, and ran backwards on a blank one,
+	// because the close stepped back for a carriage return the scan had not yet passed. Only
+	// terminator exclusion was asserted, which a short range satisfies; fixes edit by byte range,
+	// so the range has to be the whole text.
+	let source = "fn a() {}\r\n\r\nfn b() {}\r\n";
 	let lexed = lex(source, Language::Rust);
 
-	for line in &lexed.lines {
+	for (line, expected) in lexed.lines.iter().zip(["fn a() {}", "", "fn b() {}"]) {
+		assert!(
+			line.end_byte >= line.start_byte,
+			"line {} has a range that runs backwards",
+			line.number
+		);
+
 		let slice = &source[line.start_byte..line.end_byte];
 
-		assert!(
-			!slice.contains('\r') && !slice.contains('\n'),
-			"a line's byte range should exclude its terminator: {slice:?}"
+		assert_eq!(
+			slice, expected,
+			"line {} should cover exactly its text",
+			line.number
 		);
+		assert_eq!(line.text, expected);
 	}
+
+	assert_eq!(lexed.lines.len(), 3);
+}
+
+#[test]
+fn the_masked_view_hides_comments_and_literal_content_in_every_position() {
+	// The mask is built lazily — a line borrows its text as the mask until something has to be
+	// hidden — so each shape that forces it apart from the text is pinned here against the view
+	// the eager implementation produced. Comment characters are dropped from the mask rather than
+	// blanked, which is why the mask is shorter than the text wherever a comment appears.
+	let source = "let x = \"hi\"; // trailing\n\
+		// only comment\n\
+		/* block */ let y = 2;\n\
+		let z = 3; /* mid */ let w = 4;\n\
+		plain();\n";
+	let lexed = lex(source, Language::Rust);
+
+	let expected = [
+		(LineKind::CodeWithComment, Some(14), "let x =     ; "),
+		(LineKind::Comment, Some(0), ""),
+		(LineKind::CodeWithComment, Some(0), " let y = 2;"),
+		(
+			LineKind::CodeWithComment,
+			Some(11),
+			"let z = 3;  let w = 4;",
+		),
+		(LineKind::Code, None, "plain();"),
+	];
+
+	for (line, (kind, column, masked)) in lexed.lines.iter().zip(expected) {
+		assert_eq!(line.kind, kind, "line {} kind", line.number);
+		assert_eq!(
+			line.trailing_comment_column, column,
+			"line {} comment column",
+			line.number
+		);
+		assert_eq!(line.masked_code, masked, "line {} mask", line.number);
+	}
+}
+
+#[test]
+fn code_lines_skips_blank_comment_and_literal_lines() {
+	// Line 4 opens a string that runs to line 6, so line 5 is literal content: not blank, not a
+	// comment, and not code either.
+	let lexed = lex(
+		"fn a() {}\n\n// note\nlet s = \"\nprose\n\";\nfn b() {}\n",
+		Language::Rust,
+	);
+	let numbers: Vec<usize> = lexed.code_lines().map(|line| line.number).collect();
+
+	assert_eq!(numbers, [1, 4, 6, 7]);
+}
+
+#[test]
+fn a_multiline_literal_masks_every_line_to_spaces_of_the_same_width() {
+	let lexed = lex("\"\"\"\nmulti\n\"\"\"\n", Language::Python);
+	let masks: Vec<&str> = lexed
+		.lines
+		.iter()
+		.map(|line| line.masked_code.as_ref())
+		.collect();
+
+	assert_eq!(masks, ["   ", "     ", "   "]);
 }
 
 // ---------------------------------------------------------------------------

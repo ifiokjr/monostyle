@@ -129,26 +129,29 @@ fn overall_impact_uses_one_denominator_across_categories() {
 	// combining two ranked lists and quoting one of their percentages as a whole-project figure
 	// overstates the benefit of the fix. A rule holding most of one category may hold a third of
 	// the total.
+	use std::borrow::Cow;
+	use std::path::Path;
+
 	use monostyle_core::Category;
 	use monostyle_core::Finding;
 	use monostyle_core::Severity;
 	use monostyle_core::Span;
 
 	/// Builds a finding with an explicit category and penalty.
-	fn finding(rule: &str, category: Category, weight: f64) -> Finding {
+	fn finding(rule: &'static str, category: Category, weight: f64) -> Finding {
 		Finding {
-			rule: rule.to_string(),
+			rule,
 			category,
 			severity: Severity::Minor,
 			span: Span::new(0, 0, 1, 1),
-			message: String::new(),
-			suggestion: String::new(),
+			message: Cow::Borrowed(""),
+			suggestion: Cow::Borrowed(""),
 			weight,
 			fix: None,
 		}
 	}
 
-	let findings = vec![
+	let findings = [
 		(
 			PathBuf::from("a.rs"),
 			finding("complexity/expensive", Category::Complexity, 90.0),
@@ -159,7 +162,12 @@ fn overall_impact_uses_one_denominator_across_categories() {
 		),
 	];
 
-	let impacts = monostyle::aggregate::rank_overall_impact(&findings);
+	let paired: Vec<(&Path, &Finding)> = findings
+		.iter()
+		.map(|(path, finding)| (path.as_path(), finding))
+		.collect();
+
+	let impacts = monostyle::aggregate::rank_overall_impact(&paired);
 	let top = impacts.first().expect("one rule should rank first");
 
 	// 90 of 100 total penalty is 90%, not the 100% the complexity-only denominator would give.

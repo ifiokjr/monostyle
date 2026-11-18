@@ -1,0 +1,4 @@
+{
+	"name": "monostyle",
+	"install": "bash .cursor/install.sh"
+}

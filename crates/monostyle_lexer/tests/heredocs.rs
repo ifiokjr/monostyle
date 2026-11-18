@@ -70,3 +70,64 @@ fn a_shell_heredoc_closer_must_start_the_line() {
 	assert!(lexed.is_clean(), "the scan should need no recovery");
 	assert!(lexed.lines[3].is_code(), "the last line should be code");
 }
+
+#[test]
+fn a_ruby_append_is_not_a_heredoc() {
+	// `<<` with a space after it is Ruby's append operator. Reading it as a heredoc opener with
+	// the delimiter `line` swallowed every line after it as string content.
+	let source = "picked << line\nnext_step = 1\n";
+	let lexed = lex(source, Language::Ruby);
+
+	assert!(
+		lexed.is_clean(),
+		"an append should open nothing: {:?}",
+		lexed.unterminated
+	);
+	assert!(lexed.lines[1].is_code(), "the line after an append is code");
+}
+
+#[test]
+fn a_ruby_singleton_class_opener_is_not_a_heredoc() {
+	let source = "class << self\n  def build; end\nend\n";
+	let lexed = lex(source, Language::Ruby);
+
+	assert!(
+		lexed.is_clean(),
+		"`class << self` should open nothing: {:?}",
+		lexed.unterminated
+	);
+	assert!(lexed.lines[1].is_code());
+}
+
+#[test]
+fn a_ruby_heredoc_still_opens_when_the_delimiter_follows_the_marker() {
+	let source = "text = <<~EOS\n  body\nEOS\nafter = 1\n";
+	let lexed = lex(source, Language::Ruby);
+
+	assert!(lexed.is_clean(), "the scan should need no recovery");
+	assert!(
+		lexed.lines[2].is_literal(),
+		"the terminator line is what an opened heredoc leaves behind"
+	);
+	assert!(
+		lexed.lines[3].is_code(),
+		"the code after the heredoc is code"
+	);
+}
+
+#[test]
+fn a_shell_heredoc_allows_a_space_after_the_marker() {
+	// `cat << EOF` is valid shell, so the space that rules out a Ruby heredoc rules nothing out here.
+	let source = "cat << EOF\nbody\nEOF\necho done\n";
+	let lexed = lex(source, Language::Shell);
+
+	assert!(lexed.is_clean(), "the scan should need no recovery");
+	assert!(
+		lexed.lines[2].is_literal(),
+		"the terminator line is what an opened heredoc leaves behind"
+	);
+	assert!(
+		lexed.lines[3].is_code(),
+		"the code after the heredoc is code"
+	);
+}

@@ -122,7 +122,7 @@ pub fn complexity_of_lines(lines: &[LexedLine]) -> CyclomaticComplexity {
 
 	for line in lines {
 		for decision in &line.decisions {
-			match decision.as_str() {
+			match *decision {
 				"if" | "else if" | "elif" | "elseif" | "unless" | "guard" => {
 					breakdown.branches += 1;
 				}

@@ -98,6 +98,34 @@ fn several_functions_are_all_detected() {
 }
 
 #[test]
+fn a_restricted_visibility_names_the_function_not_pub() {
+	// `pub(crate)` holds the first `(` on the line, so the parameter-list search found the
+	// restriction's own parentheses and every restricted item was named `pub`.
+	let source = "\
+pub(crate) use std::fmt::Display;
+pub(super) fn helper(value: u32) -> u32 {
+    value
+}
+pub(in crate::module) fn other(value: u32) -> u32 {
+    value
+}
+";
+	let units = find_units(&lex(source, Language::Rust));
+
+	let names: Vec<&str> = units.iter().map(|unit| unit.name.as_str()).collect();
+
+	assert_eq!(
+		names,
+		vec!["helper", "other"],
+		"the re-export must not become a unit, and the functions must keep their names"
+	);
+	assert_eq!(units[0].start_line, 2);
+	assert_eq!(units[0].end_line, 4);
+	assert_eq!(units[1].start_line, 5);
+	assert_eq!(units[1].end_line, 7);
+}
+
+#[test]
 fn a_go_function_is_detected() {
 	assert!(
 		names("func Compute() int { return 1 }\n", Language::Go).contains(&"Compute".to_string())

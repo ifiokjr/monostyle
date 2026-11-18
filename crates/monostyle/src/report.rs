@@ -19,7 +19,6 @@
 
 use std::fmt::Write as _;
 use std::path::Path;
-use std::path::PathBuf;
 
 use monostyle_core::Finding;
 use monostyle_core::Severity;
@@ -214,7 +213,7 @@ fn render_impact_row(output: &mut String, impact: &RuleImpact) {
 		"  {} {:>5.1}%  {}  {}",
 		style::share_bar(impact.share, 10),
 		impact.share * 100.0,
-		style::magenta(&impact.rule),
+		style::magenta(impact.rule),
 		style::dim(&format!(
 			"({} finding{})",
 			impact.count,
@@ -271,12 +270,7 @@ fn render_packages(output: &mut String, packages: &[PackageReport]) {
 
 	// Ranked by penalty so the package causing the most damage is first.
 	let mut ranked = packages.to_vec();
-	ranked.sort_by(|left, right| {
-		right
-			.total_penalty
-			.partial_cmp(&left.total_penalty)
-			.unwrap_or(std::cmp::Ordering::Equal)
-	});
+	ranked.sort_by(|left, right| right.total_penalty.total_cmp(&left.total_penalty));
 
 	for package in &ranked {
 		let _ = writeln!(
@@ -313,12 +307,7 @@ fn render_worst_units(output: &mut String, report: &ProjectReport, limit: usize)
 		return;
 	}
 
-	units.sort_by(|left, right| {
-		left.1
-			.score()
-			.partial_cmp(&right.1.score())
-			.unwrap_or(std::cmp::Ordering::Equal)
-	});
+	units.sort_by(|left, right| left.1.score().total_cmp(&right.1.score()));
 
 	let _ = writeln!(output, "{}", style::bold("worst functions"));
 	let _ = writeln!(output);
@@ -387,23 +376,13 @@ fn render_findings(output: &mut String, report: &ProjectReport) {
 	/// Findings listed before the list is truncated.
 	const LIMIT: usize = 200;
 
-	let mut findings: Vec<(PathBuf, Finding)> = report
-		.owned_findings_public()
-		.into_iter()
-		.filter(|(_path, finding)| finding.penalty() > 0.0)
-		.collect();
+	let mut findings: Vec<(&Path, &Finding)> = report.penalizing_findings();
 
 	if findings.is_empty() {
 		return;
 	}
 
-	findings.sort_by(|left, right| {
-		right
-			.1
-			.penalty()
-			.partial_cmp(&left.1.penalty())
-			.unwrap_or(std::cmp::Ordering::Equal)
-	});
+	findings.sort_by(|left, right| right.1.penalty().total_cmp(&left.1.penalty()));
 
 	let _ = writeln!(output, "{}", style::bold("all findings"));
 	let _ = writeln!(output);
@@ -432,7 +411,7 @@ fn render_finding(output: &mut String, path: &Path, finding: &Finding) {
 			display_path(path),
 			finding.span.start_line
 		)),
-		style::magenta(&finding.rule),
+		style::magenta(finding.rule),
 		style::dim(&format!("[{}]", finding.severity.label()))
 	);
 	let _ = writeln!(output, "    {}", wrap(&finding.message, 74, "    "));
@@ -491,7 +470,7 @@ fn render_next_step(output: &mut String, report: &ProjectReport) {
 	// Every rule ranked against one denominator, so the percentage below is a share of the whole
 	// score rather than of a single category. Combining the two per-category rankings would compare
 	// percentages computed against different totals, which overstates the benefit of a fix.
-	let impacts = crate::aggregate::rank_overall_impact(&report.owned_findings_public());
+	let impacts = crate::aggregate::rank_overall_impact(&report.all_findings());
 
 	let Some(top) = impacts.first() else {
 		let _ = writeln!(output, "{}", style::green("No rule violations found."));
@@ -509,7 +488,7 @@ fn render_next_step(output: &mut String, report: &ProjectReport) {
 	let _ = writeln!(
 		output,
 		"  Fixing {} at {} would recover {:.1}% of the available points.",
-		style::magenta(&top.rule),
+		style::magenta(top.rule),
 		style::cyan(&location),
 		top.share * 100.0
 	);
@@ -662,7 +641,7 @@ fn write_level(commands: &mut String, report: &ProjectReport, level: &str, budge
 			// inject properties into the annotation rather than name a file. They are escaped with
 			// the same scheme as the message, which covers everything structural except the comma.
 			let path = escape_workflow_command(&path).replace(',', "%2C");
-			let title = escape_workflow_command(&finding.rule).replace(',', "%2C");
+			let title = escape_workflow_command(finding.rule).replace(',', "%2C");
 			writeln!(
 				commands,
 				"::{level} file={path},line={},endLine={},title={title}::{}",

@@ -9,6 +9,9 @@
 //! every language — but it finds the regions that carry decisions, which is what the
 //! rules need, without a parser per language.
 
+mod rust;
+
+use monostyle_core::Language;
 use monostyle_languages::BlockStyle;
 use monostyle_lexer::LexedFile;
 use monostyle_lexer::LexedLine;
@@ -45,9 +48,14 @@ impl CodeUnit {
 /// Finds every function-like unit in `file`.
 #[must_use]
 pub fn find_units(file: &LexedFile) -> Vec<CodeUnit> {
+	// Shell control blocks end with keywords, while braced functions close with `}`.
+	if file.language == Language::Shell {
+		return find_brace_units(&file.lines, file.language);
+	}
+
 	match file.profile.block_style {
-		BlockStyle::Brace => find_brace_units(&file.lines),
-		BlockStyle::Indentation => find_indentation_units(&file.lines),
+		BlockStyle::Brace => find_brace_units(&file.lines, file.language),
+		BlockStyle::Indentation => find_indentation_units(&file.lines, file.language),
 		BlockStyle::EndKeyword => find_end_keyword_units(file),
 	}
 }
@@ -58,7 +66,7 @@ pub fn find_units(file: &LexedFile) -> Vec<CodeUnit> {
 /// Tracking that level — rather than counting braces only — is what makes nested functions,
 /// closures, and blocks inside a function all belong to the enclosing unit instead of each
 /// ending it early.
-fn find_brace_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
+fn find_brace_units(lines: &[LexedLine], language: Language) -> Vec<CodeUnit> {
 	let mut scan = BraceScan::default();
 
 	for line in lines {
@@ -72,7 +80,7 @@ fn find_brace_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
 			continue;
 		}
 
-		scan.visit(line);
+		scan.visit(line, language);
 	}
 
 	scan.finish(lines)
@@ -108,14 +116,19 @@ struct PendingUnit {
 
 impl BraceScan {
 	/// Advances the scan by one line.
-	fn visit(&mut self, line: &LexedLine) {
-		let code = code_only(&line.masked_code);
+	fn visit(&mut self, line: &LexedLine, language: Language) {
+		let code = code_only(&line.masked_code, language);
 		let opens = code.matches('{').count();
 		let closes = code.matches('}').count();
 		let depth_before = self.depth;
 
 		if self.pending.is_none() {
-			self.pending = unit_name(&code).map(|name| {
+			let name = match language {
+				Language::Rust => rust::function_name(&code),
+				_ => unit_name(&code),
+			};
+
+			self.pending = name.map(|name| {
 				PendingUnit {
 					name,
 					start_line: line.number,
@@ -127,7 +140,7 @@ impl BraceScan {
 
 		self.depth = self.depth.saturating_add(opens).saturating_sub(closes);
 
-		self.close_if_finished(line, opens, closes, depth_before);
+		self.close_if_finished(line, opens, closes, depth_before, language);
 	}
 
 	/// Closes the open unit when this line completes it.
@@ -141,6 +154,7 @@ impl BraceScan {
 		opens: usize,
 		closes: usize,
 		depth_before: usize,
+		language: Language,
 	) {
 		let Some(pending) = self.pending.clone() else {
 			return;
@@ -156,7 +170,7 @@ impl BraceScan {
 		}
 
 		if !pending.body_opened
-			&& !completes_immediately(&pending, line, opens, closes, depth_before)
+			&& !completes_immediately(&pending, line, opens, closes, depth_before, language)
 		{
 			return;
 		}
@@ -194,7 +208,7 @@ impl BraceScan {
 ///
 /// A declaration's body is everything indented further than the declaration itself, so the scan for each
 /// unit stops at the first line that returns to the declaration's own level.
-fn find_indentation_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
+fn find_indentation_units(lines: &[LexedLine], language: Language) -> Vec<CodeUnit> {
 	let mut units = Vec::new();
 	let mut index = 0;
 
@@ -205,7 +219,11 @@ fn find_indentation_units(lines: &[LexedLine]) -> Vec<CodeUnit> {
 
 		let name = line
 			.is_code()
-			.then(|| unit_name(&code_only(&line.masked_code)))
+			.then(|| {
+				let code = code_only(&line.masked_code, language);
+
+				unit_name(code.as_ref())
+			})
 			.flatten();
 
 		let Some(name) = name else {
@@ -241,6 +259,7 @@ fn completes_immediately(
 	opens: usize,
 	closes: usize,
 	depth_before: usize,
+	language: Language,
 ) -> bool {
 	// The declaration's own line only: a later line at the same depth belongs to the enclosing scope.
 	if depth_before != pending.depth {
@@ -253,8 +272,11 @@ fn completes_immediately(
 	// A declaration with no braces that ends in a semicolon declares an interface rather than an
 	// implementation, so there is no body to wait for. Only a semicolon at the very end of the line counts:
 	// one followed by more code is a statement separator, not a terminator.
-	let bodyless_declaration =
-		opens == 0 && closes == 0 && code_only(&line.masked_code).trim_end().ends_with(';');
+	let bodyless_declaration = opens == 0
+		&& closes == 0
+		&& code_only(&line.masked_code, language)
+			.trim_end()
+			.ends_with(';');
 
 	one_liner || expression_body || bodyless_declaration
 }
@@ -292,7 +314,7 @@ fn find_end_keyword_units(file: &LexedFile) -> Vec<CodeUnit> {
 			continue;
 		}
 
-		let code = code_only(&line.masked_code);
+		let code = code_only(&line.masked_code, file.language);
 
 		if let Some(name) = unit_name(&code) {
 			stack.push((name, line.number, stack.len()));
@@ -363,6 +385,11 @@ fn unit_name(code: &str) -> Option<String> {
 		return Some(name);
 	}
 
+	// A restricted visibility such as `pub(crate)` holds the first `(` on the line, so it has to be
+	// removed before the parameter list is searched for — otherwise the restriction is taken for
+	// the parameters and every restricted item is named `pub`.
+	let trimmed = strip_restricted_visibility(trimmed)?;
+
 	let parameters = trimmed.find('(')?;
 	let before = trimmed[..parameters].trim();
 	let name = if before.is_empty() {
@@ -381,6 +408,67 @@ fn unit_name(code: &str) -> Option<String> {
 	// this to the start of the line is what excludes `if x.name(` and `result.then(`.
 	if before.is_empty() {
 		return Some(name);
+	}
+
+	None
+}
+
+/// Removes a leading restricted visibility such as `pub(crate)` or `pub(in crate::module)`.
+///
+/// The restriction's own parentheses are the first `(` on the line, so without this the parameter
+/// list was found inside the qualifier and the unit was named `pub`. Returns `None` for the items
+/// that declare no function-like unit at all — a `use`, `mod`, `struct`, `enum`, `type`, or `const`
+/// after the restriction — which is what keeps a re-export from becoming a one-line unit.
+fn strip_restricted_visibility(code: &str) -> Option<&str> {
+	let Some(rest) = code.strip_prefix("pub") else {
+		return Some(code);
+	};
+
+	// `pub` has to be a whole word: `publish(` is an identifier, not a visibility qualifier.
+	if rest.starts_with(|character: char| character.is_alphanumeric() || character == '_') {
+		return Some(code);
+	}
+
+	// Plain `pub fn ...` — an unrestricted visibility has no parentheses to strip.
+	let Some(open) = rest.trim_start().strip_prefix('(') else {
+		return Some(code);
+	};
+
+	let Some(closing) = matching_paren(open) else {
+		// An unterminated restriction is left in place rather than guessed at.
+		return Some(code);
+	};
+
+	let remainder = open[closing + 1..].trim_start();
+	let keyword = remainder.split_whitespace().next().unwrap_or_default();
+
+	// The items these keywords declare have no function-like body, so counting them only added
+	// one-line units named `pub` to the report.
+	if matches!(
+		keyword,
+		"use" | "mod" | "struct" | "enum" | "type" | "const"
+	) {
+		return None;
+	}
+
+	Some(remainder)
+}
+
+/// Returns the byte offset of the `)` that closes the group opened at the start of `text`.
+fn matching_paren(text: &str) -> Option<usize> {
+	let mut depth = 1;
+
+	for (index, character) in text.char_indices() {
+		match character {
+			'(' => depth += 1,
+			')' => {
+				depth -= 1;
+				if depth == 0 {
+					return Some(index);
+				}
+			}
+			_ => {}
+		}
 	}
 
 	None
@@ -547,7 +635,14 @@ fn is_declaration_prefix(before: &str) -> bool {
 ///
 /// The input is already masked, so string contents are blank. This removes the comment that may still be
 /// present, for the case where a declaration and a trailing comment share a line.
-fn code_only(text: &str) -> String {
+fn code_only(text: &str, language: Language) -> std::borrow::Cow<'_, str> {
+	// Rust literals and comments are already masked; remaining apostrophes mark lifetimes. The
+	// masked text is returned as-is rather than copied: unit detection runs over every code line,
+	// and a copy per line was most of what the measurement stage allocated.
+	if language == Language::Rust {
+		return std::borrow::Cow::Borrowed(text);
+	}
+
 	let mut result = String::with_capacity(text.len());
 	let mut characters = text.chars().peekable();
 
@@ -565,7 +660,7 @@ fn code_only(text: &str) -> String {
 		}
 	}
 
-	result
+	std::borrow::Cow::Owned(result)
 }
 
 /// Consumes characters until the closing `delimiter`, so string contents never reach the caller.

@@ -33,10 +33,10 @@ jobs:
       - name: install rust toolchain
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
           components: rustfmt, clippy
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: check formatting
         run: cargo fmt --all --check
@@ -61,12 +61,12 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: install nextest
-        uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+        uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
         with:
           tool: nextest
 
@@ -75,6 +75,38 @@ jobs:
 
       - name: run documentation tests
         run: cargo test --doc --workspace --all-features
+
+      - name: retain macOS parser diagnostic
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          set -euo pipefail
+          readonly PARSER_SHA256_BITS="256"
+
+          cargo build --locked --package monostyle --bin monostyle --all-features
+
+          diagnostic_dir="${RUNNER_TEMP}/monostyle-parser"
+          mkdir -p "$diagnostic_dir"
+          cp target/debug/monostyle "$diagnostic_dir/monostyle"
+
+          git rev-parse HEAD > "$diagnostic_dir/source-commit.txt"
+          git rev-parse HEAD^{tree} > "$diagnostic_dir/source-tree.txt"
+          rustc -vV > "$diagnostic_dir/compiler.txt"
+          file -b "$diagnostic_dir/monostyle" > "$diagnostic_dir/architecture.txt"
+
+          (
+            cd "$diagnostic_dir"
+            shasum -a "$PARSER_SHA256_BITS" monostyle > SHA256SUMS
+          )
+
+      - name: upload macOS parser diagnostic
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: monostyle-parser-macos
+          path: ${{ runner.temp }}/monostyle-parser/
+          if-no-files-found: error
+          retention-days: 1
 
   # The scanner's correctness is what every score depends on, so its suite runs on its own and is
   # never allowed to be skipped by a fail-fast on an unrelated job.
@@ -89,9 +121,9 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: run the trivia suite
         run: cargo test --package monostyle_lexer --test trivia -- --nocapture
@@ -107,12 +139,12 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
           components: llvm-tools-preview
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
-      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
+      - uses: taiki-e/install-action@cfdb7ed4ccc7c7dce37759eae89dc5674b469b39 # v2.90.3
         with:
           tool: cargo-llvm-cov
 
@@ -145,9 +177,9 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: build monostyle
         run: cargo build --release --package monostyle
@@ -175,9 +207,9 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: build monostyle
         run: cargo build --release --package monostyle
@@ -217,9 +249,9 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: check documentation builds
         run: cargo doc --workspace --all-features --no-deps
@@ -254,9 +286,9 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: verify every crate packages cleanly
         # `--list` rather than a full package. A complete `cargo package` resolves each crate's path
@@ -293,9 +325,9 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: install cargo-deny
         uses: taiki-e/install-action@8ed95cf4ff55afeb4411ad3165fa10f7ca9e7a62 # v2
@@ -306,7 +338,7 @@ jobs:
         run: cargo deny check
 
       - name: scan workflows for security issues
-        uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
+        uses: zizmorcore/zizmor-action@45d7276c9ca790aabd705e31ca99c6185c3e76dd # v0.8.1
         continue-on-error: true
 
   # The whole point of the tool is that it works on real repositories, so this job runs it against
@@ -337,9 +369,9 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
-          toolchain: nightly-2026-09-07
+          toolchain: "nightly-2026-09-07"
 
-      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
 
       - name: build monostyle
         run: cargo build --release --package monostyle

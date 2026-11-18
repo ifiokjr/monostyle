@@ -729,7 +729,7 @@ fn crowded_return(
 /// recommends for flattening code. Detecting it needs the enclosing block's opener, so the
 /// check is on the previous non-blank line being a conditional that this return is the body of.
 fn is_guard_clause(line: &LexedLine) -> bool {
-	line.decision_count() > 0 && line.decisions.iter().all(|decision| decision == "if")
+	line.decision_count() > 0 && line.decisions.iter().all(|decision| *decision == "if")
 }
 
 /// Reports long runs of statements with no blank lines between logical groups.
@@ -1249,7 +1249,7 @@ fn opens_alternatives(line: &LexedLine) -> bool {
 	line.decisions
 		.iter()
 		.chain(line.nesting.iter())
-		.any(|keyword| ALTERNATIVE_KEYWORDS.contains(&keyword.as_str()))
+		.any(|keyword| ALTERNATIVE_KEYWORDS.contains(keyword))
 		|| has_keyword(line, ALTERNATIVE_KEYWORDS)
 }
 
@@ -1529,7 +1529,10 @@ fn check_run(lines: &[LexedLine], run: &[usize], limit: usize, findings: &mut Ve
 
 /// The line a splitting blank opens above: the statement itself, or the comment block
 /// attached above it when one is there, so the blank never strands a comment from its code.
-fn split_anchor(lines: &[LexedLine], index: usize) -> Option<&LexedLine> {
+fn split_anchor<'line>(
+	lines: &'line [LexedLine<'line>],
+	index: usize,
+) -> Option<&'line LexedLine<'line>> {
 	let mut anchor = index;
 
 	while anchor > 0 && lines.get(anchor - 1).is_some_and(LexedLine::is_comment) {
@@ -2077,21 +2080,14 @@ fn enclosing_brace_opener(lines: &[LexedLine], index: usize) -> Option<usize> {
 			continue;
 		}
 
-		let mask = &above.masked_code;
-		let opens = mask.matches('{').count();
-		let closes = mask.matches('}').count();
-
-		if closes >= opens {
-			depth += closes - opens;
-			continue;
+		for character in above.masked_code.chars().rev() {
+			match character {
+				'}' => depth += 1,
+				'{' if depth == 0 => return Some(cursor),
+				'{' => depth -= 1,
+				_ => {}
+			}
 		}
-
-		if depth > 0 {
-			depth -= opens - closes;
-			continue;
-		}
-
-		return Some(cursor);
 	}
 
 	None
@@ -2136,11 +2132,16 @@ impl PrefixDepth {
 
 		for line in lines {
 			// A line that is not code contributes nothing, which is what the rescan's `continue` did.
+			// The four bracket kinds are counted in one pass: a scan per kind meant reading every
+			// code line four times, and this table is built for every file the rule sees.
 			if line.is_code() {
-				depth += line.masked_code.matches('(').count() as isize;
-				depth -= line.masked_code.matches(')').count() as isize;
-				depth += line.masked_code.matches('[').count() as isize;
-				depth -= line.masked_code.matches(']').count() as isize;
+				for character in line.masked_code.chars() {
+					match character {
+						'(' | '[' => depth += 1,
+						')' | ']' => depth -= 1,
+						_ => {}
+					}
+				}
 			}
 
 			boundaries.push(depth);
@@ -2271,8 +2272,15 @@ fn is_attribute(line: &LexedLine) -> bool {
 }
 
 /// Finds the index of the previous line that is not blank.
-fn previous_code_line(lines: &[LexedLine], index: usize) -> Option<&LexedLine> {
+fn previous_code_line<'line>(
+	lines: &'line [LexedLine<'line>],
+	index: usize,
+) -> Option<&'line LexedLine<'line>> {
 	lines.iter().take(index).rev().find(|candidate| {
 		!candidate.is_blank() && !candidate.is_comment() && !candidate.is_literal()
 	})
 }
+
+#[cfg(test)]
+#[path = "whitespace_braces.rs"]
+mod brace_tests;

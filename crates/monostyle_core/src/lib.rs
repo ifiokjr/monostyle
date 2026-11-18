@@ -20,6 +20,7 @@ pub use finding::FindingBuilder;
 pub use fix::Fix;
 pub use ignore::IgnoreConfig;
 pub use language::Language;
+pub use score::CategoryScores;
 pub use score::Score;
 pub use score::ScoringConfig;
 pub use severity::Severity;

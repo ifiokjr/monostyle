@@ -246,19 +246,23 @@ pub fn classify(block: &str, is_doc_style: bool) -> CommentIntent {
 /// Colons survive normalization because several markers end in one (`security:`, `why:`), and
 /// they are a reliable signal that a comment is labelling its reason.
 fn normalize(body: &str) -> String {
-	body.chars()
-		.map(|character| {
-			if character.is_ascii_punctuation() && character != ':' {
-				' '
-			} else {
-				character
-			}
-		})
-		.collect::<String>()
-		.split_whitespace()
-		.collect::<Vec<_>>()
-		.join(" ")
-		.to_lowercase()
+	// Splitting on punctuation and whitespace together, then skipping the empty pieces, is the same
+	// as blanking the punctuation and collapsing whitespace — in one pass and one buffer rather than
+	// a string, a word list, and a joined copy.
+	let mut collapsed = String::with_capacity(body.len());
+	let separates = |character: char| {
+		character.is_whitespace() || (character.is_ascii_punctuation() && character != ':')
+	};
+
+	for word in body.split(separates).filter(|word| !word.is_empty()) {
+		if !collapsed.is_empty() {
+			collapsed.push(' ');
+		}
+
+		collapsed.push_str(word);
+	}
+
+	collapsed.to_lowercase()
 }
 
 /// Detects references to issues, docs, or specifications.

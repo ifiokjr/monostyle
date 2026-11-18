@@ -38,7 +38,7 @@ fn complexity_exits(
 	file: &monostyle_lexer::LexedFile,
 	config: &RulesConfig,
 ) -> Vec<monostyle_core::Finding> {
-	complexity::exits_per_unit(file, config)
+	complexity::exits_per_unit(&monostyle_rules::RuleContext::new(file, config))
 }
 
 /// Runs the `NPath` rule.
@@ -46,7 +46,7 @@ fn complexity_npath(
 	file: &monostyle_lexer::LexedFile,
 	config: &RulesConfig,
 ) -> Vec<monostyle_core::Finding> {
-	complexity::npath_per_unit(file, config)
+	complexity::npath_per_unit(&monostyle_rules::RuleContext::new(file, config))
 }
 
 /// Runs the maintainability rule.
@@ -54,7 +54,7 @@ fn complexity_maintainability(
 	file: &monostyle_lexer::LexedFile,
 	config: &RulesConfig,
 ) -> Vec<monostyle_core::Finding> {
-	complexity::maintainability_per_unit(file, config)
+	complexity::maintainability_per_unit(&monostyle_rules::RuleContext::new(file, config))
 }
 
 /// Runs the cyclomatic rule.
@@ -62,7 +62,7 @@ fn complexity_cyclomatic(
 	file: &monostyle_lexer::LexedFile,
 	config: &RulesConfig,
 ) -> Vec<monostyle_core::Finding> {
-	complexity::cyclomatic_per_unit(file, config)
+	complexity::cyclomatic_per_unit(&monostyle_rules::RuleContext::new(file, config))
 }
 
 /// Runs the per-file complexity rule.
@@ -71,6 +71,22 @@ fn complexity_per_file(
 	config: &RulesConfig,
 ) -> Vec<monostyle_core::Finding> {
 	complexity::complexity_per_file(file, config)
+}
+
+/// Runs the oversized-unit rule, which reads the shared unit measurements.
+fn oversized_units(
+	file: &monostyle_lexer::LexedFile,
+	config: &RulesConfig,
+) -> Vec<monostyle_core::Finding> {
+	structure::oversized_units(&monostyle_rules::RuleContext::new(file, config))
+}
+
+/// Runs the require-comment rule, which reads the shared unit measurements.
+fn comment_required_on_complex_units(
+	file: &monostyle_lexer::LexedFile,
+	config: &RulesConfig,
+) -> Vec<monostyle_core::Finding> {
+	comments::comment_required_on_complex_units(&monostyle_rules::RuleContext::new(file, config))
 }
 
 /// Runs the documentation rule, which takes no configuration.
@@ -295,7 +311,7 @@ fn an_oversized_unit_is_reported() {
 		});
 	let source = format!("fn a() {{\n{body}}}\n");
 
-	let findings = run(structure::oversized_units, &source);
+	let findings = run(oversized_units, &source);
 
 	assert!(
 		!findings.is_empty(),
@@ -355,7 +371,7 @@ fn tangled(x: i32) -> i32 {
     x
 }
 ";
-	let findings = run(comments::comment_required_on_complex_units, source);
+	let findings = run(comment_required_on_complex_units, source);
 
 	assert!(
 		!findings.is_empty(),
@@ -392,7 +408,7 @@ function tangled(x: number): number {
 """#;
 
 	let lexed = lex(source, Language::TypeScript);
-	let findings = comments::comment_required_on_complex_units(&lexed, &RulesConfig::default());
+	let findings = comment_required_on_complex_units(&lexed, &RulesConfig::default());
 
 	assert!(
 		findings.is_empty(),
@@ -423,7 +439,7 @@ fn tangled(x: i32) -> i32 {
 }
 ";
 	assert!(
-		run(comments::comment_required_on_complex_units, source).is_empty(),
+		run(comment_required_on_complex_units, source).is_empty(),
 		"a documented function should not be asked for a comment it has"
 	);
 }
@@ -455,7 +471,7 @@ fn tangled(x: i32) -> i32 {
 }
 ";
 	assert!(
-		run(comments::comment_required_on_complex_units, source).is_empty(),
+		run(comment_required_on_complex_units, source).is_empty(),
 		"a doc comment behind an attribute should still count as documentation"
 	);
 }
@@ -641,7 +657,7 @@ fn add(a: i32, b: i32) -> i32 {
 	// The require-comment rule is switchable, and the documentation rule is not: it fires on a doc block
 	// that is structurally thin regardless of configuration.
 	assert_eq!(
-		comments::comment_required_on_complex_units(&lexed, &config),
+		comment_required_on_complex_units(&lexed, &config),
 		[] as [monostyle_core::Finding; 0]
 	);
 	assert_ne!(
@@ -903,7 +919,7 @@ fn a_trait_of_bodyless_methods_is_not_one_oversized_unit() {
 
 	source.push_str("}\n");
 
-	let findings = run(structure::oversized_units, &source);
+	let findings = run(oversized_units, &source);
 
 	assert!(
 		findings.is_empty(),
@@ -928,7 +944,7 @@ fn a_bodyless_declaration_does_not_swallow_the_functions_after_it() {
 
 	source.push_str("}\n");
 
-	let findings = run(structure::oversized_units, &source);
+	let findings = run(oversized_units, &source);
 
 	assert_eq!(
 		findings.len(),

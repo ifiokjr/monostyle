@@ -1,5 +1,6 @@
 //! The monostyle command-line tool.
 
+use std::fmt::Write as _;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -156,7 +157,25 @@ fn run_check(
 		);
 	}
 
-	Ok(exit_code_for(&report, args))
+	Ok(exit_code_for(&report, args, &options))
+}
+
+/// Returns the score gate the command line sets, if it sets one.
+///
+/// `--fail-under` is the shorthand that names both categories; the per-category flags name one
+/// each. A gate given here replaces the configured `[project]` gate for the run, which is what a
+/// CI job wants when it enforces one standard regardless of what the project's configuration says.
+fn cli_gate(args: &CheckArgs) -> Option<monostyle::section::ScoreFloor> {
+	let named = args.fail_under.is_some()
+		|| args.fail_under_readability.is_some()
+		|| args.fail_under_complexity.is_some();
+
+	named.then(|| {
+		monostyle::section::ScoreFloor {
+			readability: args.fail_under.or(args.fail_under_readability),
+			complexity: args.fail_under.or(args.fail_under_complexity),
+		}
+	})
 }
 
 /// Applies configuration and command-line overrides to the analysis options.
@@ -281,11 +300,8 @@ fn apply_unit_filters(report: &mut analysis::ProjectReport, args: &CheckArgs) {
 
 	if let Some(limit) = args.top {
 		for file in &mut report.files {
-			file.units.sort_by(|left, right| {
-				left.score()
-					.partial_cmp(&right.score())
-					.unwrap_or(std::cmp::Ordering::Equal)
-			});
+			file.units
+				.sort_by(|left, right| left.score().total_cmp(&right.score()));
 
 			file.units.truncate(limit);
 		}
@@ -307,11 +323,22 @@ fn write_output(rendered: &str, output: Option<&Path>) -> Result<(), Box<dyn std
 }
 
 /// Decides the exit code from the scores.
-fn exit_code_for(report: &analysis::ProjectReport, args: &CheckArgs) -> ExitCode {
-	// A `--fail-under` flag replaces the configured floors for the whole run, which is what a CI job wants
-	// when it enforces one standard regardless of what the project's sections say.
-	if let Some(threshold) = args.fail_under {
-		return exit_code_for_threshold(report, args, threshold);
+fn exit_code_for(
+	report: &analysis::ProjectReport,
+	args: &CheckArgs,
+	options: &AnalysisOptions,
+) -> ExitCode {
+	// The command line wins over the configuration, and a gate set either way wins over the
+	// per-file floors: a gate speaks for the whole run, a floor for each file in it.
+	let gate = cli_gate(args).or_else(|| {
+		options
+			.project_fail_under
+			.is_set()
+			.then_some(options.project_fail_under)
+	});
+
+	if let Some(gate) = gate {
+		return exit_code_for_gate(report, args, gate);
 	}
 
 	if report.floor_violations.is_empty() {
@@ -323,26 +350,39 @@ fn exit_code_for(report: &analysis::ProjectReport, args: &CheckArgs) -> ExitCode
 	ExitCode::from(EXIT_BELOW_THRESHOLD)
 }
 
-/// Decides the exit code against one threshold applied to the whole run.
-fn exit_code_for_threshold(
+/// Decides the exit code against one gate applied to the whole run.
+///
+/// Only the categories the gate names are enforced, so `--fail-under-complexity 80` leaves the
+/// readability score free to be judged by the floors instead.
+fn exit_code_for_gate(
 	report: &analysis::ProjectReport,
 	args: &CheckArgs,
-	threshold: f64,
+	gate: monostyle::section::ScoreFloor,
 ) -> ExitCode {
-	let below = report.readability.value < threshold || report.complexity.value < threshold;
+	let categories = [
+		("readability", report.readability.value, gate.readability),
+		("complexity", report.complexity.value, gate.complexity),
+	];
 
-	if below && !args.quiet {
-		eprintln!(
-			"monostyle: scores are below the required threshold of {threshold:.1} \
-			 (readability {:.1}, complexity {:.1})",
-			report.readability.value, report.complexity.value
-		);
+	let failures: Vec<String> = categories
+		.iter()
+		.filter_map(|(name, value, required)| {
+			required
+				.filter(|required| *value < *required)
+				.map(|required| {
+					format!("{name} {value:.1} is below the required threshold of {required:.1}")
+				})
+		})
+		.collect();
+
+	if !failures.is_empty() && !args.quiet {
+		eprintln!("monostyle: {}", failures.join("; "));
 	}
 
-	if below {
-		ExitCode::from(EXIT_BELOW_THRESHOLD)
-	} else {
+	if failures.is_empty() {
 		ExitCode::SUCCESS
+	} else {
+		ExitCode::from(EXIT_BELOW_THRESHOLD)
 	}
 }
 
@@ -486,7 +526,9 @@ fn fixable_findings(report: &analysis::FileReport, args: &FixArgs) -> Vec<monost
 		.findings
 		.iter()
 		.filter(|finding| finding.fix.is_some())
-		.filter(|finding| args.rules.is_empty() || args.rules.contains(&finding.rule))
+		.filter(|finding| {
+			args.rules.is_empty() || args.rules.iter().any(|rule| rule == finding.rule)
+		})
 		.cloned()
 		.collect()
 }
@@ -521,7 +563,7 @@ fn report_fix(outcome: &FixOutcome, dry_run: bool) {
 			style::dim("+"),
 			outcome.outcome.path.display(),
 			finding.span.start_line,
-			style::magenta(&finding.rule)
+			style::magenta(finding.rule)
 		);
 		println!("      {}", wrap_text(&finding.message, 74, "      "));
 	}
@@ -550,7 +592,7 @@ fn report_decisions(path: &Path, remaining: &[monostyle_core::Finding]) {
 			"    {}:{}  {}",
 			path.display(),
 			finding.span.start_line,
-			style::magenta(&finding.rule)
+			style::magenta(finding.rule)
 		);
 		println!("        {}", wrap_text(&finding.message, 70, "        "));
 		println!(
@@ -668,16 +710,18 @@ fn run_fix(
 
 /// Runs the `rules` command.
 fn run_rules(args: &RulesArgs) -> Result<ExitCode, Box<dyn std::error::Error>> {
-	let mut rules = monostyle_rules::all_rules();
+	let mut rules: Vec<&monostyle_rules::Rule> = monostyle_rules::all_rules().iter().collect();
 
 	// A rule is fixable when running it can produce an edit, which is discovered by running it rather
 	// than declared alongside the rule. Declaring it separately would be a second place to forget.
 	if args.fixable {
 		let lexed = monostyle_lexer::lex(SAMPLE_FOR_FIXABILITY, monostyle_core::Language::Rust);
+		let config = monostyle_rules::RulesConfig::default();
+		let context = monostyle_rules::RuleContext::new(&lexed, &config);
 
 		rules.retain(|rule| {
-			let config = monostyle_rules::RulesConfig::default();
-			(rule.run)(&lexed, &config)
+			rule.run
+				.invoke(&context)
 				.iter()
 				.any(|finding| finding.fix.is_some())
 		});
@@ -726,48 +770,135 @@ fn run_rules(args: &RulesArgs) -> Result<ExitCode, Box<dyn std::error::Error>> {
 /// Prints the effective configuration.
 fn print_config(options: &AnalysisOptions, format: OutputFormat) {
 	if format == OutputFormat::Json {
-		let payload = serde_json::json!({
-			"scoring": {
-				"half-life": options.scoring.half_life,
-				"min-normalization-lines": options.scoring.min_normalization_lines,
-			},
-			"rules": serde_json::to_value(&options.rules).unwrap_or(serde_json::Value::Null),
-		});
+		println!("{}", render_config_json(options));
+	} else {
+		println!("{}", render_config_toml(options));
+	}
+}
 
-		println!(
-			"{}",
-			serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string())
+/// Renders the effective configuration as JSON.
+fn render_config_json(options: &AnalysisOptions) -> String {
+	// The gate and the floor are different keys with different meanings, so both are printed
+	// under the names the configuration file uses for them.
+	let payload = serde_json::json!({
+		"scoring": {
+			"half-life": options.scoring.half_life,
+			"min-normalization-lines": options.scoring.min_normalization_lines,
+		},
+		"rules": serde_json::to_value(&options.rules).unwrap_or(serde_json::Value::Null),
+		"project": {
+			"fail-under": serde_json::to_value(options.project_fail_under)
+				.unwrap_or(serde_json::Value::Null),
+		},
+		"fail-under": serde_json::to_value(options.fail_under).unwrap_or(serde_json::Value::Null),
+	});
+
+	serde_json::to_string_pretty(&payload).unwrap_or_else(|_| "{}".to_string())
+}
+
+/// Renders the effective configuration as TOML that can be pasted into a config file.
+fn render_config_toml(options: &AnalysisOptions) -> String {
+	let mut text = format!(
+		"[scoring]\nhalf-life = {}\nmin-normalization-lines = {}\n\n[rules]\n{}",
+		options.scoring.half_life,
+		options.scoring.min_normalization_lines,
+		render_rules(options)
+	);
+
+	// The gate is commented out when unset so the output stays pasteable: a `fail-under` with
+	// no values is not expressible in TOML, and an empty table would gate nothing.
+	if options.project_fail_under.is_set() {
+		let _ = write!(
+			text,
+			"\n[project]\n# The gate for the whole run: `monostyle check` exits non-zero when a\n\
+			# category scores below it. A top-level `fail-under` means something else — a\n\
+			# per-file floor.\nfail-under = {}\n",
+			render_floor(&options.project_fail_under)
 		);
 	} else {
-		// The nested tables are lifted out and printed under their full path. TOML's serializer emits a
-		// nested table before its parent's scalar keys, so `ignore` would otherwise appear as a top-level
-		// `[ignore]` header — output that cannot be pasted back into a config file, where the same values
-		// belong under `[rules.ignore]`.
-		let payload = toml::Value::try_from(&options.rules)
-			.map(|mut value| {
-				// Removing the table before serializing is what keeps it out of the top-level output.
-				let nested = value
-					.as_table_mut()
-					.and_then(|table| table.remove("ignore"));
-				let mut text = toml::to_string_pretty(&value).unwrap_or_default();
+		text.push_str("\n# [project]\n# fail-under = 80  # the gate for the whole run; a top-level fail-under is a per-file floor\n");
+	}
 
-				if let Some(table) = nested {
-					text.push_str("\n[rules.ignore]\n");
-
-					if let Ok(rendered) = toml::to_string_pretty(&table) {
-						text.push_str(&rendered);
-					}
-				}
-
-				text
-			})
-			.unwrap_or_default();
-
-		println!(
-			"[scoring]\nhalf-life = {}\nmin-normalization-lines = {}\n\n[rules]\n{payload}",
-			options.scoring.half_life, options.scoring.min_normalization_lines
+	if options.fail_under.is_set() {
+		let _ = write!(
+			text,
+			"\n[fail-under]\n# A per-file floor, not the project gate: every file must individually score\n\
+			# at or above these values.\n{}\n",
+			floor_table(&options.fail_under)
 		);
 	}
+
+	text
+}
+
+/// Renders the `[rules]` table, with `rules.ignore` lifted under its full path.
+///
+/// TOML's serializer emits a nested table before its parent's scalar keys, so `ignore` would
+/// otherwise appear as a top-level `[ignore]` header — output that cannot be pasted back into a
+/// config file, where the same values belong under `[rules.ignore]`.
+fn render_rules(options: &AnalysisOptions) -> String {
+	toml::Value::try_from(&options.rules)
+		.map(|mut value| {
+			// Removing the table before serializing is what keeps it out of the top-level output.
+			let nested = value
+				.as_table_mut()
+				.and_then(|table| table.remove("ignore"));
+			let mut text = toml::to_string_pretty(&value).unwrap_or_default();
+
+			if let Some(table) = nested {
+				text.push_str("\n[rules.ignore]\n");
+
+				if let Ok(rendered) = toml::to_string_pretty(&table) {
+					text.push_str(&rendered);
+				}
+			}
+
+			text
+		})
+		.unwrap_or_default()
+}
+
+/// Renders a floor as a TOML value: a bare number when both categories match, an inline table
+/// when they do not.
+fn render_floor(floor: &monostyle::section::ScoreFloor) -> String {
+	match (floor.readability, floor.complexity) {
+		// The categories collapse when they render as the same number, which is what the bare
+		// spelling round-trips as; the comparison is on the rendered text rather than on the
+		// floats, because the intent is "one setting" rather than "two near-equal ones".
+		(Some(readability), Some(complexity))
+			if format!("{readability}") == format!("{complexity}") =>
+		{
+			format!("{readability}")
+		}
+		(readability, complexity) => {
+			let mut parts = Vec::new();
+
+			if let Some(readability) = readability {
+				parts.push(format!("readability = {readability}"));
+			}
+
+			if let Some(complexity) = complexity {
+				parts.push(format!("complexity = {complexity}"));
+			}
+
+			format!("{{ {} }}", parts.join(", "))
+		}
+	}
+}
+
+/// Renders a floor as the body of a `[fail-under]` table.
+fn floor_table(floor: &monostyle::section::ScoreFloor) -> String {
+	let mut text = String::new();
+
+	if let Some(readability) = floor.readability {
+		let _ = writeln!(text, "readability = {readability}");
+	}
+
+	if let Some(complexity) = floor.complexity {
+		let _ = writeln!(text, "complexity = {complexity}");
+	}
+
+	text
 }
 
 /// Returns the paths exactly as given, for callers that need them.

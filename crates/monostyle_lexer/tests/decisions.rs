@@ -9,7 +9,7 @@ use monostyle_core::Language;
 use monostyle_lexer::lex;
 
 /// Returns the decisions found on each line of `source`.
-fn decisions(source: &str, language: Language) -> Vec<Vec<String>> {
+fn decisions(source: &str, language: Language) -> Vec<Vec<&'static str>> {
 	lex(source, language)
 		.lines
 		.iter()
@@ -81,9 +81,7 @@ fn a_switch_default_arm_still_counts_in_typescript() {
 	);
 
 	assert!(
-		lines
-			.iter()
-			.any(|line| line.iter().any(|decision| decision == "default")),
+		lines.iter().any(|line| line.contains(&"default")),
 		"a real `default:` arm must still count"
 	);
 }
@@ -114,7 +112,7 @@ fn a_multiline_plain_string_hides_its_content_from_the_signals() {
 
 	for line in &lines {
 		assert!(
-			line.iter().all(|decision| decision != "return"),
+			line.iter().all(|decision| *decision != "return"),
 			"no decision may come from inside the string: {line:?}"
 		);
 	}

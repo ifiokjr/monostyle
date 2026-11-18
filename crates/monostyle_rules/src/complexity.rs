@@ -19,15 +19,16 @@ use monostyle_core::Span;
 use monostyle_lexer::LexedFile;
 
 use crate::config::RulesConfig;
-use crate::unit_measures;
+use crate::context::RuleContext;
 
 /// Reports units whose cyclomatic complexity exceeds the configured limit.
 ///
 /// The message names the risk band as well as the number, because "complexity 14" means little on its
 /// own while "untestable without a table-driven suite" means a lot.
 #[must_use]
-pub fn cyclomatic_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
-	let units = unit_measures::UnitSet::new(file);
+pub fn cyclomatic_per_unit(context: &RuleContext<'_>) -> Vec<Finding> {
+	let config = context.config();
+	let units = context.units();
 	let mut findings = Vec::new();
 
 	for (unit, metrics) in units.iter() {
@@ -86,8 +87,9 @@ pub fn cyclomatic_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Findin
 /// or worst single unit — because each drives a different suggestion, and folding them into one
 /// condition would lose which advice the reader should take.
 #[must_use]
-pub fn cognitive_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
-	let units = unit_measures::UnitSet::new(file);
+pub fn cognitive_per_unit(context: &RuleContext<'_>) -> Vec<Finding> {
+	let config = context.config();
+	let units = context.units();
 	let mut findings = Vec::new();
 
 	for (unit, metrics) in units.iter() {
@@ -143,8 +145,9 @@ pub fn cognitive_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding
 /// cyclomatic limit while having thousands of paths. Reporting it separately catches the function
 /// that is not deeply nested but is exhaustively unverifiable.
 #[must_use]
-pub fn npath_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
-	let units = unit_measures::UnitSet::new(file);
+pub fn npath_per_unit(context: &RuleContext<'_>) -> Vec<Finding> {
+	let config = context.config();
+	let units = context.units();
 	let mut findings = Vec::new();
 
 	for (unit, metrics) in units.iter() {
@@ -199,8 +202,9 @@ pub fn npath_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 /// The counter is structural rather than syntactic — it counts exit *shapes* a lexer can see, so a
 /// language without a `return` keyword is still measured; the branches enumerate the shapes.
 #[must_use]
-pub fn exits_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
-	let units = unit_measures::UnitSet::new(file);
+pub fn exits_per_unit(context: &RuleContext<'_>) -> Vec<Finding> {
+	let config = context.config();
+	let units = context.units();
 	let mut findings = Vec::new();
 
 	for (unit, metrics) in units.iter() {
@@ -255,11 +259,12 @@ pub fn exits_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 /// The index combines Halstead volume, cyclomatic complexity, and line count, so it catches a unit
 /// that is dense with arithmetic rather than branches — a case the other complexity rules miss.
 #[must_use]
-pub fn maintainability_per_unit(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
+pub fn maintainability_per_unit(context: &RuleContext<'_>) -> Vec<Finding> {
 	/// Lines below which a maintainability index is not meaningful.
 	const MIN_MEASURABLE_LINES: usize = 10;
 
-	let units = unit_measures::UnitSet::new(file);
+	let config = context.config();
+	let units = context.units();
 	let mut findings = Vec::new();
 
 	for (unit, metrics) in units.iter() {

@@ -47,7 +47,7 @@ pub fn magic_numbers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 		}
 
 		for literal in unnamed_literals(line) {
-			findings.push(magic_number_finding(line, &literal.text));
+			findings.push(magic_number_finding(line, literal.text));
 		}
 	}
 
@@ -72,7 +72,7 @@ fn literal_is_test_data(line: &LexedLine) -> bool {
 }
 
 /// Returns the numeric literals on a line that carry meaning without a name.
-fn unnamed_literals(line: &LexedLine) -> Vec<NumericLiteral> {
+fn unnamed_literals<'line>(line: &'line LexedLine<'_>) -> Vec<NumericLiteral<'line>> {
 	numeric_literals(&line.masked_code)
 		.into_iter()
 		.filter(|literal| !is_conventional(literal.value))
@@ -146,7 +146,11 @@ pub fn short_identifiers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding>
 /// Two kinds are kept: names at or above the minimum length, and the conventional short names that are
 /// idiomatic where they appear. A loop index named `i` or a coordinate named `x` is clearer than any longer
 /// alternative, so reporting those would be wrong.
-fn unclear_names(line: &LexedLine, language: Language, minimum: usize) -> Vec<String> {
+fn unclear_names<'line>(
+	line: &'line LexedLine<'_>,
+	language: Language,
+	minimum: usize,
+) -> Vec<&'line str> {
 	binding_names(&line.masked_code, language)
 		.into_iter()
 		.filter(|name| name.chars().count() < minimum)
@@ -207,10 +211,14 @@ pub fn empty_handlers(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 /// Two forms qualify: a language with a handler keyword (`catch`, `except`, `rescue`), and Rust, which has
 /// none and instead uses a `match` arm whose pattern is `Err`.
 fn introduces_handler(line: &LexedLine) -> bool {
-	/// Keywords that introduce an error handler.
-	const HANDLER_KEYWORDS: &[&str] = &["catch", "except", "rescue"];
+	// One pass over the line's words answers the keyword form, rather than scanning the line once
+	// per keyword: this predicate runs on every code line a file has.
+	let has_keyword = line
+		.masked_code
+		.split(|character: char| !character.is_alphanumeric() && character != '_')
+		.any(|word| matches!(word, "catch" | "except" | "rescue"));
 
-	if opens_with_handler_keyword(&line.masked_code, HANDLER_KEYWORDS) {
+	if has_keyword {
 		return true;
 	}
 
@@ -229,42 +237,6 @@ fn introduces_handler(line: &LexedLine) -> bool {
 /// `fn complexity_rules_catch_a_hard_function()` opens no handler, and was reported as discarding an
 /// error it never caught.
 ///
-/// The keyword may sit mid-line, because JavaScript writes `} catch (error) {` after the closing brace
-/// of the `try` body. Requiring the line to begin with it would miss every such handler.
-fn opens_with_handler_keyword(code: &str, keywords: &[&str]) -> bool {
-	keywords
-		.iter()
-		.filter(|keyword| !keyword.is_empty())
-		.any(|keyword| has_word(code, keyword))
-}
-
-/// Whether `code` contains `word` delimited by non-identifier characters on both sides.
-fn has_word(code: &str, word: &str) -> bool {
-	let mut from = 0;
-
-	while let Some(offset) = code.get(from..).and_then(|rest| rest.find(word)) {
-		let start = from + offset;
-		let end = start + word.len();
-		let before = code.get(..start).and_then(|head| head.chars().next_back());
-		let after = code.get(end..).and_then(|tail| tail.chars().next());
-
-		// Both sides must be word boundaries, which is what a bare `find` does not give: without
-		// this, `rescue_all` matches `rescue` and a name like `catches` matches `catch`.
-		if !is_identifier_char(before) && !is_identifier_char(after) {
-			return true;
-		}
-
-		from = end;
-	}
-
-	false
-}
-
-/// Whether a character can appear inside an identifier.
-fn is_identifier_char(character: Option<char>) -> bool {
-	character.is_some_and(|value| value.is_alphanumeric() || value == '_')
-}
-
 /// Whether a handler's body does nothing with the error.
 fn handler_discards_its_error(file: &LexedFile, index: usize, line: &LexedLine) -> bool {
 	// A handler on the same line as its body, as in `catch (e) {}` or `Err(_) => {}`. The brace has
@@ -397,52 +369,42 @@ fn report_run(
 }
 
 /// A numeric literal found in a line.
-struct NumericLiteral {
-	/// The literal as written.
-	text: String,
+struct NumericLiteral<'line> {
+	/// The literal as written, borrowed from the line it was found on.
+	text: &'line str,
 	/// Its parsed value.
 	value: f64,
 }
 
 /// Extracts numeric literals from masked source.
-fn numeric_literals(text: &str) -> Vec<NumericLiteral> {
+fn numeric_literals(text: &str) -> Vec<NumericLiteral<'_>> {
 	let mut literals = Vec::new();
-	let characters: Vec<char> = text.chars().collect();
-	let mut index = 0;
+	let mut previous_was_identifier = false;
+	let mut cursor = text.char_indices().peekable();
 
-	while index < characters.len() {
-		let Some(character) = characters.get(index).copied() else {
-			break;
-		};
-
+	while let Some((index, character)) = cursor.next() {
 		// A digit only starts a literal when it is not part of an identifier, so `x2` is skipped.
-		let preceded_by_identifier = index
-			.checked_sub(1)
-			.and_then(|previous| characters.get(previous))
-			.is_some_and(|previous| previous.is_alphanumeric() || *previous == '_');
+		if character.is_ascii_digit() && !previous_was_identifier {
+			let start = index;
+			let mut end = index + character.len_utf8();
 
-		if !character.is_ascii_digit() || preceded_by_identifier {
-			index += 1;
-			continue;
-		}
+			while let Some(&(next_index, next)) = cursor.peek() {
+				if next.is_ascii_alphanumeric() || next == '.' || next == '_' {
+					end = next_index + next.len_utf8();
+					cursor.next();
+				} else {
+					break;
+				}
+			}
 
-		let start = index;
+			if let Some(literal) = parsed_literal(&text[start..end]) {
+				literals.push(literal);
+			}
 
-		while characters.get(index).is_some_and(|character| {
-			character.is_ascii_alphanumeric() || *character == '.' || *character == '_'
-		}) {
-			index += 1;
-		}
-
-		let literal: String = characters
-			.get(start..index)
-			.unwrap_or_default()
-			.iter()
-			.collect();
-		let normalized = literal.replace('_', "");
-
-		if let Some(literal) = parsed_literal(&literal, &normalized) {
-			literals.push(literal);
+			// The literal's last character is part of a word, so a digit cannot directly follow.
+			previous_was_identifier = true;
+		} else {
+			previous_was_identifier = character.is_alphanumeric() || character == '_';
 		}
 	}
 
@@ -454,17 +416,32 @@ fn numeric_literals(text: &str) -> Vec<NumericLiteral> {
 /// A version string or hash looks numeric but is not a quantity, so requiring a parse keeps them
 /// out. Anything with more than nine digits is a timestamp or an embedded identifier rather than
 /// a meaningful constant.
-fn parsed_literal(text: &str, normalized: &str) -> Option<NumericLiteral> {
+fn parsed_literal(text: &str) -> Option<NumericLiteral<'_>> {
+	/// The longest literal worth parsing: digits, separators, a sign, an exponent marker.
+	const MAX_LENGTH: usize = 40;
+
+	// The underscores a numeric separator adds are skipped into a stack buffer, so parsing
+	// allocates nothing; a literal too long to fit is not one this rule reads anyway.
+	let mut buffer = [0u8; MAX_LENGTH];
+	let mut length = 0;
+
+	for byte in text.bytes() {
+		if byte == b'_' {
+			continue;
+		}
+
+		*buffer.get_mut(length)? = byte;
+		length += 1;
+	}
+
+	let normalized = std::str::from_utf8(buffer.get(..length).unwrap_or_default()).ok()?;
 	let value = normalized.parse::<f64>().ok()?;
 
-	if normalized.chars().filter(char::is_ascii_digit).count() > 9 {
+	if normalized.bytes().filter(u8::is_ascii_digit).count() > 9 {
 		return None;
 	}
 
-	Some(NumericLiteral {
-		text: text.to_string(),
-		value,
-	})
+	Some(NumericLiteral { text, value })
 }
 
 /// Whether a value is conventional enough that a bare literal is fine.
@@ -719,7 +696,7 @@ fn is_constant_declaration(line: &LexedLine) -> bool {
 ///
 /// Only declarations and assignments are considered, because those are where a name is chosen rather
 /// than reused. A short parameter name in a closure is idiomatic in a way a short variable is not.
-fn binding_names(text: &str, language: Language) -> Vec<String> {
+fn binding_names(text: &str, language: Language) -> Vec<&str> {
 	// An import alias is the imported module's name, not a name the author chose: `import typing as T`
 	// carries whatever the library is called, so reporting `T` asks for a rename nobody can make.
 	if is_import(text) {
@@ -745,7 +722,7 @@ fn is_import(text: &str) -> bool {
 /// Returns the name being assigned to, when the line is an assignment.
 ///
 /// A comparison is skipped, because `a == b` binds nothing.
-fn assigned_name(text: &str) -> Option<String> {
+fn assigned_name(text: &str) -> Option<&str> {
 	let (head, _value) = text.split_once('=')?;
 
 	// Strip the operator itself and any compound form such as `+=`.
@@ -761,17 +738,23 @@ fn assigned_name(text: &str) -> Option<String> {
 }
 
 /// Returns the names introduced by declaration keywords on a line.
-fn declared_names(text: &str, language: Language) -> Vec<String> {
+fn declared_names(text: &str, language: Language) -> Vec<&str> {
 	let words = words_of(text);
 	let keywords = declaration_keywords(language);
+
+	let is_keyword = |word: &str| {
+		keywords
+			.iter()
+			.any(|keyword| word.eq_ignore_ascii_case(keyword))
+	};
 
 	words
 		.iter()
 		.enumerate()
-		.filter(|(_index, word)| keywords.contains(&word.to_ascii_lowercase().as_str()))
+		.filter(|(_index, word)| is_keyword(word))
 		.filter_map(|(index, _word)| words.get(index + 1))
-		.filter(|name| !keywords.contains(&name.to_ascii_lowercase().as_str()))
-		.map(|name| (*name).to_string())
+		.filter(|name| !is_keyword(name))
+		.copied()
 		.collect()
 }
 
@@ -794,14 +777,17 @@ fn words_of(text: &str) -> Vec<&str> {
 }
 
 /// Adds a name to `names` when there is one.
-fn push_name(names: &mut Vec<String>, name: Option<String>) {
+fn push_name<'name>(names: &mut Vec<&'name str>, name: Option<&'name str>) {
 	if let Some(name) = name {
 		push_unique(names, std::iter::once(name));
 	}
 }
 
 /// Adds names to `names`, skipping those already present.
-fn push_unique(names: &mut Vec<String>, candidates: impl IntoIterator<Item = String>) {
+fn push_unique<'name>(
+	names: &mut Vec<&'name str>,
+	candidates: impl IntoIterator<Item = &'name str>,
+) {
 	for name in candidates {
 		if !names.contains(&name) {
 			names.push(name);
@@ -810,21 +796,19 @@ fn push_unique(names: &mut Vec<String>, candidates: impl IntoIterator<Item = Str
 }
 
 /// Returns the last identifier in `text`.
-fn last_identifier(text: &str) -> Option<String> {
-	let identifier: String = text
-		.chars()
-		.rev()
-		.take_while(|character| character.is_alphanumeric() || *character == '_')
-		.collect();
+fn last_identifier(text: &str) -> Option<&str> {
+	// The identifier at the end of `text` is the trailing run of identifier characters, so it is
+	// a slice of `text` rather than a copy built twice over.
+	let is_identifier = |character: char| character.is_alphanumeric() || character == '_';
+	let stripped = text.trim_end_matches(is_identifier);
 
-	let identifier: String = identifier.chars().rev().collect();
+	if stripped.len() == text.len() {
+		return None;
+	}
 
-	if identifier.is_empty()
-		|| identifier
-			.chars()
-			.next()
-			.is_some_and(|c| c.is_ascii_digit())
-	{
+	let identifier = &text[stripped.len()..];
+
+	if identifier.starts_with(|character: char| character.is_ascii_digit()) {
 		return None;
 	}
 

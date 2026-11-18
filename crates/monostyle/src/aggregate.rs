@@ -26,6 +26,8 @@
 //! by how much of the total penalty each one accounts for. That is what turns a report into a
 //! worklist an agent or a person can act on in order.
 
+use std::borrow::Cow;
+use std::collections::HashMap;
 use std::path::Path;
 use std::path::PathBuf;
 
@@ -40,7 +42,7 @@ use serde::Serialize;
 #[derive(Debug, Clone, Serialize)]
 pub struct RuleImpact {
 	/// The rule name.
-	pub rule: String,
+	pub rule: &'static str,
 	/// Total penalty this rule contributed.
 	pub penalty: f64,
 	/// How many findings the rule raised.
@@ -54,9 +56,9 @@ pub struct RuleImpact {
 	/// Lines of code at the worst offender, so a reader can gauge the scale of one fix.
 	pub worst_offender: Option<OffenderLocation>,
 	/// The explanation from the highest-penalty finding.
-	pub message: String,
+	pub message: Cow<'static, str>,
 	/// The remedy from the highest-penalty finding.
-	pub suggestion: String,
+	pub suggestion: Cow<'static, str>,
 }
 
 /// Where a finding lives.
@@ -152,9 +154,10 @@ fn category_penalty(file: &FileScore, category: Category) -> f64 {
 /// Ranks rules by how much of a category's penalty each accounts for.
 ///
 /// This is the actionable half of a report: the first entry is the single change that would
-/// recover the most points.
+/// recover the most points. Findings are borrowed with their paths, so ranking a project's
+/// worth of them never copies one.
 #[must_use]
-pub fn rank_rule_impact(findings: &[(PathBuf, Finding)], category: Category) -> Vec<RuleImpact> {
+pub fn rank_rule_impact(findings: &[(&Path, &Finding)], category: Category) -> Vec<RuleImpact> {
 	rank_impact(findings, |finding| finding.category == category)
 }
 
@@ -168,7 +171,7 @@ pub fn rank_rule_impact(findings: &[(PathBuf, Finding)], category: Category) -> 
 /// a rule holding 90% of the complexity penalty might hold only 30% of the total, so presenting 90% would
 /// promise a recovery three times larger than the fix can deliver.
 #[must_use]
-pub fn rank_overall_impact(findings: &[(PathBuf, Finding)]) -> Vec<RuleImpact> {
+pub fn rank_overall_impact(findings: &[(&Path, &Finding)]) -> Vec<RuleImpact> {
 	rank_impact(findings, |_| true)
 }
 
@@ -177,14 +180,12 @@ pub fn rank_overall_impact(findings: &[(PathBuf, Finding)]) -> Vec<RuleImpact> {
 /// One implementation for both the per-category and whole-project views. They differ only by which findings
 /// they count, and keeping two copies of this arithmetic is how the two views would come to disagree about
 /// the same penalty.
-fn rank_impact(
-	findings: &[(PathBuf, Finding)],
-	keep: impl Fn(&Finding) -> bool,
-) -> Vec<RuleImpact> {
+fn rank_impact(findings: &[(&Path, &Finding)], keep: impl Fn(&Finding) -> bool) -> Vec<RuleImpact> {
 	let mut impacts: Vec<RuleImpact> = Vec::new();
+	let mut positions: HashMap<&'static str, usize> = HashMap::new();
 	let mut total: f64 = 0.0;
 
-	for (path, finding) in findings {
+	for &(path, finding) in findings {
 		let penalty = finding.penalty();
 
 		// Credit entries are not impacts: they raise the score rather than detracting from it.
@@ -193,25 +194,22 @@ fn rank_impact(
 		}
 
 		total += penalty;
-		absorb_finding(&mut impacts, path, finding, penalty);
+
+		if let Some(&position) = positions.get(finding.rule)
+			&& let Some(impact) = impacts.get_mut(position)
+		{
+			impact.absorb(path, finding, penalty);
+
+			continue;
+		}
+
+		positions.insert(finding.rule, impacts.len());
+		impacts.push(RuleImpact::new(path, finding, penalty));
 	}
 
 	assign_shares(&mut impacts, total);
 	impacts.sort_by(most_costly_first);
 	impacts
-}
-
-/// Folds one finding into the impact list, creating its rule's entry on first sight.
-fn absorb_finding(impacts: &mut Vec<RuleImpact>, path: &Path, finding: &Finding, penalty: f64) {
-	let location = offender(path, finding);
-
-	match impacts
-		.iter_mut()
-		.find(|impact| impact.rule == finding.rule)
-	{
-		Some(impact) => impact.absorb(penalty, finding, location),
-		None => impacts.push(RuleImpact::new(finding, penalty, location)),
-	}
 }
 
 /// Gives each impact its share of the penalty `total` covers.
@@ -227,10 +225,7 @@ fn assign_shares(impacts: &mut [RuleImpact], total: f64) {
 
 /// Orders impacts by penalty, most costly first.
 fn most_costly_first(left: &RuleImpact, right: &RuleImpact) -> std::cmp::Ordering {
-	right
-		.penalty
-		.partial_cmp(&left.penalty)
-		.unwrap_or(std::cmp::Ordering::Equal)
+	right.penalty.total_cmp(&left.penalty)
 }
 
 /// Builds the location a finding sits at.
@@ -244,14 +239,14 @@ fn offender(path: &Path, finding: &Finding) -> OffenderLocation {
 
 impl RuleImpact {
 	/// Starts an impact from a rule's first finding.
-	fn new(finding: &Finding, penalty: f64, location: OffenderLocation) -> Self {
+	fn new(path: &Path, finding: &Finding, penalty: f64) -> Self {
 		Self {
-			rule: finding.rule.clone(),
+			rule: finding.rule,
 			penalty,
 			count: 1,
 			share: 0.0,
 			worst_penalty: penalty,
-			worst_offender: Some(location),
+			worst_offender: Some(offender(path, finding)),
 			message: finding.message.clone(),
 			suggestion: finding.suggestion.clone(),
 		}
@@ -261,13 +256,14 @@ impl RuleImpact {
 	///
 	/// The message kept is the one from the costliest finding, because that is what a reader should act on
 	/// first. The comparison is against the previous worst rather than the running total, so adding a small
-	/// finding does not displace a large one.
-	fn absorb(&mut self, penalty: f64, finding: &Finding, location: OffenderLocation) {
+	/// finding does not displace a large one. The location is only built when the finding wins, since a
+	/// path copy per finding is what a project-wide ranking would otherwise spend most of its time on.
+	fn absorb(&mut self, path: &Path, finding: &Finding, penalty: f64) {
 		if penalty >= self.worst_penalty {
 			self.worst_penalty = penalty;
 			self.message.clone_from(&finding.message);
 			self.suggestion.clone_from(&finding.suggestion);
-			self.worst_offender = Some(location);
+			self.worst_offender = Some(offender(path, finding));
 		}
 
 		self.penalty += penalty;
@@ -282,11 +278,6 @@ impl RuleImpact {
 #[must_use]
 pub fn rank_file_impact(files: &[FileScore]) -> Vec<FileScore> {
 	let mut ranked = files.to_vec();
-	ranked.sort_by(|left, right| {
-		right
-			.total_penalty
-			.partial_cmp(&left.total_penalty)
-			.unwrap_or(std::cmp::Ordering::Equal)
-	});
+	ranked.sort_by(|left, right| right.total_penalty.total_cmp(&left.total_penalty));
 	ranked
 }

@@ -33,12 +33,8 @@ fn fixture(relative: &str) -> FileReport {
 }
 
 /// Returns the rules that fired in a report.
-fn rules(report: &FileReport) -> Vec<String> {
-	let mut names: Vec<String> = report
-		.findings
-		.iter()
-		.map(|finding| finding.rule.clone())
-		.collect();
+fn rules(report: &FileReport) -> Vec<&'static str> {
+	let mut names: Vec<&'static str> = report.findings.iter().map(|finding| finding.rule).collect();
 
 	names.sort_unstable();
 	names.dedup();
@@ -102,11 +98,11 @@ fn whitespace_rules_catch_missing_blank_lines() {
 	let fired = rules(&report);
 
 	assert!(
-		fired.contains(&"readability/blank-line-before-control-flow".to_string()),
+		fired.contains(&"readability/blank-line-before-control-flow"),
 		"stacked control flow should be reported, got {fired:?}"
 	);
 	assert!(
-		fired.contains(&"readability/excessive-indentation".to_string()),
+		fired.contains(&"readability/excessive-indentation"),
 		"deep indentation should be reported, got {fired:?}"
 	);
 }
@@ -117,11 +113,11 @@ fn complexity_rules_catch_a_hard_function() {
 	let fired = rules(&report);
 
 	assert!(
-		fired.contains(&"complexity/cyclomatic-per-unit".to_string()),
+		fired.contains(&"complexity/cyclomatic-per-unit"),
 		"a function with many paths should be reported, got {fired:?}"
 	);
 	assert!(
-		fired.contains(&"complexity/cognitive-per-unit".to_string()),
+		fired.contains(&"complexity/cognitive-per-unit"),
 		"a hard-to-follow function should be reported, got {fired:?}"
 	);
 }

@@ -96,6 +96,18 @@ pub struct Score {
 	pub density: f64,
 }
 
+/// The two category scores one set of findings produces.
+///
+/// Returned by [`Score::by_category`] so a report receives both numbers from a single
+/// pass, and so the two cannot be computed over different findings by mistake.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CategoryScores {
+	/// How the code reads.
+	pub readability: Score,
+	/// How hard the code is to follow and test.
+	pub complexity: Score,
+}
+
 impl Score {
 	/// The best possible score.
 	pub const PERFECT: f64 = 100.0;
@@ -103,20 +115,54 @@ impl Score {
 	/// Computes a score from the findings in one category.
 	///
 	/// `lines` is the amount of code the findings were collected from, used only as
-	/// the normalization denominator.
+	/// the normalization denominator. Findings are taken by reference so a caller that
+	/// already holds them — a file report, or every report in a project — never has to
+	/// copy them to be scored.
 	#[must_use]
-	pub fn from_findings(
-		findings: &[Finding],
+	pub fn from_findings<'finding>(
+		findings: impl IntoIterator<Item = &'finding Finding>,
 		category: Category,
 		lines: usize,
 		config: ScoringConfig,
 	) -> Self {
 		let penalty: f64 = findings
-			.iter()
+			.into_iter()
 			.filter(|finding| finding.category == category)
 			.map(Finding::penalty)
 			.sum();
 
+		Self::from_penalty(penalty, lines, config)
+	}
+
+	/// Computes both category scores from one pass over the findings.
+	///
+	/// Every report scores readability and complexity from the same findings, so this
+	/// walks them once and sorts each penalty into its category rather than walking twice
+	/// and filtering.
+	#[must_use]
+	pub fn by_category<'finding>(
+		findings: impl IntoIterator<Item = &'finding Finding>,
+		lines: usize,
+		config: ScoringConfig,
+	) -> CategoryScores {
+		let mut readability = 0.0;
+		let mut complexity = 0.0;
+
+		for finding in findings {
+			match finding.category {
+				Category::Readability => readability += finding.penalty(),
+				Category::Complexity => complexity += finding.penalty(),
+			}
+		}
+
+		CategoryScores {
+			readability: Self::from_penalty(readability, lines, config),
+			complexity: Self::from_penalty(complexity, lines, config),
+		}
+	}
+
+	/// Computes a score from a summed penalty over `lines` of code.
+	fn from_penalty(penalty: f64, lines: usize, config: ScoringConfig) -> Self {
 		// The denominator is floored so tiny units still produce a stable number, and
 		// scaled to "per 100 lines" so the half-life reads as a percentage-ish unit.
 		let denominator = (lines as f64).max(config.min_normalization_lines);
@@ -124,19 +170,7 @@ impl Score {
 
 		// A negative density means credit outweighed penalties; that is a valid state
 		// which simply clamps to a perfect score.
-		let half_life = if config.half_life > 0.0 {
-			config.half_life
-		} else {
-			DEFAULT_HALF_LIFE
-		};
-
-		let raw = Score::PERFECT * 2f64.powf(-density / half_life);
-
-		Self {
-			value: raw.clamp(0.0, Score::PERFECT),
-			penalty,
-			density,
-		}
+		Self::from_density(density, penalty, config)
 	}
 
 	/// Computes a score directly from a penalty density.

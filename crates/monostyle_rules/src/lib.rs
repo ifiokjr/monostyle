@@ -18,6 +18,7 @@
 pub mod comments;
 pub mod complexity;
 pub mod config;
+pub mod context;
 pub mod line_length;
 pub mod markdown;
 pub mod quality;
@@ -27,5 +28,9 @@ pub mod unit_measures;
 pub mod whitespace;
 
 pub use config::RulesConfig;
+pub use context::RuleContext;
+pub use registry::RULES;
+pub use registry::Rule;
+pub use registry::RuleRun;
 pub use registry::all_rules;
 pub use registry::run_rules;

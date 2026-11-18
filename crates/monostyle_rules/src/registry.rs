@@ -9,13 +9,40 @@ use monostyle_lexer::LexedFile;
 use crate::comments;
 use crate::complexity;
 use crate::config::RulesConfig;
+use crate::context::RuleContext;
 use crate::line_length;
 use crate::markdown;
 use crate::quality;
 use crate::structure;
 use crate::whitespace;
 
+/// How a rule reads the file it is run against.
+///
+/// Most rules read the lexed lines directly. The ones that judge function-like units
+/// instead read the measured [`UnitSet`](crate::unit_measures::UnitSet) the context
+/// shares, so declaring which kind a rule is here is what lets `run_rules` measure the
+/// units once however many rules ask for them.
+#[derive(Debug, Clone, Copy)]
+pub enum RuleRun {
+	/// Reads the lexed file.
+	File(fn(&LexedFile, &RulesConfig) -> Vec<Finding>),
+	/// Reads the file's units through the shared context.
+	Units(fn(&RuleContext<'_>) -> Vec<Finding>),
+}
+
+impl RuleRun {
+	/// Runs the rule against `context`.
+	#[must_use]
+	pub fn invoke(self, context: &RuleContext<'_>) -> Vec<Finding> {
+		match self {
+			Self::File(run) => run(context.file(), context.config()),
+			Self::Units(run) => run(context),
+		}
+	}
+}
+
 /// A rule's name and the function that runs it.
+#[derive(Debug, Clone, Copy)]
 pub struct Rule {
 	/// The stable identifier used in configuration and reports.
 	pub name: &'static str,
@@ -31,221 +58,225 @@ pub struct Rule {
 	/// a guard that one rule forgets is a false positive nobody can explain from the config.
 	pub prose: bool,
 	/// Runs the rule.
-	pub run: fn(&LexedFile, &RulesConfig) -> Vec<Finding>,
+	pub run: RuleRun,
 }
 
 /// Every rule, in report order.
 ///
 /// Whitespace rules come first so that a report reads from the most visible problems to the
-/// most structural.
+/// most structural. The table is a static rather than a constructor so running the rules
+/// over a file does not begin by allocating the list of them.
+pub static RULES: &[Rule] = &[
+	Rule {
+		name: "readability/blank-line-before-control-flow",
+		description: "Requires a blank line before each control-flow statement.",
+		prose: false,
+		run: RuleRun::File(whitespace::blank_line_before_control_flow),
+	},
+	Rule {
+		name: "readability/blank-line-after-control-flow",
+		description: "Requires a blank line after a control-flow block when statements follow it.",
+		prose: false,
+		run: RuleRun::File(whitespace::blank_line_after_control_flow),
+	},
+	Rule {
+		name: "readability/detached-comment",
+		description: "Flags comments separated by a blank line from the code they document.",
+		prose: false,
+		run: RuleRun::File(whitespace::detached_comment),
+	},
+	Rule {
+		name: "readability/blank-line-before-return",
+		description: "Requires a blank line before a return that follows complex code.",
+		prose: false,
+		run: RuleRun::File(whitespace::blank_line_before_return),
+	},
+	Rule {
+		name: "readability/group-separation",
+		description: "Requires blank lines between logical groups of statements.",
+		prose: false,
+		run: RuleRun::File(whitespace::group_separation),
+	},
+	Rule {
+		name: "readability/excessive-blank-lines",
+		description: "Flags runs of blank lines longer than the configured maximum.",
+		prose: false,
+		run: RuleRun::File(whitespace::excessive_blank_lines),
+	},
+	Rule {
+		name: "readability/excessive-indentation",
+		description: "Flags lines indented beyond the configured width.",
+		prose: false,
+		run: RuleRun::File(whitespace::excessive_indentation),
+	},
+	Rule {
+		name: "readability/mixed-indentation",
+		description: "Flags files that mix tabs and spaces.",
+		prose: false,
+		run: RuleRun::File(|file, _config| whitespace::mixed_indentation(file)),
+	},
+	Rule {
+		name: "readability/deep-nesting",
+		description: "Flags control flow nested beyond the configured depth.",
+		prose: false,
+		run: RuleRun::File(structure::deep_nesting),
+	},
+	Rule {
+		name: "readability/long-parameter-list",
+		description: "Flags calls whose arguments should be split across lines.",
+		prose: false,
+		run: RuleRun::File(structure::long_parameter_list),
+	},
+	Rule {
+		name: "readability/overlong-line",
+		description: "Flags lines wider than the configured limit.",
+		prose: false,
+		run: RuleRun::File(line_length::overlong_lines),
+	},
+	Rule {
+		name: "readability/oversized-unit",
+		description: "Flags functions longer than the configured limit.",
+		prose: false,
+		run: RuleRun::Units(structure::oversized_units),
+	},
+	Rule {
+		name: "readability/oversized-file",
+		description: "Flags files longer than the configured limit.",
+		prose: false,
+		run: RuleRun::File(structure::oversized_file),
+	},
+	Rule {
+		name: "readability/comment-required-on-complex-unit",
+		description: "Requires an explanatory comment on complex functions.",
+		prose: false,
+		run: RuleRun::Units(comments::comment_required_on_complex_units),
+	},
+	Rule {
+		name: "readability/comment-explains-why",
+		description: "Credits comments that explain why rather than what.",
+		prose: false,
+		run: RuleRun::File(comments::comments_explaining_why),
+	},
+	Rule {
+		name: "readability/comment-narrates-code",
+		description: "Penalizes comments that restate what the code already says.",
+		prose: false,
+		run: RuleRun::File(comments::comments_narrating_code),
+	},
+	Rule {
+		name: "readability/excessive-comments",
+		description: "Flags files where comments outweigh the code.",
+		prose: false,
+		run: RuleRun::File(comments::excessive_comments),
+	},
+	Rule {
+		name: "readability/thin-documentation",
+		description: "Flags documentation blocks that list structure without explaining purpose.",
+		prose: false,
+		run: RuleRun::File(|file, _config| comments::thin_documentation(file)),
+	},
+	Rule {
+		name: "readability/magic-number",
+		description: "Flags meaningful numeric literals that should be named constants.",
+		prose: false,
+		run: RuleRun::File(quality::magic_numbers),
+	},
+	Rule {
+		name: "readability/short-identifier",
+		description: "Flags identifiers too short to convey meaning.",
+		prose: false,
+		run: RuleRun::File(quality::short_identifiers),
+	},
+	Rule {
+		name: "readability/empty-handler",
+		description: "Flags error handlers that discard the error.",
+		prose: false,
+		run: RuleRun::File(quality::empty_handlers),
+	},
+	Rule {
+		name: "readability/commented-out-code",
+		description: "Flags blocks of code that were commented out instead of deleted.",
+		prose: false,
+		run: RuleRun::File(quality::commented_out_code),
+	},
+	Rule {
+		name: "complexity/cyclomatic-per-unit",
+		description: "Flags functions with too many independent paths.",
+		prose: false,
+		run: RuleRun::Units(complexity::cyclomatic_per_unit),
+	},
+	Rule {
+		name: "complexity/cognitive-per-unit",
+		description: "Flags functions that are hard to follow.",
+		prose: false,
+		run: RuleRun::Units(complexity::cognitive_per_unit),
+	},
+	Rule {
+		name: "complexity/npath-per-unit",
+		description: "Flags functions with too many execution paths.",
+		prose: false,
+		run: RuleRun::Units(complexity::npath_per_unit),
+	},
+	Rule {
+		name: "complexity/exits-per-unit",
+		description: "Flags functions that return from too many places.",
+		prose: false,
+		run: RuleRun::Units(complexity::exits_per_unit),
+	},
+	Rule {
+		name: "complexity/low-maintainability",
+		description: "Flags functions with a low maintainability index.",
+		prose: false,
+		run: RuleRun::Units(complexity::maintainability_per_unit),
+	},
+	Rule {
+		name: "complexity/cyclomatic-per-file",
+		description: "Flags files with a high decision density.",
+		prose: false,
+		run: RuleRun::File(complexity::complexity_per_file),
+	},
+	Rule {
+		name: "markdown/fence-readability",
+		description: "Scores the code inside Markdown fences.",
+		prose: true,
+		run: RuleRun::File(markdown::fence_readability),
+	},
+	Rule {
+		name: "markdown/fence-without-language",
+		description: "Flags fences with no language tag.",
+		prose: true,
+		run: RuleRun::File(markdown::fence_without_language),
+	},
+	Rule {
+		name: "markdown/fence-language-unknown",
+		description: "Flags fences declaring a language monostyle cannot read.",
+		prose: true,
+		run: RuleRun::File(markdown::fence_language_unknown),
+	},
+	Rule {
+		name: "markdown/prose-run",
+		description: "Flags long unbroken runs of prose.",
+		prose: true,
+		run: RuleRun::File(markdown::prose_runs),
+	},
+	Rule {
+		name: "markdown/no-title",
+		description: "Flags documents that do not start with a top-level heading.",
+		prose: true,
+		run: RuleRun::File(|file, _config| markdown::missing_title(file)),
+	},
+	Rule {
+		name: "markdown/skipped-heading-level",
+		description: "Flags heading levels that skip a step.",
+		prose: true,
+		run: RuleRun::File(|file, _config| markdown::skipped_heading_levels(file)),
+	},
+];
+
+/// Every rule, in report order.
 #[must_use]
-pub fn all_rules() -> Vec<Rule> {
-	vec![
-		Rule {
-			name: "readability/blank-line-before-control-flow",
-			description: "Requires a blank line before each control-flow statement.",
-			prose: false,
-			run: whitespace::blank_line_before_control_flow,
-		},
-		Rule {
-			name: "readability/blank-line-after-control-flow",
-			description: "Requires a blank line after a control-flow block when statements follow it.",
-			prose: false,
-			run: whitespace::blank_line_after_control_flow,
-		},
-		Rule {
-			name: "readability/detached-comment",
-			description: "Flags comments separated by a blank line from the code they document.",
-			prose: false,
-			run: whitespace::detached_comment,
-		},
-		Rule {
-			name: "readability/blank-line-before-return",
-			description: "Requires a blank line before a return that follows complex code.",
-			prose: false,
-			run: whitespace::blank_line_before_return,
-		},
-		Rule {
-			name: "readability/group-separation",
-			description: "Requires blank lines between logical groups of statements.",
-			prose: false,
-			run: whitespace::group_separation,
-		},
-		Rule {
-			name: "readability/excessive-blank-lines",
-			description: "Flags runs of blank lines longer than the configured maximum.",
-			prose: false,
-			run: whitespace::excessive_blank_lines,
-		},
-		Rule {
-			name: "readability/excessive-indentation",
-			description: "Flags lines indented beyond the configured width.",
-			prose: false,
-			run: whitespace::excessive_indentation,
-		},
-		Rule {
-			name: "readability/mixed-indentation",
-			description: "Flags files that mix tabs and spaces.",
-			prose: false,
-			run: |file, _config| whitespace::mixed_indentation(file),
-		},
-		Rule {
-			name: "readability/deep-nesting",
-			description: "Flags control flow nested beyond the configured depth.",
-			prose: false,
-			run: structure::deep_nesting,
-		},
-		Rule {
-			name: "readability/long-parameter-list",
-			description: "Flags calls whose arguments should be split across lines.",
-			prose: false,
-			run: structure::long_parameter_list,
-		},
-		Rule {
-			name: "readability/overlong-line",
-			description: "Flags lines wider than the configured limit.",
-			prose: false,
-			run: line_length::overlong_lines,
-		},
-		Rule {
-			name: "readability/oversized-unit",
-			description: "Flags functions longer than the configured limit.",
-			prose: false,
-			run: structure::oversized_units,
-		},
-		Rule {
-			name: "readability/oversized-file",
-			description: "Flags files longer than the configured limit.",
-			prose: false,
-			run: structure::oversized_file,
-		},
-		Rule {
-			name: "readability/comment-required-on-complex-unit",
-			description: "Requires an explanatory comment on complex functions.",
-			prose: false,
-			run: comments::comment_required_on_complex_units,
-		},
-		Rule {
-			name: "readability/comment-explains-why",
-			description: "Credits comments that explain why rather than what.",
-			prose: false,
-			run: comments::comments_explaining_why,
-		},
-		Rule {
-			name: "readability/comment-narrates-code",
-			description: "Penalizes comments that restate what the code already says.",
-			prose: false,
-			run: comments::comments_narrating_code,
-		},
-		Rule {
-			name: "readability/excessive-comments",
-			description: "Flags files where comments outweigh the code.",
-			prose: false,
-			run: comments::excessive_comments,
-		},
-		Rule {
-			name: "readability/thin-documentation",
-			description: "Flags documentation blocks that list structure without explaining purpose.",
-			prose: false,
-			run: |file, _config| comments::thin_documentation(file),
-		},
-		Rule {
-			name: "readability/magic-number",
-			description: "Flags meaningful numeric literals that should be named constants.",
-			prose: false,
-			run: quality::magic_numbers,
-		},
-		Rule {
-			name: "readability/short-identifier",
-			description: "Flags identifiers too short to convey meaning.",
-			prose: false,
-			run: quality::short_identifiers,
-		},
-		Rule {
-			name: "readability/empty-handler",
-			description: "Flags error handlers that discard the error.",
-			prose: false,
-			run: quality::empty_handlers,
-		},
-		Rule {
-			name: "readability/commented-out-code",
-			description: "Flags blocks of code that were commented out instead of deleted.",
-			prose: false,
-			run: quality::commented_out_code,
-		},
-		Rule {
-			name: "complexity/cyclomatic-per-unit",
-			description: "Flags functions with too many independent paths.",
-			prose: false,
-			run: complexity::cyclomatic_per_unit,
-		},
-		Rule {
-			name: "complexity/cognitive-per-unit",
-			description: "Flags functions that are hard to follow.",
-			prose: false,
-			run: complexity::cognitive_per_unit,
-		},
-		Rule {
-			name: "complexity/npath-per-unit",
-			description: "Flags functions with too many execution paths.",
-			prose: false,
-			run: complexity::npath_per_unit,
-		},
-		Rule {
-			name: "complexity/exits-per-unit",
-			description: "Flags functions that return from too many places.",
-			prose: false,
-			run: complexity::exits_per_unit,
-		},
-		Rule {
-			name: "complexity/low-maintainability",
-			description: "Flags functions with a low maintainability index.",
-			prose: false,
-			run: complexity::maintainability_per_unit,
-		},
-		Rule {
-			name: "complexity/cyclomatic-per-file",
-			description: "Flags files with a high decision density.",
-			prose: false,
-			run: complexity::complexity_per_file,
-		},
-		Rule {
-			name: "markdown/fence-readability",
-			description: "Scores the code inside Markdown fences.",
-			prose: true,
-			run: markdown::fence_readability,
-		},
-		Rule {
-			name: "markdown/fence-without-language",
-			description: "Flags fences with no language tag.",
-			prose: true,
-			run: markdown::fence_without_language,
-		},
-		Rule {
-			name: "markdown/fence-language-unknown",
-			description: "Flags fences declaring a language monostyle cannot read.",
-			prose: true,
-			run: markdown::fence_language_unknown,
-		},
-		Rule {
-			name: "markdown/prose-run",
-			description: "Flags long unbroken runs of prose.",
-			prose: true,
-			run: markdown::prose_runs,
-		},
-		Rule {
-			name: "markdown/no-title",
-			description: "Flags documents that do not start with a top-level heading.",
-			prose: true,
-			run: |file, _config| markdown::missing_title(file),
-		},
-		Rule {
-			name: "markdown/skipped-heading-level",
-			description: "Flags heading levels that skip a step.",
-			prose: true,
-			run: |file, _config| markdown::skipped_heading_levels(file),
-		},
-	]
+pub fn all_rules() -> &'static [Rule] {
+	RULES
 }
 
 /// Rule names that are no longer registered but still disable their replacement.
@@ -280,19 +311,19 @@ pub fn expand_disabled(disabled: &[String]) -> Vec<String> {
 	expanded
 }
 
-/// Runs every enabled rule against `file`.
+/// Runs every enabled rule against the file in `context`.
 ///
 /// A Markdown file only runs the rules that declared themselves for prose, because its lexed form
 /// looks like source code to a rule that was written for a real language. This is enforced here rather
 /// than in each rule so that forgetting a guard in a new rule cannot produce prose findings that the
 /// report cannot justify.
 #[must_use]
-pub fn run_rules(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
+pub fn run_rules(context: &RuleContext<'_>) -> Vec<Finding> {
 	let mut findings = Vec::new();
-	let prose = file.language == monostyle_core::Language::Markdown;
-	let disabled = expand_disabled(&config.disabled_rules);
+	let prose = context.file().language == monostyle_core::Language::Markdown;
+	let disabled = expand_disabled(&context.config().disabled_rules);
 
-	for rule in all_rules() {
+	for rule in RULES {
 		if disabled.iter().any(|name| name == rule.name) {
 			continue;
 		}
@@ -301,7 +332,7 @@ pub fn run_rules(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
 			continue;
 		}
 
-		findings.extend((rule.run)(file, config));
+		findings.extend(rule.run.invoke(context));
 	}
 
 	findings

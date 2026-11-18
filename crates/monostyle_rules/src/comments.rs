@@ -28,7 +28,7 @@ use monostyle_lexer::LexedFile;
 use monostyle_lexer::LexedLine;
 
 use crate::config::RulesConfig;
-use crate::unit_measures;
+use crate::context::RuleContext;
 
 /// The first line of the lead-in above a unit declared at `start_line`.
 ///
@@ -56,7 +56,11 @@ fn lead_in_starts_at(file: &LexedFile, start_line: usize) -> usize {
 /// The predicate is asked about the line *above* the current top, so the walk stops before
 /// consuming a line that extends nothing. Indexing is `number - 2` because line numbers are
 /// 1-based while the vector is 0-based.
-fn walk_while(file: &LexedFile, mut top: usize, extends: impl Fn(&LexedLine) -> bool) -> usize {
+fn walk_while<'file>(
+	file: &LexedFile<'file>,
+	mut top: usize,
+	extends: fn(&LexedLine<'file>) -> bool,
+) -> usize {
 	while top > 1 {
 		let Some(line) = file.lines.get(top - 2) else {
 			break;
@@ -77,19 +81,18 @@ fn walk_while(file: &LexedFile, mut top: usize, extends: impl Fn(&LexedLine) -> 
 /// This is the rule that makes the "comment your complex code" advice checkable. It only
 /// fires where complexity genuinely warrants explanation, so simple code is never nagged
 /// into adding noise.
-pub fn comment_required_on_complex_units(file: &LexedFile, config: &RulesConfig) -> Vec<Finding> {
+pub fn comment_required_on_complex_units(context: &RuleContext<'_>) -> Vec<Finding> {
+	let config = context.config();
+
 	if !config.require_comment_on_complex_units {
 		return Vec::new();
 	}
 
-	let units = unit_measures::UnitSet::new(file);
+	let file = context.file();
 	let mut findings = Vec::new();
 
-	for (unit, _metrics) in units.iter() {
-		let lines = unit_measures::lines_of(file, unit);
-		let cognitive = monostyle_metrics::cognitive_complexity_of_lines(lines);
-
-		if cognitive.total < config.comment_required_above_cognitive {
+	for (unit, metrics) in context.units().iter() {
+		if metrics.cognitive < config.comment_required_above_cognitive {
 			continue;
 		}
 
@@ -123,7 +126,7 @@ pub fn comment_required_on_complex_units(file: &LexedFile, config: &RulesConfig)
 			.weight(1.5)
 			.message(format!(
 				"`{}` has a cognitive complexity of {} but no comment explaining it",
-				unit.name, cognitive.total
+				unit.name, metrics.cognitive
 			))
 			.suggestion(
 				"Add a comment explaining why this function is as complex as it is — the \

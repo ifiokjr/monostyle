@@ -47,6 +47,9 @@ pub enum Interpolation {
 }
 
 /// How a language introduces a heredoc string.
+// The boolean fields are independent capabilities of the syntax rather than a state machine, so
+// they stay flat.
+#[allow(clippy::struct_excessive_bools)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct HeredocSyntax {
 	/// The operator that starts a heredoc: `<<` for shell and Ruby, `<<<` for PHP.
@@ -57,6 +60,12 @@ pub struct HeredocSyntax {
 	pub allows_tilde: bool,
 	/// Whether the terminator line may carry code after the identifier (`EOT;`), as in PHP.
 	pub allows_suffix: bool,
+	/// Whether whitespace may separate the marker from the delimiter, as in shell's `cat << EOF`.
+	///
+	/// Ruby's `<<` is also its append operator, and spacing is what tells the two apart: a heredoc's
+	/// delimiter follows the marker immediately, so `list << item` and `class << self` append and
+	/// open a singleton class. Reading those as heredocs swallowed every line after them.
+	pub allows_space: bool,
 }
 
 /// A string literal rule.

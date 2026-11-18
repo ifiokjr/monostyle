@@ -13,6 +13,7 @@
 pub mod comment;
 pub mod lexer;
 pub mod line;
+mod yaml;
 
 pub use comment::CommentIntent;
 pub use lexer::LexedFile;

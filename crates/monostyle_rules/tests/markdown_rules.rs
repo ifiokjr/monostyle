@@ -7,6 +7,7 @@
 
 use monostyle_core::Language;
 use monostyle_lexer::lex;
+use monostyle_rules::RuleContext;
 use monostyle_rules::RulesConfig;
 use monostyle_rules::markdown;
 use monostyle_rules::run_rules;
@@ -18,12 +19,14 @@ use monostyle_rules::run_rules;
 /// its message. Filtering on the namespace would hide exactly the findings these tests are about.
 fn analyze(source: &str) -> Vec<monostyle_core::Finding> {
 	let lexed = lex(source, Language::Markdown);
-	run_rules(&lexed, &RulesConfig::default())
+	let config = RulesConfig::default();
+
+	run_rules(&RuleContext::new(&lexed, &config))
 }
 
 /// Returns the rule names that fired.
-fn rules(source: &str) -> Vec<String> {
-	let mut names: Vec<String> = analyze(source)
+fn rules(source: &str) -> Vec<&'static str> {
+	let mut names: Vec<&'static str> = analyze(source)
 		.into_iter()
 		.map(|finding| finding.rule)
 		.collect();
@@ -49,7 +52,7 @@ fn an_untagged_fence_is_reported() {
 	let names = rules("```\nsome content\n```\n");
 
 	assert!(
-		names.contains(&"markdown/fence-without-language".to_string()),
+		names.contains(&"markdown/fence-without-language"),
 		"an untagged fence should be reported, got {names:?}"
 	);
 }
@@ -60,11 +63,11 @@ fn an_unknown_language_is_reported_separately_from_an_untagged_fence() {
 	let names = rules("```notalanguage\nx\n```\n");
 
 	assert!(
-		names.contains(&"markdown/fence-language-unknown".to_string()),
+		names.contains(&"markdown/fence-language-unknown"),
 		"an unknown language should be reported, got {names:?}"
 	);
 	assert!(
-		!names.contains(&"markdown/fence-without-language".to_string()),
+		!names.contains(&"markdown/fence-without-language"),
 		"a tagged fence is not untagged"
 	);
 }
@@ -85,7 +88,7 @@ fn an_empty_fence_is_not_reported_for_its_contents() {
 	let names = rules("```rust\n```\n");
 
 	assert!(
-		!names.contains(&"readability/blank-line-before-return".to_string()),
+		!names.contains(&"readability/blank-line-before-return"),
 		"an empty fence has nothing to score, got {names:?}"
 	);
 }
@@ -213,7 +216,7 @@ fn a_fence_with_extra_info_still_resolves_its_language() {
 	let names = rules("```rust,no_run\nfn a() {}\n```\n");
 
 	assert!(
-		!names.contains(&"markdown/fence-language-unknown".to_string()),
+		!names.contains(&"markdown/fence-language-unknown"),
 		"`rust,no_run` should resolve to Rust, got {names:?}"
 	);
 }
@@ -238,7 +241,7 @@ fn a_long_prose_run_is_reported() {
 	let names = rules(&prose);
 
 	assert!(
-		names.contains(&"markdown/prose-run".to_string()),
+		names.contains(&"markdown/prose-run"),
 		"a wall of text should be reported, got {names:?}"
 	);
 }
@@ -248,7 +251,7 @@ fn a_document_without_a_title_is_reported() {
 	let names = rules("## A heading at level two\n\nSome text.\n");
 
 	assert!(
-		names.contains(&"markdown/no-title".to_string()),
+		names.contains(&"markdown/no-title"),
 		"a document starting below level one should be reported, got {names:?}"
 	);
 }
@@ -258,7 +261,7 @@ fn a_document_with_a_title_is_not_reported() {
 	let names = rules("# A title\n\n## A section\n\nSome text.\n");
 
 	assert!(
-		!names.contains(&"markdown/no-title".to_string()),
+		!names.contains(&"markdown/no-title"),
 		"a document with a title is fine, got {names:?}"
 	);
 }
@@ -268,7 +271,7 @@ fn a_skipped_heading_level_is_reported() {
 	let names = rules("# Title\n\n### Skipped level two\n\nText.\n");
 
 	assert!(
-		names.contains(&"markdown/skipped-heading-level".to_string()),
+		names.contains(&"markdown/skipped-heading-level"),
 		"a skipped level should be reported, got {names:?}"
 	);
 }
@@ -278,7 +281,7 @@ fn sequential_headings_are_accepted() {
 	let names = rules("# Title\n\n## Section\n\n### Subsection\n\nText.\n");
 
 	assert!(
-		!names.contains(&"markdown/skipped-heading-level".to_string()),
+		!names.contains(&"markdown/skipped-heading-level"),
 		"sequential levels are correct, got {names:?}"
 	);
 }
@@ -401,18 +404,19 @@ fn each_fence_problem_can_be_disabled_on_its_own() {
 			..RulesConfig::default()
 		};
 		let lexed = lex(source, Language::Markdown);
-		run_rules(&lexed, &config)
+
+		run_rules(&RuleContext::new(&lexed, &config))
 	};
 
 	let all = disabled("markdown/nothing");
-	let names: Vec<String> = all.iter().map(|finding| finding.rule.clone()).collect();
+	let names: Vec<&'static str> = all.iter().map(|finding| finding.rule).collect();
 
 	assert!(
-		names.contains(&"markdown/fence-without-language".to_string()),
+		names.contains(&"markdown/fence-without-language"),
 		"the untagged fence should be reported first: {names:?}"
 	);
 	assert!(
-		names.contains(&"markdown/fence-language-unknown".to_string()),
+		names.contains(&"markdown/fence-language-unknown"),
 		"the unknown-language fence should be reported first: {names:?}"
 	);
 
@@ -437,13 +441,13 @@ fn each_heading_problem_can_be_disabled_on_its_own() {
 	// report and disabling one leaves the other's finding in place.
 	let source = "## No title\n\n#### Skipped two levels\n\nText.\n";
 	let lexed = lex(source, Language::Markdown);
-	let findings = run_rules(
+	let findings = run_rules(&RuleContext::new(
 		&lexed,
 		&RulesConfig {
 			disabled_rules: vec!["markdown/no-title".to_string()],
 			..RulesConfig::default()
 		},
-	);
+	));
 
 	assert!(
 		!findings
@@ -466,13 +470,13 @@ fn the_retired_composite_name_still_disables_its_rules() {
 	// silently, so the old name still turns both replacement rules off.
 	let source = "## No title\n\n#### Skipped two levels\n\nText.\n";
 	let lexed = lex(source, Language::Markdown);
-	let findings = run_rules(
+	let findings = run_rules(&RuleContext::new(
 		&lexed,
 		&RulesConfig {
 			disabled_rules: vec!["markdown/heading-structure".to_string()],
 			..RulesConfig::default()
 		},
-	);
+	));
 
 	assert!(
 		!findings.iter().any(|finding| {
