@@ -13,6 +13,12 @@
 //! 3. **Increment for structure.** Sequences of binary logical operators add 1 per
 //!    sequence, not per operator, since a chain of `&&`s reads as one condition.
 //!
+//! The nesting level itself rises only where the specification says it does: when the body
+//! of an `if`, a loop, a `match`/`switch`, or a `catch` opens, and for nested functions and
+//! closures. A brace by itself is structure, not a decision — match arms, scoping blocks,
+//! and the unit's own body would otherwise read as one level deeper than the reader
+//! experiences them, which is what made the numbers here incomparable with other tools.
+//!
 //! Crucially, this metric *rewards what monostyle recommends*: extracting a nested
 //! block into its own function resets nesting to zero, so the score improves even when
 //! the total number of branches is unchanged. That makes cognitive complexity the right
@@ -63,56 +69,181 @@ pub fn cognitive_complexity(file: &LexedFile) -> CognitiveComplexity {
 pub fn cognitive_complexity_of_lines(lines: &[LexedLine]) -> CognitiveComplexity {
 	let mut total = 0;
 	let mut nesting_penalty = 0;
-	let mut max_nesting = 0;
-	let mut depth: usize = 0;
+	let mut nesting = NestingTracker::default();
 
 	for line in lines {
-		// The nesting level a construct sits at is the depth *before* this line opens anything, which
-		// is why the cost is computed first and the depth updated after.
-		let cost = line_cost(line, depth);
+		// The nesting level a construct sits at is the depth *before* this line opens anything,
+		// which is why the cost is computed first and the depth updated after.
+		let cost = line_cost(line, nesting.depth());
 		total += cost.total;
 		nesting_penalty += cost.nesting_penalty;
 
-		// Depth changes after costing so that a construct is charged for the nesting it sits inside,
-		// not the nesting it creates.
-		update_depth(line, &mut depth, &mut max_nesting);
+		nesting.advance(line);
 	}
 
 	CognitiveComplexity {
 		total,
 		nesting_penalty,
-		max_nesting,
+		max_nesting: nesting.max(),
 	}
 }
 
-/// Applies one line's change to the nesting depth.
+/// Tracks the nesting level across a unit's lines.
 ///
-/// A line holding braces changes the depth by the balance of `{` and `}` in its masked code — the
-/// same accounting `find_brace_units` uses for unit boundaries. That is what keeps a block that
-/// opens and closes on one line (`let x = if c { 1 } else { 2 };`) from leaking a level into every
-/// line after it: a line that opens two braces and closes two nets zero, not one.
-///
-/// A line with no braces belongs to a block style that delimits blocks by keyword or indentation,
-/// so the depth follows the opening keywords and the `end`-style terminators instead.
-fn update_depth(line: &LexedLine, depth: &mut usize, max_nesting: &mut usize) {
-	let opens = line.masked_code.matches('{').count();
-	let closes = line.masked_code.matches('}').count();
+/// The level rises only where the specification says it does — when the body of an `if`, a
+/// loop, a `match`/`switch`, or a `catch` opens, and for nested functions and closures — and
+/// falls again when that body closes. Every open block is remembered, raised or not, so a
+/// closing brace is consumed by the construct that owns it rather than by whichever level
+/// happens to be innermost. A brace that opens while nothing else is open is a unit body and
+/// stays at depth 0, so each sibling function in a file starts where the specification starts
+/// a function: at the top.
+#[derive(Default)]
+struct NestingTracker {
+	/// The current nesting level.
+	depth: usize,
+	/// The deepest level reached so far.
+	max: usize,
+	/// For every open block, whether its opener raised the level. Braces that open a plain
+	/// block — a match arm, a scoping brace, the unit's own body — are tracked too, so the
+	/// `}` that closes them is consumed by the right opener instead of by a construct the
+	/// reader never descended into.
+	raised: Vec<bool>,
+	/// Whether the most recent code raised a level whose body brace has not been seen yet.
+	///
+	/// A construct may put its body on the next line — C#'s Allman style puts every `{`
+	/// there — and that brace is the construct's body, not a plain block. The level was
+	/// already counted on the keyword line.
+	pending_raise: bool,
+	/// Whether a chained alternative (`else if` and its spellings) is waiting for a body
+	/// brace that should raise.
+	///
+	/// The previous branch has already closed by the time that brace appears, so the chain's
+	/// body is a new level at the same depth as the `if` it continues. Keyword-only languages
+	/// never send the brace; their next code line clears the flag instead of stacking a level
+	/// the chain does not have.
+	pending_chain: bool,
+}
 
-	if opens > 0 || closes > 0 {
-		let next = depth.saturating_add(opens).saturating_sub(closes);
-		*max_nesting = (*max_nesting).max(next);
-		*depth = next;
-
-		return;
+impl NestingTracker {
+	/// The current nesting level.
+	const fn depth(&self) -> usize {
+		self.depth
 	}
 
-	if opens_nesting(line) {
-		*depth += 1;
-		*max_nesting = (*max_nesting).max(*depth);
+	/// The deepest level reached so far.
+	const fn max(&self) -> usize {
+		self.max
 	}
 
-	if closes_nesting(line) {
-		*depth = depth.saturating_sub(1);
+	/// Advances the tracking by one line.
+	fn advance(&mut self, line: &LexedLine) {
+		self.advance_braces(line);
+		self.advance_keywords(line);
+	}
+
+	/// Applies the line's braces in scan order.
+	///
+	/// Scanning in order is what makes a line that closes one body and opens another
+	/// (`} else {`) settle back to its base level before the next body is raised. Raising
+	/// before closing on the same line recorded a level the reader never climbs, and every
+	/// `} else {` reported one deeper than it is.
+	fn advance_braces(&mut self, line: &LexedLine) {
+		let mut segment_start = 0;
+
+		for (offset, character) in line.masked_code.char_indices() {
+			match character {
+				'{' => self.open_brace(line, segment_start, offset),
+				'}' => {
+					// The segment a later brace is judged by starts after this close, so a
+					// `} else if b {` claims the `else if` and not the `if` it just closed.
+					segment_start = offset + '}'.len_utf8();
+					self.close();
+				}
+				_ => {}
+			}
+		}
+	}
+
+	/// Applies one opening brace.
+	fn open_brace(&mut self, line: &LexedLine, segment_start: usize, offset: usize) {
+		// Both offsets come from `char_indices` over this same string, so the range is always
+		// a valid character-boundary slice; the fallback keeps the scan total rather than
+		// panicking on impossible input.
+		let segment = line
+			.masked_code
+			.get(segment_start..offset)
+			.unwrap_or_default();
+
+		// A pending raise was recorded on the construct's own line and is only waiting for
+		// its body brace, so claiming it must not raise again. A pending chain has not been
+		// counted yet: its brace is the body, and it raises now.
+		let from_pending = std::mem::take(&mut self.pending_raise);
+		let chain_body = std::mem::take(&mut self.pending_chain);
+		let inside_unit = !self.raised.is_empty();
+		let opens_here = inside_unit && (chain_body || opens_body(segment, line));
+
+		if opens_here {
+			self.raise(false);
+		} else if !from_pending {
+			// A plain block — a match arm, a scoping brace, a fresh unit body — is tracked so
+			// its `}` is consumed by it rather than by an enclosing construct. Nothing being
+			// open is what makes the next sibling function depth 0 instead of a function
+			// nested inside the one that just closed.
+			self.raised.push(false);
+		}
+	}
+
+	/// Applies a line's structure keywords.
+	///
+	/// A line without an opening brace raises through its keywords alone, which is how
+	/// languages that signal structure without them work: Ruby's `if x`, Shell's `if …; then`,
+	/// Python's `if x:`. A line that opens a brace is handled entirely by the brace scan, so a
+	/// keyword and its body are never counted twice. A line that only closes (`} else if`)
+	/// still carries the chain, because the body brace is on the following line.
+	fn advance_keywords(&mut self, line: &LexedLine) {
+		if !line.is_code() || line.masked_code.contains('{') {
+			return;
+		}
+
+		if line
+			.nesting
+			.iter()
+			.any(|keyword| opens_keyword_level(keyword))
+		{
+			// The body brace may be on this line or the next; either way the level is the
+			// construct's, so a later plain block must not claim it.
+			self.raise(true);
+		} else if line.nesting.iter().any(|keyword| continues_chain(keyword)) {
+			self.pending_chain = true;
+		} else {
+			// Any other code line ends the window in which a body brace could still follow
+			// the raise, so a stray pending flag is cleared rather than attached to a later
+			// block.
+			self.pending_raise = false;
+			self.pending_chain = false;
+		}
+
+		// End-keyword languages close their bodies the way they opened them: `fi`, `done`,
+		// and `end` pair with the keyword that raised, the way a `}` pairs with a `{`.
+		if closes_with_keyword(line) {
+			self.close();
+		}
+	}
+
+	/// Raises the level one step and records the block that opened.
+	fn raise(&mut self, awaits_body: bool) {
+		self.depth += 1;
+		self.max = self.max.max(self.depth);
+		self.raised.push(true);
+		self.pending_raise = awaits_body;
+		self.pending_chain = false;
+	}
+
+	/// Closes the innermost open block.
+	fn close(&mut self) {
+		if self.raised.pop() == Some(true) {
+			self.depth = self.depth.saturating_sub(1);
+		}
 	}
 }
 
@@ -159,13 +290,13 @@ fn line_cost(line: &LexedLine, depth: usize) -> LineCost {
 /// Reports whether a keyword costs a point, and whether it is exempt from the nesting penalty.
 ///
 /// Chained alternatives and construct markers are exempt because they do not feel nested to the
-/// reader: `else` continues a decision already accounted for rather than opening a new one.
+/// reader: `else` and its `elif` spellings, including Ruby's `elsif`, continue a decision already
+/// accounted for rather than opening a new one.
 fn nesting_charge(keyword: &str) -> (bool, bool) {
 	match keyword {
-		"else" | "case" | "when" | "on" => (true, true),
-		"if" | "elif" | "elseif" | "else if" | "unless" | "guard" | "for" | "foreach" | "while"
-		| "until" | "repeat" | "loop" | "do" | "switch" | "match" | "select" | "cond" | "catch"
-		| "except" | "rescue" => (true, false),
+		"else" | "elif" | "elseif" | "else if" | "elsif" | "case" | "when" | "on" => (true, true),
+		"if" | "unless" | "guard" | "for" | "foreach" | "while" | "until" | "repeat" | "loop"
+		| "do" | "switch" | "match" | "select" | "cond" | "catch" | "except" | "rescue" => (true, false),
 		_ => (false, true),
 	}
 }
@@ -223,48 +354,116 @@ fn positions_of<'text>(
 	})
 }
 
-/// Returns true when a line opens a nesting level by keyword.
+/// Whether the code between the last close and this brace opens a nesting level.
 ///
-/// Only lines without braces reach this: a brace marks the block itself, so those lines are
-/// handled by the brace balance. The endings that remain — `then` and `do` — are how shell and
-/// Ruby signal a block about to open without a keyword the profile lists.
-fn opens_nesting(line: &LexedLine) -> bool {
-	if line.nesting.iter().any(|keyword| {
-		matches!(
-			*keyword,
-			"if" | "elif"
-				| "elseif" | "else if"
-				| "else" | "unless"
-				| "guard" | "for"
-				| "foreach" | "while"
-				| "until" | "repeat"
-				| "loop" | "do"
-				| "switch" | "match"
-				| "select" | "cond"
-				| "catch" | "except"
-				| "rescue" | "try"
-				| "with" | "case"
-				| "when" | "let"
-				| "function"
-		)
-	}) {
-		return true;
-	}
-
-	let trimmed = line.masked_code.trim_end();
-	trimmed.ends_with("then") || trimmed.ends_with("do")
+/// A brace by itself is not enough: match arms, scoping blocks, and struct literals all
+/// open braces whose contents the reader tracks at the level they already sit at. The
+/// keywords the line carries are the evidence that a construct the specification lists
+/// opens here, so the check is whether one of them falls in this brace's segment — the
+/// text since the previous `}`, which keeps a `} else if b {` from claiming the `if` of
+/// the body it just closed.
+fn opens_body(segment: &str, line: &LexedLine) -> bool {
+	line.nesting
+		.iter()
+		.any(|keyword| raises_level(keyword) && segment_contains_word(segment, keyword))
+		|| declares_function(segment)
+		|| opens_closure(segment)
 }
 
-/// Returns true when a line closes a nesting level.
+/// Whether a nesting keyword's body sits one level deeper than the keyword itself.
 ///
-/// Brace languages are handled by counting braces rather than by keyword, because a
-/// closing brace carries no keyword to look for.
-fn closes_nesting(line: &LexedLine) -> bool {
-	let trimmed = line.text.trim();
+/// `else` continues a decision the `if` already opened, and `case`/`when`/`on` label
+/// branches of one, so none of them raise the level — their bodies sit beside the body
+/// they follow, not beneath it. `try` costs nothing until a `catch` actually handles
+/// something, so it does not descend either. An `else if` is exempt from the nesting
+/// penalty as a chained alternative, but the body it opens is still an if body, so it
+/// raises. `fn`/`function` declare nested functions, which are the specification's own
+/// nesting clause.
+fn raises_level(keyword: &str) -> bool {
+	match keyword {
+		"elif" | "elseif" | "else if" | "elsif" | "fn" | "function" => true,
+		_ => matches!(nesting_charge(keyword), (true, false)),
+	}
+}
 
-	if trimmed.starts_with('}') || trimmed == "end" || trimmed == "fi" || trimmed == "done" {
-		return true;
+/// Whether a keyword opens a level on a line that has no opening brace.
+///
+/// Chained alternatives raise through their body brace, after the previous branch has
+/// closed. Raising them here as well would stack a level on `elif` / `elsif`, whose
+/// languages have no brace to close the `if` first.
+fn opens_keyword_level(keyword: &str) -> bool {
+	raises_level(keyword) && !continues_chain(keyword)
+}
+
+/// Whether `keyword` continues a decision instead of opening a nested one.
+fn continues_chain(keyword: &str) -> bool {
+	matches!(keyword, "elif" | "elseif" | "else if" | "elsif")
+}
+
+/// Whether a nested function is declared in `segment`.
+///
+/// A nested function costs no point of its own, but its body sits one level deeper: Rust
+/// spells it `fn`, most other languages `function`. Both are matched as whole words, so
+/// `format` is not `fn` and `function_name` is not `function`.
+fn declares_function(segment: &str) -> bool {
+	segment_contains_word(segment, "fn") || segment_contains_word(segment, "function")
+}
+
+/// Whether `segment` opens a closure body.
+///
+/// A closure's parameter list is a pair of pipes, `|x| { … }` or the empty `|| { … }`,
+/// which is the only brace-opening shape in Rust that carries them. Or-patterns share the
+/// character — `Some(1 | 2) => { … }` — but a match arm always precedes its brace with
+/// `=>`, so a segment containing that arrow is an arm, not a closure. Languages whose
+/// closures use `=>` instead of pipes are not detected here, and their bodies sit at the
+/// level the reader was already at.
+fn opens_closure(segment: &str) -> bool {
+	!segment.contains("=>") && segment.matches('|').count() >= 2
+}
+
+/// Whether `text` contains `word` as a standalone identifier.
+///
+/// Keyword borders are what separate a construct from a name that merely contains it:
+/// `notify` is not `if`, and `elsewise` is not `else`.
+fn segment_contains_word(text: &str, word: &str) -> bool {
+	let mut searched = 0;
+
+	while let Some(offset) = text.get(searched..).and_then(|rest| rest.find(word)) {
+		let start = searched + offset;
+		let end = start + word.len();
+		let bytes = text.as_bytes();
+		let before = start
+			.checked_sub(1)
+			.and_then(|index| bytes.get(index))
+			.is_none_or(|byte| !is_word_byte(*byte));
+		let after = bytes.get(end).is_none_or(|byte| !is_word_byte(*byte));
+
+		if before && after {
+			return true;
+		}
+
+		searched = end;
 	}
 
-	matches!(trimmed, "end)" | "end," | "end." | "esac")
+	false
+}
+
+/// Whether a byte can continue an identifier, so a keyword bordering one is part of a
+/// longer name rather than the keyword itself.
+const fn is_word_byte(byte: u8) -> bool {
+	byte.is_ascii_alphanumeric() || byte == b'_' || byte == b'$'
+}
+
+/// Returns true when a line closes a nesting level with an end keyword.
+///
+/// Brace languages are handled by counting braces, because a closing brace carries no
+/// keyword to look for; this is the counterpart for languages whose blocks close with a
+/// word, where the word is the only signal there is.
+fn closes_with_keyword(line: &LexedLine) -> bool {
+	let trimmed = line.text.trim();
+
+	trimmed == "end"
+		|| trimmed == "fi"
+		|| trimmed == "done"
+		|| matches!(trimmed, "end)" | "end," | "end." | "esac")
 }
